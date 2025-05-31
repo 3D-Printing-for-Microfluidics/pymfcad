@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>GLB Viewer</title>
+  <style>
+    body { margin: 0; overflow: hidden; }
+    canvas { display: block; }
+  </style>
+</head>
+<body>
+  <script type="module">
+    import * as THREE from './three/three.module.js';
+    import { OrbitControls } from './three/controls/OrbitControls.js';
+    import { GLTFLoader } from './three/loaders/GLTFLoader.js';
+
+    // Create Scene
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x222222);
+
+    // Create a group to rotate the world
+    const world = new THREE.Group();
+    scene.add(world);
+
+    // Rotate the world so Z axis points up
+    world.rotation.x = -Math.PI / 2;
+
+    // Add axes
+    const axes = new THREE.AxesHelper(10);
+    world.add(axes);
+
+    // Add lights
+    const light = new THREE.DirectionalLight(0xffffff, 1);
+    light.position.set(10, 10, 10);
+    world.add(light);
+    world.add(new THREE.AmbientLight(0xffffff, 0.5));
+
+    // Add Mesh Object
+    const loader = new GLTFLoader();
+    loader.load('./component.glb', (gltf) => {
+        gltf.scene.traverse((child) => {
+        if (child.isMesh) {
+            let mat = child.material;
+            mat.metalness = 0.5
+            mat.transparent = true;
+            mat.side = THREE.FrontSide;
+        }
+    });
+    world.add(gltf.scene);
+    }, undefined, console.error);
+
+    // Add and position camera
+    const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
+    camera.position.set(1, 1, 1);
+    camera.lookAt(0, 0, 0);
+
+    // Create renderer
+    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    document.body.appendChild(renderer.domElement);
+
+    // Create controls
+    const controls = new OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+
+    function animate() {
+      requestAnimationFrame(animate);
+      controls.update();
+      renderer.render(scene, camera);
+    }
+
+    animate();
+
+    window.addEventListener('resize', () => {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+  </script>
+</body>
+</html>
