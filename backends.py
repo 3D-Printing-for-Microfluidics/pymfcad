@@ -17,6 +17,7 @@ class Backend:
     class Shape(ABC):
         @abstractmethod
         def __init__(self, px_size:float, layer_size:float, nettype:NetType = NetType(), allow_half_integer_translations:bool = False):
+            self.name = None
             self.px_size = px_size
             self.layer_size = layer_size
             self.nettype = nettype

@@ -1,5 +1,8 @@
 from __future__ import annotations
+
+import inspect
 from enum import Enum
+from pathlib import Path
 
 # from router import autoroute_channel
 from backends import NetType, Backend, Manifold3D
@@ -42,14 +45,20 @@ class Port:
         Pointing_Vector.NEG_Z: (0, 0, -1),
     }
 
-    def __init__(self, parent:Component, name: str, _type: PortType, position: tuple[int, int, int],
+    def __init__(self, name: str, _type: PortType, position: tuple[int, int, int],
                  size: tuple[int, int, int], pointing_vector: Pointing_Vector):
-        self.parent = parent
+        self.parent = None
         self.name = name
         self.type = _type
         self.position = position
         self.size = size
         self.pointing_vector = pointing_vector
+
+    def get_port_name(self):
+        if self.parent is None:
+            return self.name
+        else:
+            return f"{self.parent.name}.{self.name}"
 
     def pointing_vector_to_vector(self) -> tuple[int, int, int]:
         try:
@@ -80,8 +89,28 @@ class Port:
     def get_adjusted_position(self):
         return self.get_bounding_box()[0:3]
 
-class Component:
+class InstantiationTrackerMixin:
+    def __init__(self):
+        # Get the first relevant frame outside of this class
+        for frame_info in inspect.stack():
+            filename = frame_info.filename
+            if 'site-packages' in filename or filename == __file__:
+                continue
+            self._instantiation_path = Path(filename).resolve()
+            break
+
+    @property
+    def instantiation_dir(self):
+        return self._instantiation_path.parent
+
+    @property
+    def instantiating_file_stem(self):
+        return self._instantiation_path.stem
+
+class Component(InstantiationTrackerMixin):
     def __init__(self, name:str, position:tuple[int, int, int], size:tuple[int,int,int], px_size:float = 0.0076, layer_size:float = 0.01):
+        super().__init__()
+        self.parent = None
         self.name = name
         self.position = position
         self.size = size
@@ -113,6 +142,10 @@ class Component:
         self.model.append(shape)
 
     def add_port(self, port:Port):
+        for p in self.ports:
+            if p.name == port.name:
+                raise ValueError(f"Port with name {port.name} already exists in component {self.name}")
+        port.parent = self
         self.ports.append(port)
 
     def get_port(self, name:str) -> Port:
@@ -122,6 +155,10 @@ class Component:
         raise ValueError(f"Port with name {name} not found in component {self.name}")
 
     def add_subcomponent(self, component:Component):
+        for c in self.subcomponents:
+            if c.name == component.name:
+                raise ValueError(f"Commponent with name {component.name} already exists in component {self.name} subcomponents")
+        component.parent = self
         self.subcomponents.append(component)
 
     def make_cube(self, size:tuple[int, int, int], center:bool=False, nettype:str = "default") -> Backend.Cube:
