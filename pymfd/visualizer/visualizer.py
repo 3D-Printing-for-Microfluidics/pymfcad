@@ -3,7 +3,8 @@ import trimesh
 from trimesh.scene import Scene
 from trimesh.visual import ColorVisuals
 
-from ..microfluidic_designer import Color, Backend, Manifold3D, get_backend, Component, Port, Device
+from ..microfluidic_designer import get_backend, Component, Port, Device
+from ..backend import Backend, Manifold3D, Color
 
 class Visualizer:
     def __init__(self):

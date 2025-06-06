@@ -2,9 +2,9 @@ from pymfd.router import Router
 from pymfd.visualizer import Visualizer
 from pymfd.microfluidic_designer import Device, Component, Color, set_manifold3d_backend, set_fn
 
-from components.valve20px import Valve20px
-from components.testcube import TestCube
-from components.pinhole import Pinhole
+from components import Valve20px
+from components import TestCube
+from components import Pinhole
 
 
 set_manifold3d_backend()

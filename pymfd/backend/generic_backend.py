@@ -7,13 +7,33 @@ from abc import ABC, abstractmethod
 def _is_integer(val: float) -> bool:
     return abs(val - round(val)) < 1e-6
 
-class Backend:
+class Backend(ABC):
+    """
+    Abstract base class for all backends.
+    """
     def set_fn(self, fn):
+        """
+        Set the number of facets for the shapes.
+
+        Input:
+        - fn (int): The number of facets.
+        """
         pass
 
     class Shape(ABC):
+        """
+        Abstract base class for all shapes.
+        """
         @abstractmethod
         def __init__(self, px_size:float, layer_size:float, allow_half_integer_translations:bool = False):
+            """
+            Initialize the shape.
+
+            Input:
+            - px_size (float): The size of the pixels.
+            - layer_size (float): The size of the layers.
+            - allow_half_integer_translations (bool): Whether to allow half integer translations.
+            """
             self.name = None
             self.parent = None
             self.color = None
@@ -24,6 +44,12 @@ class Backend:
             self.keepouts = []
 
         def _translate_keepouts(self, translation: tuple[float, float, float]):
+            """
+            Translate the keepouts.
+
+            Input:
+            - translation (tuple[float, float, float]): The translation.
+            """
             dx, dy, dz = translation
             self.keepouts = [
                 [x0 + dx, y0 + dy, z0 + dz, x1 + dx, y1 + dy, z1 + dz]
@@ -31,7 +57,13 @@ class Backend:
             ]
 
         def _rotate_point(self, point:tuple[float, float, float], rotation:tuple[float, float, float]):
-            """Rotate a point around origin (0,0,0) with Euler angles (in degrees) in XYZ order."""
+            """
+            Rotate a point around origin (0,0,0) with Euler angles (in degrees) in XYZ order.
+            
+            Input:
+            - point (tuple[float, float, float]): The point to rotate.
+            - rotation (tuple[float, float, float]): The rotation.
+            """
             # Convert degrees to radians
             rx, ry, rz = np.radians(rotation)
             x, y, z = point
@@ -51,6 +83,12 @@ class Backend:
             return [x, y, z]
 
         def _rotate_keepouts(self, rotation: tuple[float, float, float]):
+            """
+            Rotate the keepouts.
+
+            Input:
+            - rotation (tuple[float, float, float]): The rotation.
+            """
             rotated_keepouts = []
             for x0, y0, z0, x1, y1, z1 in self.keepouts:
                 # Get all 8 corners
@@ -66,6 +104,12 @@ class Backend:
             self.keepouts = rotated_keepouts
 
         def _scale_keepouts(self, scale: tuple[float, float, float]) -> None:
+            """
+            Scale the keepouts.
+
+            Input:
+            - scale (tuple[float, float, float]): The scale.
+            """
             sx, sy, sz = scale
             self.keepouts = [
                 [
@@ -80,6 +124,12 @@ class Backend:
             ]
 
         def _mirror_keepouts(self, axis: tuple[bool, bool, bool]):
+            """
+            Mirror the keepouts.
+
+            Input:
+            - axis (tuple[bool, bool, bool]): The axis to mirror.
+            """
             flip_x, flip_y, flip_z = axis
             new_keepouts = []
             for x0, y0, z0, x1, y1, z1 in self.keepouts:
@@ -91,6 +141,15 @@ class Backend:
 
         @abstractmethod
         def translate(self, translation:tuple[float, float, float]) -> 'Shape':
+            """
+            Translate the shape.
+
+            Input:
+            - translation (tuple[float, float, float]): The translation.
+
+            Returns:
+            - self (Shape): The translated shape.
+            """
             if not self.allow_half_integer_translations and (not _is_integer(translation[0]) or 
                                    not _is_integer(translation[1]) or 
                                    not _is_integer(translation[2])):
@@ -99,10 +158,28 @@ class Backend:
 
         @abstractmethod
         def rotate(self, rotation:tuple[float, float, float]) -> 'Shape':
+            """
+            Rotate the shape.
+
+            Input:
+            - rotation (tuple[float, float, float]): The rotation.
+
+            Returns:
+            - self (Shape): The rotated shape.
+            """
             self._rotate_keepouts(rotation)
 
         @abstractmethod
         def resize(self, size:tuple[int, int, int]) -> 'Shape':
+            """
+            Resize the shape.
+
+            Input:
+            - size (tuple[int, int, int]): The size.
+
+            Returns:
+            - self (Shape): The resized shape.
+            """
             bounds = self.object.bounding_box()
             sx = size[0] / (bounds[3] - bounds[0])/self.px_size
             sy = size[1] / (bounds[4] - bounds[1])/self.px_size
@@ -112,18 +189,54 @@ class Backend:
 
         @abstractmethod
         def mirror(self, axis:tuple[bool, bool, bool]) -> 'Shape':
+            """
+            Mirror the shape.
+
+            Input:
+            - axis (tuple[bool, bool, bool]): The axis to mirror.
+
+            Returns:
+            - self (Shape): The mirrored shape.
+            """
             self._mirror_keepouts(axis)
 
         @abstractmethod
         def __add__(self, other:'Shape') -> 'Shape': # union
+            """
+            Union the shape with another shape.
+
+            Input:
+            - other (Shape): The other shape.
+
+            Returns:
+            - self (Shape): The union of the two shapes.
+            """
             self.keepouts.extend(other.keepouts)
 
         @abstractmethod
         def __sub__(self, other:'Shape') -> 'Shape': # difference
+            """
+            Difference the shape with another shape.
+
+            Input:
+            - other (Shape): The other shape.
+
+            Returns:
+            - self (Shape): The difference of the two shapes.
+            """
             pass
 
         @abstractmethod
         def hull(self, other:'Shape') -> 'Shape':
+            """
+            Hull the shape with another shape.
+
+            Input:
+            - other (Shape): The other shape.
+
+            Returns:
+            - self (Shape): The hull of the two shapes.
+            """
             # Combine keepouts
             self.keepouts.extend(other.keepouts)
 
@@ -170,8 +283,20 @@ class Backend:
             ])
 
     class Cube(Shape, ABC):
+        """
+        Abstract base class for all cube shapes.
+        """
         @abstractmethod
         def __init__(self, size:tuple[int, int, int], px_size:float, layer_size:float, center:bool=False):
+            """
+            Initialize the cube shape.
+
+            Input:
+            - size (tuple[int, int, int]): The size of the cube.
+            - px_size (float): The size of the pixels.
+            - layer_size (float): The size of the layers.
+            - center (bool): Whether to center the cube.
+            """
             super().__init__(px_size, layer_size)
 
             # allow half translations if using center and at least one dimention is odd
@@ -189,8 +314,24 @@ class Backend:
                 self.keepouts.append((0,0,0,size[0], size[1], size[2]))
 
     class Cylinder(Shape, ABC):
+        """
+        Abstract base class for all cylinder shapes.
+        """
         @abstractmethod
         def __init__(self, height:int, radius:float=None, bottom_r:float=None, top_r:float=None, px_size:float=None, layer_size:float=None, center:bool=False, fn=0):
+            """
+            Initialize the cylinder shape.
+
+            Input:
+            - height (int): The height of the cylinder.
+            - radius (float): The radius of the cylinder.
+            - bottom_r (float): The radius of the bottom of the cylinder.
+            - top_r (float): The radius of the top of the cylinder.
+            - px_size (float): The size of the pixels.
+            - layer_size (float): The size of the layers.
+            - center (bool): Whether to center the cylinder.
+            - fn (int): The number of facets.
+            """
             super().__init__(px_size, layer_size)
 
             # only allow radiuses to be multiples of 0.5
@@ -224,8 +365,20 @@ class Backend:
                 self.keepouts.append((-radius,-radius,0,radius,radius,height))
 
     class Sphere(Shape, ABC):
+        """
+        Abstract base class for all sphere shapes.
+        """
         @abstractmethod
         def __init__(self, radius:float, px_size:float=None, layer_size:float=None, fn=0):
+            """
+            Initialize the sphere shape.
+
+            Input:
+            - radius (float): The radius of the sphere.
+            - px_size (float): The size of the pixels.
+            - layer_size (float): The size of the layers.
+            - fn (int): The number of facets.
+            """
             super().__init__(px_size, layer_size)
 
             # only allow radius to be multiples of 0.5
@@ -243,9 +396,15 @@ class Backend:
             self.keepouts.append((-radius,-radius,-radius,radius,radius,radius))
 
     class TextExtrusion(Shape, ABC):
+        """
+        Abstract base class for all text extrusion shapes.
+        """
         def __init__(self, text:str, font:str, px_size:float=None, layer_size:float=None):
             pass
 
     class STL(Shape, ABC):
+        """
+        Abstract base class for all STL imports.
+        """
         def __init__(self):
             pass

@@ -1,7 +1,16 @@
 from pymfd.microfluidic_designer import Component, Port, Color
-from pymfd.router import  Router, PolychannelShape
+from pymfd.router import Router, PolychannelShape
 
 class Pinhole(Component):
+    """
+    Simple 144 px pinhole component. 
+    
+    Ports:
+    - port:
+        - Type: INOUT
+        - Size: (8, 8, 6)
+        - Normal: POS_X
+    """
     def __init__(self):
         super().__init__(size=(250, 144, 110), position=(0,0,0), px_size=0.0076, layer_size=0.01) # px_size=1.0, layer_size=1.0)
 

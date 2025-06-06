@@ -1,5 +1,5 @@
 from pymfd.microfluidic_designer import set_manifold3d_backend, Device, Component, Color
-from components.valve20px import Valve20px
+from components import Valve20px
 from pymfd.router import Router
 from pymfd.visualizer import Visualizer
 

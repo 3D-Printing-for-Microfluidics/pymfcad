@@ -1,6 +1,9 @@
 from pymfd.microfluidic_designer import Component, Port, Color
 
 class TestCube(Component):
+    """
+    Port test cube. Used to test visualization and component geometric transformations.
+    """
     def __init__(self):
         super().__init__(size=(30, 30, 15), position=(0,0,0), px_size=0.0076, layer_size=0.01) # px_size=1.0, layer_size=1.0)
 

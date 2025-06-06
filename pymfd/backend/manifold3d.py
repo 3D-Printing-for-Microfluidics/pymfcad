@@ -2,10 +2,19 @@ from manifold3d import set_circular_segments, Manifold
 from .generic_backend import Backend
 
 class Manifold3D(Backend):
+    """
+    Manifold3D backend.
+    """
     def set_fn(self, fn):
+        """
+        Set the number of facets for the shapes.
+        """
         set_circular_segments(fn)
 
     class Shape(Backend.Shape):
+        """
+        Manifold3D shape.
+        """
         def __init__(self, px_size:float, layer_size:float, allow_half_integer_translations:bool = False):
             super().__init__(px_size, layer_size, allow_half_integer_translations)
         
@@ -50,11 +59,17 @@ class Manifold3D(Backend):
             return self
 
     class Cube(Backend.Cube, Shape):
+        """
+        Manifold3D cube.
+        """
         def __init__(self, size:tuple[int, int, int], px_size:float, layer_size:float, center:bool=False):
             super().__init__(size, px_size, layer_size, center)
             self.object = Manifold.cube((size[0]*px_size, size[1]*px_size, size[2]*layer_size), center=center)
 
     class Cylinder(Backend.Cylinder, Shape):
+        """
+        Manifold3D cylinder.
+        """
         def __init__(self, height:int, radius:float=None, bottom_r:float=None, top_r:float=None, px_size:float=None, layer_size:float=None, center:bool=False, fn=0):
             super().__init__(height, radius, bottom_r, top_r, px_size, layer_size, center, fn)
 
@@ -63,6 +78,9 @@ class Manifold3D(Backend):
             self.object = Manifold.cylinder(height=height*layer_size, radius_low=bottom*px_size, radius_high=top*px_size, circular_segments=fn, center=center)
 
     class Sphere(Backend.Sphere, Shape):
+        """
+        Manifold3D sphere.
+        """
         def __init__(self, radius:float, px_size:float=None, layer_size:float=None, fn=0):
             super().__init__(radius, px_size, layer_size, fn)
             self.object = Manifold.sphere(radius=radius*px_size, circular_segments=fn)

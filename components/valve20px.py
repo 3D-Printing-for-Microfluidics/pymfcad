@@ -1,6 +1,30 @@
 from pymfd.microfluidic_designer import Component, Port, Color
 
 class Valve20px(Component):
+    """
+    20 px membrane valve
+    - 3 layer fluidic chamber
+    - 11 layer pneumatic chamber
+    - 1 layer membrane
+
+    Ports:
+    - F_IN:
+        - Type: IN
+        - Size: (6, 6, 4)
+        - Normal: NEG_Z
+    - F_OUT:
+        - Type: OUT
+        - Size: (8, 8, 6)
+        - Normal: POS_Y
+    - P_IN:
+        - Type: INOUT
+        - Size: (8, 8, 6)
+        - Normal: NEG_Y
+    - P_OUT:
+        - Type: INOUT
+        - Size: (8, 8, 6)
+        - Normal: POS_Y
+    """
     def __init__(self):
         super().__init__(size=(36, 36, 24), position=(0,0,0), px_size=0.0076, layer_size=0.01) # px_size=1.0, layer_size=1.0)
 
