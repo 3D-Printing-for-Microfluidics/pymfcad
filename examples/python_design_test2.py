@@ -1,23 +1,29 @@
-from microfluidic_designer import set_manifold3d_backend, Device, Component, NetType
+from pymfd.microfluidic_designer import set_manifold3d_backend, Device, Component, Color
 from components.valve20px import Valve20px
-from router import Router
-from visualizer import Visualizer
+from pymfd.router import Router
+from pymfd.visualizer import Visualizer
 
 set_manifold3d_backend()
 visualizer = Visualizer()
 
 device_size = (2560, 1600, 500)
 device_position = (0, 0, 0)
-device = Device("TestDevice", device_position, device_size)
+device = Device("TestDevice", device_size, device_position)
 
-device.add_nettype(NetType(name="pneumatic", color=(0, 255, 0, 255)))
-device.add_nettype(NetType(name="fluidic", color=(0, 255, 255, 255)))
+device.add_label("device", Color.from_rgba((0, 255, 255, 127)))
+device.add_label("pneumatic", Color.from_rgba((0, 255, 0, 127)))
+device.add_label("fluidic", Color.from_rgba((255, 0, 255, 127)))
+device.add_label("white", Color.from_rgba((255, 255, 255, 127)))
 
 chan_size = (8, 8, 6)
 
-x = 10
-y = 10
-z = 5
+# x = 10
+# y = 10
+# z = 10
+
+x = 2
+y = 2
+z = 2
 
 valve_grid = []
 for l in range(z):
@@ -25,7 +31,7 @@ for l in range(z):
     for c in range(x):
         valve_row = []
         for r in range(y):
-            v = Valve20px(f"Valve-{l}-{c}-{r}")
+            v = Valve20px()
             mirror = False
             if c%2 == 1:
                 mirror = not mirror
@@ -38,12 +44,18 @@ for l in range(z):
             else:
                 valve_row.append(v)
 
-            device.add_subcomponent(v)
+            device.add_subcomponent(f"Valve_{l}_{c}_{r}", v)
+            device.relabel_labels([f"Valve_{l}_{c}_{r}.pneumatic"], "pneumatic")
+            device.relabel_labels([f"Valve_{l}_{c}_{r}.fluidic"], "fluidic")
+
         if l%2 == 1:
             valve_col.insert(0, valve_row)
         else:
             valve_col.append(valve_row)
     valve_grid.append(valve_col)
+
+device.relabel_subcomponents([valve_grid[0][0][0]], "device")
+device.relabel_shapes([valve_grid[0][0][0].FluidicChamber], "white")
 
 rtr = Router(component=device, channel_size=chan_size, channel_margin=chan_size)
 for l in range(z):
@@ -63,23 +75,22 @@ for l in range(z):
             else:
                 continue
             try:
-                rtr.autoroute_channel(v1.get_port("F_OUT"), v2.get_port("F_IN"), nettype="fluidic")
+                rtr.autoroute_channel(v1.F_OUT, v2.F_IN, label="fluidic")
             except TypeError:
                 pass
             try:
-                rtr.autoroute_channel(v1.get_port("P_OUT"), v2.get_port("P_IN"), nettype="pneumatic")
+                rtr.autoroute_channel(v1.P_OUT, v2.P_IN, label="pneumatic")
             except TypeError:
                 pass
 rtr.route()
 
 # IMPORTANT: If you want to see inside the inverted device, you need to create you bulk shape last
-
-bulk_cube = device.make_cube(device_size, center=False, nettype="device")
+bulk_cube = device.make_cube(device_size, center=False)
 bulk_cube.translate(device_position)
-device.add_bulk_shape(bulk_cube)
+device.add_bulk_shape("bulk_cube", bulk_cube, label="device")
 
 # device.invert_device()
 
 # Mesh the component
 scene = visualizer.mesh_component_recursive(device, wireframe_bulk=True)
-scene.export("component.glb")
+scene.export("pymfd/visualizer/component.glb")

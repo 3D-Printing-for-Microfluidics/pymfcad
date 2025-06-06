@@ -8,7 +8,7 @@ import pickle
 import importlib
 from rtree import index
 from pathlib import Path
-from microfluidic_designer import Port
+from ..microfluidic_designer import Port
 
 
 heuristic_weight = 10
@@ -75,14 +75,14 @@ class Router:
 
             # add port keepout
             for port in subcomponent.ports:
-                key = port.get_port_name()
+                key = port.get_name()
                 ko = (self._add_margin(port.get_bounding_box(), self.channel_margin))
                 self.keepouts[key] = (cnt, ko)
                 idx.insert(cnt, ko)
                 cnt += 1
 
         # add shape keepout
-        for i, shape in enumerate(self.component.model):
+        for i, shape in enumerate(self.component.shapes):
             for j, keepout in enumerate(shape.keepouts):
                 key = f"{i}_{j}"
                 if shape.name is not None:
@@ -95,12 +95,12 @@ class Router:
         self.keepout_index = idx
 
 
-    def polychannel(self, shapes:list[PolychannelShape], nettype="default"):
+    def polychannel(self, shapes:list[PolychannelShape]):
         shape_list = []
         last_shape = None
         for shape in shapes:
             if shape.shape_type == "cube":
-                cube = self.component.make_cube(shape.size, center=False, nettype=nettype)
+                cube = self.component.make_cube(shape.size, center=False)
                 cube.rotate(shape.rotation)
                 if shape.absolute_position or last_shape is None:
                     cube.translate(shape.position)
@@ -109,9 +109,7 @@ class Router:
                 shape_list.append(cube)
 
             elif shape.shape_type == "sphr":
-                sphere = self.component.make_sphere(
-                    radius=1, center=False, nettype=nettype
-                )
+                sphere = self.component.make_sphere(r=1, center=False)
                 sphere.resize(shape.size)
                 sphere.rotate(shape.rotation)
                 if shape.absolute_position or last_shape is None:
@@ -146,7 +144,7 @@ class Router:
 
     def _move_outside_port(self, port: Port):
         pos = list(port.position)
-        direction = port.pointing_vector_to_vector()
+        direction = port.to_vector()
 
         # Extend the bounding box of the port to include its margin
         port_bbox = port.get_bounding_box()
@@ -287,29 +285,17 @@ class Router:
                 heapq.heappush(open_heap, neighbor_node)
 
         return None  # No path found
-
-    def _get_instantiation_info(self):
-        """Return (directory, filename_stem) of the file that instantiated the component, if it's a Device or Component."""
-        class_name = type(self.component).__name__
-
-        if class_name in {'Device', 'Component'}:
-            return self.component.instantiation_dir, self.component.instantiating_file_stem
-
-        # Fallback: use where the class is defined
-        module_name = self.component.__class__.__module__
-        module = sys.modules.get(module_name) or importlib.import_module(module_name)
-        path = Path(module.__file__).resolve()
-        return path.parent, path.stem
     
     def _load_or_compute_a_star(self, input_port, output_port):
         # Get base path and file name
-        instantiation_dir, file_stem = self._get_instantiation_info()
-
+        instantiation_dir = self.component.instantiation_dir
+        file_stem = self.component.instantiating_file_stem
+        
         # Build cache directory path: <instantiator>/<ClassName>_cache/
         cache_dir = instantiation_dir / f"{file_stem}_cache" / type(self.component).__name__
 
         # Final cache file path
-        cache_file = cache_dir / f"{input_port.get_port_name()}__to__{output_port.get_port_name()}.pkl"
+        cache_file = cache_dir / f"{input_port.get_name()}__to__{output_port.get_name()}.pkl"
 
         if os.path.exists(cache_file):
             with open(cache_file, 'rb') as f:
@@ -318,7 +304,7 @@ class Router:
         # Compute and cache the result
         removed_keepouts = {}
         for keepout_key, (keepout_idx, keepout_box) in self.keepouts.items():
-            if input_port.get_port_name() in keepout_key or output_port.get_port_name() in keepout_key:
+            if input_port.get_name() == keepout_key or output_port.get_name() == keepout_key or ("__to__" in keepout_key and (input_port.get_name() in keepout_key or output_port.get_name() in keepout_key)):
                 removed_keepouts[keepout_idx] = keepout_box
                 self.keepout_index.delete(keepout_idx, keepout_box)
                 
@@ -334,40 +320,39 @@ class Router:
 
         return result
 
-    def autoroute_channel(self, input_port, output_port, nettype="default"):
+    def autoroute_channel(self, input_port, output_port, label):
 
         if input_port.parent is None:
             raise ValueError("Port must be added to component before routing! (input)")
         if output_port.parent is None:
             raise ValueError("Port must be added to component before routing! (output)")
 
-        name = f"{input_port.get_port_name()}__to__{output_port.get_port_name()}"
+        name = f"{input_port.get_name()}__to__{output_port.get_name()}"
 
         self.routes[name] = {
-            "Route Type": "autoroute",
-            "Input": input_port,
-            "Output": output_port,
-            "Nettype": nettype
+            "route_type": "autoroute",
+            "input": input_port,
+            "output": output_port,
+            "label": label
         }
 
     def route(self):
         for name, val in self.routes.items():
-            if val["Route Type"] == "autoroute":
-                path = self._load_or_compute_a_star(val["Input"], val["Output"])
+            if val["route_type"] == "autoroute":
+                path = self._load_or_compute_a_star(val["input"], val["output"])
 
             # Make polychannel path
             if len(path) < 2:
                 return None
 
             polychannel_path = [
-                PolychannelShape("cube", val["Input"].size, val["Input"].get_adjusted_position(), absolute_position=True)
+                PolychannelShape("cube", val["input"].size, val["input"].get_origin(), absolute_position=True)
             ]
             for point in path[1:-1]:
                 polychannel_path.append(PolychannelShape("cube", self.channel_size, point, absolute_position=True))
-            polychannel_path.append(PolychannelShape("cube", val["Output"].size, val["Output"].get_adjusted_position(), absolute_position=True))
+            polychannel_path.append(PolychannelShape("cube", val["output"].size, val["output"].get_origin(), absolute_position=True))
 
-            polychannel = self.polychannel(polychannel_path, nettype=val["Nettype"])
-            polychannel.name = name
+            polychannel = self.polychannel(polychannel_path)
 
             # add polychannel keepout
             for j, keepout in enumerate(polychannel.keepouts):
@@ -376,4 +361,4 @@ class Router:
                 self.keepouts[ko_key] = (len(self.keepouts.keys()), ko)
                 self.keepout_index.insert(len(self.keepouts.keys()), ko)
 
-            self.component.add_shape(polychannel)
+            self.component.add_shape(name, polychannel, label=val["label"])

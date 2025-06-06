@@ -3,24 +3,22 @@ from __future__ import annotations
 import numpy as np
 from enum import Enum
 from abc import ABC, abstractmethod
-from manifold3d import Manifold
 
 def _is_integer(val: float) -> bool:
     return abs(val - round(val)) < 1e-6
 
-class NetType:
-    def __init__(self, name:str = "Default", color:tuple[int, int, int, int] = (0, 255, 255, 255)):
-        self.name = name
-        self.color = color
-
 class Backend:
+    def set_fn(self, fn):
+        pass
+
     class Shape(ABC):
         @abstractmethod
-        def __init__(self, px_size:float, layer_size:float, nettype:NetType = NetType(), allow_half_integer_translations:bool = False):
+        def __init__(self, px_size:float, layer_size:float, allow_half_integer_translations:bool = False):
             self.name = None
+            self.parent = None
+            self.color = None
             self.px_size = px_size
             self.layer_size = layer_size
-            self.nettype = nettype
             self.allow_half_integer_translations = allow_half_integer_translations
             self.object = None
             self.keepouts = []
@@ -103,10 +101,6 @@ class Backend:
         def rotate(self, rotation:tuple[float, float, float]) -> 'Shape':
             self._rotate_keepouts(rotation)
 
-        # @abstractmethod
-        # def scale(self, scale:tuple[float, float, float]) -> 'Shape': # would need to snap to grid
-        #     pass
-
         @abstractmethod
         def resize(self, size:tuple[int, int, int]) -> 'Shape':
             bounds = self.object.bounding_box()
@@ -127,10 +121,6 @@ class Backend:
         @abstractmethod
         def __sub__(self, other:'Shape') -> 'Shape': # difference
             pass
-
-        # @abstractmethod
-        # def __mul__(self, other:'Shape') -> 'Shape': # intersection
-        #     pass
 
         @abstractmethod
         def hull(self, other:'Shape') -> 'Shape':
@@ -181,8 +171,8 @@ class Backend:
 
     class Cube(Shape, ABC):
         @abstractmethod
-        def __init__(self, size:tuple[int, int, int], px_size:float, layer_size:float, center:bool=False, nettype:NetType = NetType()):
-            super().__init__(px_size, layer_size, nettype)
+        def __init__(self, size:tuple[int, int, int], px_size:float, layer_size:float, center:bool=False):
+            super().__init__(px_size, layer_size)
 
             # allow half translations if using center and at least one dimention is odd
             if center and (size[0] % 2 != 0 or 
@@ -200,8 +190,8 @@ class Backend:
 
     class Cylinder(Shape, ABC):
         @abstractmethod
-        def __init__(self, height:int, radius:float=None, px_size:float=None, layer_size:float=None, bottom_r:float=None, top_r:float=None, center:bool=False, nettype:NetType = NetType(), fn=20):
-            super().__init__(px_size, layer_size, nettype)
+        def __init__(self, height:int, radius:float=None, bottom_r:float=None, top_r:float=None, px_size:float=None, layer_size:float=None, center:bool=False, fn=0):
+            super().__init__(px_size, layer_size)
 
             # only allow radiuses to be multiples of 0.5
             if radius is not None:
@@ -235,8 +225,8 @@ class Backend:
 
     class Sphere(Shape, ABC):
         @abstractmethod
-        def __init__(px_size, layer_size, nettype):
-            super().__init__(px_size, layer_size, nettype)
+        def __init__(self, radius:float, px_size:float=None, layer_size:float=None, fn=0):
+            super().__init__(px_size, layer_size)
 
             # only allow radius to be multiples of 0.5
             if radius is not None:
@@ -252,72 +242,10 @@ class Backend:
             # add keepout
             self.keepouts.append((-radius,-radius,-radius,radius,radius,radius))
 
-class Manifold3D(Backend):
-    class Shape(Backend.Shape):
-        def __init__(self, px_size:float, layer_size:float, nettype:NetType = NetType(), allow_half_integer_translations:bool = False):
-            super().__init__(px_size, layer_size, nettype, allow_half_integer_translations)
-        
-        def translate(self, translation:tuple[float, float, float]) -> 'Shape':
-            super().translate(translation)
-            self.object = self.object.translate((translation[0] * self.px_size, translation[1] * self.px_size, translation[2] * self.layer_size))
-            return self
+    class TextExtrusion(Shape, ABC):
+        def __init__(self, text:str, font:str, px_size:float=None, layer_size:float=None):
+            pass
 
-        def rotate(self, rotation:tuple[float, float, float]) -> 'Shape':
-            super().rotate(rotation)
-            self.object = self.object.rotate(rotation)
-            return self
-
-        # def scale(self, scale:tuple[float, float, float]) -> 'Shape':
-        #     self.object = self.object.scale(scale)
-        #     return self
-
-        def resize(self, size: tuple[int, int, int]) -> 'Shape':
-            super().resize(size)
-            bounds = self.object.bounding_box()
-            sx = size[0]*self.px_size / (bounds[3] - bounds[0])
-            sy = size[1]*self.px_size / (bounds[4] - bounds[1])
-            sz = size[2]*self.layer_size / (bounds[5] - bounds[2])
-
-            self.object = self.object.scale((sx, sy, sz))
-            return self
-
-        def mirror(self, axis:tuple[bool, bool, bool]) -> 'Shape':
-            super().mirror(axis)
-            self.object = self.object.mirror(axis)
-            return self
-
-        def __add__(self, other:'Shape') -> 'Shape': # union
-            super().__add__(other)
-            self.object = self.object + other.object
-            return self
-
-        def __sub__(self, other:'Shape') -> 'Shape': # difference
-            super().__sub__(other)
-            self.object = self.object - other.object
-            return self
-
-        # def __mul__(self, other:'Shape') -> 'Shape': # intersection
-        #     return self.object * other.object
-
-        def hull(self, other: 'Shape') -> 'Shape':
-            super().hull(other)
-            self.object = Manifold.batch_hull([self.object, other.object])
-            return self
-
-    class Cube(Backend.Cube, Shape):
-        def __init__(self, size:tuple[int, int, int], px_size:float, layer_size:float, center:bool=False, nettype:NetType = NetType()):
-            super().__init__(size, px_size, layer_size, center, nettype)
-            self.object = Manifold.cube((size[0]*px_size, size[1]*px_size, size[2]*layer_size), center=center)
-
-    class Cylinder(Backend.Cylinder, Shape):
-        def __init__(self, height:int, radius:float=None, px_size:float=None, layer_size:float=None, bottom_r:float=None, top_r:float=None, center:bool=False, nettype:NetType = NetType(), fn:int=20):
-            super().__init__(height, radius, px_size, layer_size, bottom_r, top_r, center, nettype, fn)
-
-            bottom = bottom_r if bottom_r is not None else radius
-            top = top_r if top_r is not None else radius
-            self.object = Manifold.cylinder(height=height*layer_size, radius_low=bottom*px_size, radius_high=top*px_size, circular_segments=fn, center=center)
-
-    class Sphere(Backend.Sphere, Shape):
-        def __init__(self, radius:float, px_size:float, layer_size:float, nettype:NetType = NetType(), fn:int=20):
-            super().__init__(radius, px_size, layer_size, nettype, fn)
-            self.object = Manifold.sphere(radius=radius*px_size, circular_segments=fn)
+    class STL(Shape, ABC):
+        def __init__(self):
+            pass
