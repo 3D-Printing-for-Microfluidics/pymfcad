@@ -1,10 +1,6 @@
 from pymfd.router import Router
-from pymfd.microfluidic_designer import Device, Component, Color, set_manifold3d_backend, set_fn
-
-from components import Valve20px
-from components import TestCube
-from components import Pinhole
-
+from pymfd.components import Valve20px, TestCube, Pinhole
+from pymfd import Device, Component, Color, set_manifold3d_backend, set_fn
 
 set_manifold3d_backend()
 # set_fn(100)
@@ -21,7 +17,7 @@ set_manifold3d_backend()
 # # Add a cube shape
 # # component.add_shape("simple_cube", component.make_cube((1, 1, 1), center=False), label="default")
 # component.add_shape("text", component.make_text("Hello Greg!!"), label="default")
-# # from pymfd.microfluidic_designer import get_backend
+# # from pymfd import get_backend
 
 # # for i in range(1):
 # #     for j in range(1):

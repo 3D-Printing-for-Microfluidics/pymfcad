@@ -9,7 +9,7 @@ import importlib
 from rtree import index
 from pathlib import Path
 
-from ..microfluidic_designer import Port, get_backend, PolychannelShape
+from pymfd import PolychannelShape, Port, get_backend
 
 heuristic_weight = 10
 turn_weight = 2

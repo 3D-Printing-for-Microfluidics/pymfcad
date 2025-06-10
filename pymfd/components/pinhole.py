@@ -1,4 +1,4 @@
-from pymfd.microfluidic_designer import Component, Port, Color, PolychannelShape
+from pymfd import Component, Port, Color, PolychannelShape
 from pymfd.router import Router
 
 class Pinhole(Component):

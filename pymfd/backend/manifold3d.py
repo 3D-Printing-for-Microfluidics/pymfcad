@@ -9,12 +9,11 @@ from typing import TYPE_CHECKING
 from trimesh.visual import ColorVisuals
 from manifold3d import set_circular_segments, Manifold, CrossSection
 
-from ..backend import Color
-from .generic_backend import Backend
+from pymfd.backend import Color, Backend
 
 if TYPE_CHECKING:
     from collections.abs import Callable
-    from ..microfluidic_designer import Component, Port, Device
+    from pymfd import Component, Port, Device
 
 class Manifold3D(Backend):
     """
@@ -269,7 +268,7 @@ class Manifold3D(Backend):
         arrow_length = np.dot(size_scaled, np.abs(arrow_direction))  # length in the pointing direction
         arrow_position = np.array(bbox_center)
 
-        from ..microfluidic_designer import Port
+        from pymfd import Port
         if port.type == Port.PortType.INOUT:
             arrow_length = arrow_length/2
             self._draw_arrow(scene, arrow_length, arrow_position, arrow_direction, port, reflect=True, half_size=True)

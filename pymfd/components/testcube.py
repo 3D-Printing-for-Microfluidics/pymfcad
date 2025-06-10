@@ -1,4 +1,4 @@
-from pymfd.microfluidic_designer import Component, Port, Color
+from pymfd import Component, Port, Color
 
 class TestCube(Component):
     """
