@@ -1,5 +1,5 @@
-from pymfd.microfluidic_designer import Component, Port, Color
-from pymfd.router import Router, PolychannelShape
+from pymfd.microfluidic_designer import Component, Port, Color, PolychannelShape
+from pymfd.router import Router
 
 class Pinhole(Component):
     """
@@ -17,7 +17,7 @@ class Pinhole(Component):
         self.add_label("default", Color.from_name("aqua", 255))
 
         rtr = Router(component=self)
-        shape = rtr.polychannel([
+        shape = self.make_polychannel([
             PolychannelShape("sphr", (0,144,110), (0,0,0)),
             PolychannelShape("sphr", (0,144,110), (200,0,0)),
             PolychannelShape("cube", (0,8,6), (50,-4,-4)),
