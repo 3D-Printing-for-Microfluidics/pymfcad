@@ -31,6 +31,20 @@ class PolychannelShape:
         self.rotation = rotation  # e.g., (rx, ry, rz) in degrees
         self.absolute_position = absolute_position
 
+    def __eq__(self, other):
+        if isinstance(other, PolychannelShape):
+            return (
+                self.shape_type == other.shape_type and
+                self.size == other.size and
+                self.position == other.position and
+                self.rotation == other.rotation and
+                self.absolute_position == other.absolute_position
+                )
+        return False
+
+    def __ne__(self, other):
+        return not self.__eq__(other)
+
 class InstantiationTrackerMixin:
     def __init__(self):
         # Get the first relevant frame outside of this class
@@ -287,38 +301,40 @@ class Component(InstantiationTrackerMixin):
         return get_backend().Cylinder(h, r, r1, r2, self.px_size, self.layer_size, center=center, fn=fn)
 
     def make_sphere(self, r:float=None, center:bool=True, fn:int=0) -> Backend.Cylinder:
-        return get_backend().Sphere(r, self.px_size, self.layer_size, fn=fn)
-
+        return get_backend().Sphere(r, self.px_size, self.layer_size, center=center, fn=fn)
+        
     def make_text(self, text:str, height:int=1, font:str="arial", font_size:int=10) -> Backend.TextExtrusion:
         return get_backend().TextExtrusion(text, height, font, font_size, self.px_size, self.layer_size)
 
     def make_polychannel(self, shapes:list[PolychannelShape], show_only_shapes:bool=False) -> Backend.Shape:
             shape_list = []
-            last_shape = None
+            last_shape_position = None
             for shape in shapes:
                 if shape.shape_type == "cube":
                     cube = self.make_cube(shape.size, center=False)
                     cube.rotate(shape.rotation)
-                    if shape.absolute_position or last_shape is None:
+                    if shape.absolute_position or last_shape_position is None:
                         cube.translate(shape.position)
+                        last_shape_position = shape.position
                     else:
-                        cube.translate(tuple(shape.position[i] + last_shape.position[i] for i in range(3)))
+                        cube.translate(tuple(shape.position[i] + last_shape_position[i] for i in range(3)))
+                        last_shape_position = tuple(shape.position[i] + last_shape_position[i] for i in range(3))
                     shape_list.append(cube)
 
                 elif shape.shape_type == "sphr":
-                    sphere = make_sphere(r=1, center=False)
+                    sphere = self.make_sphere(r=1, center=False)
                     sphere.resize(shape.size)
                     sphere.rotate(shape.rotation)
-                    if shape.absolute_position or last_shape is None:
+                    if shape.absolute_position or last_shape_position is None:
                         sphere.translate(shape.position)
+                        last_shape_position = shape.position
                     else:
-                        sphere.translate(tuple(shape.position[i] + last_shape.position[i] for i in range(3)))
+                        sphere.translate(tuple(shape.position[i] + last_shape_position[i] for i in range(3)))
+                        last_shape_position = tuple(shape.position[i] + last_shape_position[i] for i in range(3))
                     shape_list.append(sphere)
 
                 else:
                     raise ValueError(f"Unsupported shape type: {shape.shape_type}")
-
-                last_shape = shape
 
             # Hull shapes pairwise
             if len(shape_list) > 1:

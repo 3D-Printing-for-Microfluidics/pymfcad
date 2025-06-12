@@ -1,9 +1,9 @@
 from pymfd.router import Router
 from pymfd.components import Valve20px, TestCube, Pinhole
-from pymfd import Device, Component, Color, set_manifold3d_backend, set_fn
+from pymfd import PolychannelShape, Device, Component, Color, set_manifold3d_backend, set_fn
 
 set_manifold3d_backend()
-# set_fn(100)
+set_fn(100)
 
 # ############### 1 ##################
 # component = Component(
@@ -14,9 +14,10 @@ set_manifold3d_backend()
 # )
 # # Add label
 # component.add_label("default", Color.from_rgba((0, 255, 0, 127)))
-# # Add a cube shape
+# # Add a shape
 # # component.add_shape("simple_cube", component.make_cube((1, 1, 1), center=False), label="default")
-# component.add_shape("text", component.make_text("Hello Greg!!"), label="default")
+# # component.add_shape("simple_sphr", component.make_sphere(0.5, center=False).translate((1,0,0)), label="default")
+# # component.add_shape("text", component.make_text("Hello Greg!!"), label="default")
 # # from pymfd import get_backend
 
 # # for i in range(1):
@@ -95,10 +96,18 @@ device.add_subcomponent("Valve2", c2)
 
 chan_size = (8, 8, 6)
 r = Router(component=device, channel_size=chan_size, channel_margin=chan_size)
-r.autoroute_channel(c2.F_OUT, c1.F_IN, label="autopath")
-r.autoroute_channel(c1.P_OUT, c2.F_IN, label="autopath")
-r.autoroute_channel(c1.F_OUT, c2.P_IN, label="autopath")
-r.autoroute_channel(c2.P_OUT, c1.P_IN, label="autopath")
+# r.autoroute_channel(c2.F_OUT, c1.F_IN, label="autopath")
+# r.autoroute_channel(c1.P_OUT, c2.F_IN, label="autopath")
+# r.autoroute_channel(c1.F_OUT, c2.P_IN, label="autopath")
+# r.autoroute_channel(c2.P_OUT, c1.P_IN, label="autopath")
+# r.route_with_fractional_path(c2.P_OUT, c1.F_IN, [(0,-1,0),(1,0,0),(0,0,2),(0,2,0),(0,0,-1)], label="autopath")
+print(c2.P_OUT.position, c1.F_IN.position, tuple(a-b for a, b in zip(c1.F_IN.position, c2.P_OUT.position)))
+r.route_with_polychannel(c2.P_OUT, c1.F_IN, [
+        PolychannelShape("sphere", chan_size, (0,20,0)),
+        PolychannelShape("sphere", chan_size, (-33,0,0)),
+        PolychannelShape("sphere", chan_size, (0,0,-30)),
+        PolychannelShape("sphere", chan_size, (0,-41,0)),
+    ], label="autopath")
 r.route()
 
 # IMPORTANT: If you want to see inside the inverted device, you need to create you bulk shape last

@@ -362,7 +362,7 @@ class Backend(ABC):
         Abstract base class for all sphere shapes.
         """
         @abstractmethod
-        def __init__(self, radius:float, px_size:float=None, layer_size:float=None, fn=0):
+        def __init__(self, radius:float, px_size:float=None, layer_size:float=None, center:bool=True, fn=0):
             """
             Initialize the sphere shape.
 

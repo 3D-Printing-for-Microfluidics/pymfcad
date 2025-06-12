@@ -97,9 +97,12 @@ class Manifold3D(Backend):
         """
         Manifold3D sphere.
         """
-        def __init__(self, radius:float, px_size:float=None, layer_size:float=None, fn=0):
-            super().__init__(radius, px_size, layer_size, fn)
-            self.object = Manifold.sphere(radius=radius*px_size, circular_segments=fn)
+        def __init__(self, radius:float, px_size:float=None, layer_size:float=None, center:bool=True, fn=0):
+            super().__init__(radius, px_size, layer_size, center, fn)
+            if center:
+                self.object = Manifold.sphere(radius=radius*px_size, circular_segments=fn)
+            else:
+                self.object = Manifold.sphere(radius=radius*px_size, circular_segments=fn).translate((radius*px_size,radius*px_size,radius*px_size))
             self.add_bbox_to_keepout(self.object.bounding_box())
 
     class TextExtrusion(Backend.TextExtrusion, Shape):
