@@ -198,15 +198,6 @@ class Manifold3D(Backend):
             self.object = Manifold.batch_hull(spheres)
             self.add_bbox_to_keepout(self.object.bounding_box())
 
-        @classmethod
-        def from_radius_percentage(cls, size:tuple[int, int, int], radius:tuple[float, float, float], px_size:float, layer_size:float, center:bool=False, fn:int=0):
-            """
-            Create a rounded cube from radius percentage values.
-            """
-            # Convert percentage to absolute values
-            abs_radius = (size[0] * radius[0], size[1] * radius[1], size[2] * radius[2])
-            return cls(size, abs_radius, px_size, layer_size, center, fn)
-
     class TextExtrusion(Backend.TextExtrusion, Shape):
         """
         Abstract base class for all text extrusion shapes.
