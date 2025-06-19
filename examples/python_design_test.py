@@ -16,20 +16,21 @@ set_fn(50)
 # # Add label
 # component.add_label("default", Color.from_rgba((0, 255, 0, 127)))
 # # Add a shape
-# component.add_shape("simple_cube", component.make_cube((2, 2, 2), center=False).translate((1,1,1)), label="default")
+# # component.add_shape("simple_cube", component.make_cube((2, 2, 2), center=False).translate((1,1,1)), label="default")
+# # component.add_shape("simple_round_cube", component.make_rounded_cube((10, 10, 10), (2.5,2.5,2.5), center=True), label="default")
 # # component.add_shape("simple_sphere", component.make_sphere((2,2,2), center=True), label="default")
 # # component.add_shape("simple_cylinder", component.make_cylinder(r=1, h=2, center_xy=False, center_z=False), label="default")
 # # component.add_shape("text", component.make_text("Hello Greg!!"), label="default")
 # # component.add_shape("import", component.import_model("examples/Diamond_21.stl").resize((1,1,1)), label="default")
 # # component.add_shape("tpms", component.make_tpms_cell((10,10,8)), label="default")
-# # component.add_shape("tpms", component.make_polychannel(
-# #     [
-# #         PolychannelShape("sphere", chan_size, (0,20,0)),
-# #         PolychannelShape("sphere", chan_size, (-33,0,0)),
-# #         PolychannelShape("sphere", chan_size, (0,0,-30)),
-# #         PolychannelShape("sphere", chan_size, (0,-41,0)),
-# #     ]
-# # ), label="default")
+# component.add_shape("tpms", component.make_polychannel(
+#     [
+#         PolychannelShape("sphere", position=(0,20,0), size=chan_size),
+#         PolychannelShape("sphere", position=(-33,0,0), size=chan_size),
+#         PolychannelShape("rounded_cube", position=(0,0,-30), size=chan_size, rounded_cube_radius=(1,1,1)),
+#         PolychannelShape("sphere", position=(0,-41,0), size=chan_size),
+#     ]
+# ), label="default")
 
 # # Mesh the component
 # component.preview()
@@ -109,10 +110,10 @@ r = Router(component=device, channel_size=chan_size, channel_margin=chan_size)
 # r.route_with_fractional_path(c2.P_OUT, c1.F_IN, [(0,-1,0),(1,0,0),(0,0,2),(0,2,0),(0,0,-1)], label="autopath")
 print(c2.P_OUT.position, c1.F_IN.position, tuple(a-b for a, b in zip(c1.F_IN.position, c2.P_OUT.position)))
 r.route_with_polychannel(c2.P_OUT, c1.F_IN, [
-        PolychannelShape("sphere", chan_size, (0,20,0)),
-        PolychannelShape("sphere", chan_size, (-33,0,0)),
-        PolychannelShape("sphere", chan_size, (0,0,-30)),
-        PolychannelShape("sphere", chan_size, (0,-41,0)),
+        PolychannelShape("sphere", position=(0,20,0), size=chan_size),
+        PolychannelShape("sphere", position=(-33,0,0), size=chan_size),
+        PolychannelShape("sphere", position=(0,0,-30), size=chan_size),
+        PolychannelShape("sphere", position=(0,-41,0), size=chan_size),
     ], label="autopath")
 r.route()
 

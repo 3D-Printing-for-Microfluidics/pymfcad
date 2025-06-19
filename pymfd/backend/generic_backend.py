@@ -358,6 +358,13 @@ class Backend(ABC):
             """
             super().__init__(px_size, layer_size)
 
+    class RoundedCube(Shape, ABC):
+        """
+        Abstract base class for all rounded cube shapes.
+        """
+        def __init__(self, size:tuple[int, int, int], radius:tuple[float, float, float], px_size:float, layer_size:float, center:bool=False, fn:int=0):
+            super().__init__(px_size, layer_size)
+
     class TextExtrusion(Shape, ABC):
         """
         Abstract base class for all text extrusion shapes.

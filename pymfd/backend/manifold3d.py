@@ -103,7 +103,7 @@ class Manifold3D(Backend):
         """
         Manifold3D cylinder.
         """
-        def __init__(self, height:int, radius:float=None, bottom_r:float=None, top_r:float=None, px_size:float=None, layer_size:float=None, center_xy:bool=True, center_z:bool=False, fn=0):
+        def __init__(self, height:int, radius:float=None, bottom_r:float=None, top_r:float=None, px_size:float=None, layer_size:float=None, center_xy:bool=True, center_z:bool=False, fn:int=0):
             super().__init__(height, radius, bottom_r, top_r, px_size, layer_size, center_xy, center_z, fn)
 
             bottom = bottom_r if bottom_r is not None else radius
@@ -129,7 +129,7 @@ class Manifold3D(Backend):
         """
         Manifold3D ellipsoid.
         """
-        def __init__(self, size:tuple[int, int, int], px_size:float=None, layer_size:float=None, center:bool=True, fn=0):
+        def __init__(self, size:tuple[int, int, int], px_size:float=None, layer_size:float=None, center:bool=True, fn:int=0):
             super().__init__(size, px_size, layer_size, center, fn)
             self.object = Manifold.sphere(radius=1, circular_segments=fn)
             self.resize(size)
@@ -150,6 +150,63 @@ class Manifold3D(Backend):
             else:
                 self.object = self.object.translate((size[0]/2*px_size,size[1]/2*px_size,size[2]/2*px_size))
             self.add_bbox_to_keepout(self.object.bounding_box())
+
+    class RoundedCube(Backend.RoundedCube, Shape):
+        """
+        Manifold3D rounded cube.
+        """
+        def __init__(self, size:tuple[int, int, int], radius:tuple[float, float, float], px_size:float, layer_size:float, center:bool=False, fn:int=0):
+            super().__init__(size, radius, px_size, layer_size, center, fn)
+
+            # shift half a pixel if odd and centered
+            x = 0
+            y = 0
+            z = 0                 
+            if center:
+                if size[0] %2 != 0:
+                    print(f"⚠️ Centered rounded cube x dimension is odd. Shifting 0.5 px to align with px grid")
+                    x = 0.5
+                if size[1] %2 != 0:
+                    print(f"⚠️ Centered rounded cube y dimension is odd. Shifting 0.5 px to align with px grid")
+                    y = 0.5
+                if size[2] %2 != 0:
+                    print(f"⚠️ Centered rounded cube z dimension is odd. Shifting 0.5 px to align with px grid")
+                    z = 0.5
+
+            radius = list(radius)
+            if radius[0] <= 0:
+                radius[0] = 0.0000001
+            if radius[1] <= 0:
+                radius[1] = 0.0000001
+            if radius[2] <= 0:
+                radius[2] = 0.0000001
+
+            spheres = []
+            for i in range(2):
+                for j in range(2):
+                    for k in range(2):
+                        s = Manifold.sphere(radius=1, circular_segments=fn)
+                        s = s.scale((radius[0]*px_size, radius[1]*px_size, radius[2]*layer_size)) 
+                        _x = (size[0]/2 - radius[0]) if i else -(size[0]/2 - radius[0])
+                        _y = (size[1]/2 - radius[1]) if j else -(size[1]/2 - radius[1])
+                        _z = (size[2]/2 - radius[2]) if k else -(size[2]/2 - radius[2])
+                        s = s.translate(((x+_x)*px_size, (y+_y)*px_size, (z+_z)*layer_size))
+                        print(size, radius, (x,y,z), (_x,_y,_z), (x+_x, y+_y, z+_z))
+                        if not center:
+                            s = s.translate((size[0]/2*px_size, size[1]/2*px_size, size[2]/2*layer_size))
+                        spheres.append(s)
+
+            self.object = Manifold.batch_hull(spheres)
+            self.add_bbox_to_keepout(self.object.bounding_box())
+
+        @classmethod
+        def from_radius_percentage(cls, size:tuple[int, int, int], radius:tuple[float, float, float], px_size:float, layer_size:float, center:bool=False, fn:int=0):
+            """
+            Create a rounded cube from radius percentage values.
+            """
+            # Convert percentage to absolute values
+            abs_radius = (size[0] * radius[0], size[1] * radius[1], size[2] * radius[2])
+            return cls(size, abs_radius, px_size, layer_size, center, fn)
 
     class TextExtrusion(Backend.TextExtrusion, Shape):
         """

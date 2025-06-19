@@ -23,18 +23,20 @@ def set_fn(fn):
     _backend.set_fn(fn)
 
 class PolychannelShape:
-    def __init__(self, shape_type, size, position=(0, 0, 0), rotation=(0, 0, 0), absolute_position=False):
-        self.shape_type = shape_type  # e.g., "cube", "cylinder"
-        self.size = size  # e.g., (width, height, depth)
-        self.position = position  # e.g., (x, y, z)
-        self.rotation = rotation  # e.g., (rx, ry, rz) in degrees
-        self.absolute_position = absolute_position
+    def __init__(self, shape_type:str=None, position:tuple[int,int,int]=None, size:tuple[int,int,int]=None, rounded_cube_radius:tuple[float,float,float]=None, rotation:tuple[float,float,float]=None, absolute_position:bool=None):
+        self.shape_type = shape_type  # e.g., "cube", "sphere", "rounded_cube" (default to last shape type)
+        self.size = size  # e.g., (width, height, depth) (default to last size)
+        self.rounded_cube_radius = rounded_cube_radius  # e.g., (rx, ry, rz) for rounded cubes (default to last radius)
+        self.position = position  # e.g., (x, y, z) (default to last position)
+        self.rotation = rotation  # e.g., (rx, ry, rz) in degrees (default to no rotation (0, 0, 0))
+        self.absolute_position = absolute_position, # If True, position is absolute; if False, relative to last shape (default to False)
 
     def __eq__(self, other):
         if isinstance(other, PolychannelShape):
             return (
                 self.shape_type == other.shape_type and
                 self.size == other.size and
+                self.rounded_cube_radius == other.rounded_cube_radius and
                 self.position == other.position and
                 self.rotation == other.rotation and
                 self.absolute_position == other.absolute_position
@@ -301,6 +303,9 @@ class Component(InstantiationTrackerMixin):
 
     def make_sphere(self, size:tuple[int, int, int], center:bool=True, fn:int=0) -> Backend.Sphere:
         return get_backend().Sphere(size, self.px_size, self.layer_size, center=center, fn=fn)
+    
+    def make_rounded_cube(self, size:tuple[int, int, int], radius:tuple[int, int, int], center:bool=False, fn:int=0) -> Backend.RoundedCube:
+        return get_backend().RoundedCube(size, radius, self.px_size, self.layer_size, center=center, fn=fn)
         
     def make_text(self, text:str, height:int=1, font:str="arial", font_size:int=10) -> Backend.TextExtrusion:
         return get_backend().TextExtrusion(text, height, font, font_size, self.px_size, self.layer_size)
@@ -313,32 +318,60 @@ class Component(InstantiationTrackerMixin):
 
     def make_polychannel(self, shapes:list[PolychannelShape], show_only_shapes:bool=False) -> Backend.Shape:
             shape_list = []
-            last_shape_position = None
-            for shape in shapes:
-                if shape.shape_type == "cube":
-                    cube = self.make_cube(shape.size, center=False)
-                    cube.rotate(shape.rotation)
-                    if shape.absolute_position or last_shape_position is None:
-                        cube.translate(shape.position)
-                        last_shape_position = shape.position
-                    else:
-                        cube.translate(tuple(shape.position[i] + last_shape_position[i] for i in range(3)))
-                        last_shape_position = tuple(shape.position[i] + last_shape_position[i] for i in range(3))
-                    shape_list.append(cube)
+            last_shape_type = None
+            last_position = None
+            last_size = None
+            last_rounded_cube_radius = None
 
-                elif shape.shape_type == "sphere":
-                    sphere = self.make_sphere(shape.size, center=False)
-                    sphere.rotate(shape.rotation)
-                    if shape.absolute_position or last_shape_position is None:
-                        sphere.translate(shape.position)
-                        last_shape_position = shape.position
-                    else:
-                        sphere.translate(tuple(shape.position[i] + last_shape_position[i] for i in range(3)))
-                        last_shape_position = tuple(shape.position[i] + last_shape_position[i] for i in range(3))
-                    shape_list.append(sphere)
+            for shape in shapes:
+                shape_type = shape.shape_type
+                position = shape.position
+                size = shape.size
+                rounded_cube_radius = shape.rounded_cube_radius
+                rotation = shape.rotation
+                absolute_position = shape.absolute_position
+
+                if shape_type is None and last_shape_type is not None:
+                    shape_type = last_shape_type
+                if position is None and last_position is not None:
+                    position = last_position
+                if size is None and last_size is not None:
+                    size = last_size
+                if rounded_cube_radius is None and last_rounded_cube_radius is not None:
+                    rounded_cube_radius = last_rounded_cube_radius
+                if rotation is None:
+                    rotation = (0, 0, 0)
+                if absolute_position is None:
+                    absolute_position = False
+
+                if shape_type == "cube":
+                    s = self.make_cube(size, center=False)
+                    last_shape_type = "cube"
+
+                elif shape_type == "sphere":
+                    s = self.make_sphere(size, center=False)
+                    last_shape_type = "sphere"
+
+                elif shape_type == "rounded_cube":
+                    if rounded_cube_radius is None:
+                        raise ValueError("Rounded cube radius must be specified for rounded cubes")
+                    s = self.make_rounded_cube(size, rounded_cube_radius, center=False)
+                    last_shape_type = "rounded_cube"
+                    last_rounded_cube_radius = rounded_cube_radius
 
                 else:
-                    raise ValueError(f"Unsupported shape type: {shape.shape_type}")
+                    raise ValueError(f"Unsupported shape type: {shape_type}")
+                
+                last_size = size
+                
+                s.rotate(rotation)
+                if absolute_position or last_position is None:
+                    s.translate(position)
+                    last_position = position
+                else:
+                    s.translate(tuple(position[i] + last_position[i] for i in range(3)))
+                    last_position = tuple(position[i] + last_position[i] for i in range(3))
+                shape_list.append(s)
 
             # Hull shapes pairwise
             if len(shape_list) > 1:

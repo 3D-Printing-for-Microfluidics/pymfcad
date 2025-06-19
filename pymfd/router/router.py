@@ -114,8 +114,8 @@ class Router:
 
         name = f"{input_port.get_name()}__to__{output_port.get_name()}"
 
-        polychannel_shapes.insert(0, PolychannelShape("cube", input_port.size, input_port.get_origin(), absolute_position=True))
-        polychannel_shapes.append(PolychannelShape("cube", output_port.size, output_port.get_origin(), absolute_position=True))
+        polychannel_shapes.insert(0, PolychannelShape("cube", position=input_port.get_origin(), size=input_port.size, absolute_position=True))
+        polychannel_shapes.append(PolychannelShape("cube", position=output_port.get_origin(), size=output_port.size, absolute_position=True))
 
         self.routes[name] = {
             "route_type": "polychannel",
@@ -165,10 +165,10 @@ class Router:
         }
 
     def _path_to_polychannel_shapes(self, input_port, output_port, path):
-        polychannel_shapes = [PolychannelShape("cube", input_port.size, input_port.get_origin(), absolute_position=True)]
+        polychannel_shapes = [PolychannelShape("cube", position=input_port.get_origin(), size=input_port.size, absolute_position=True)]
         for point in path[1:-1]:
-            polychannel_shapes.append(PolychannelShape("cube", self.channel_size, point, absolute_position=True))
-        polychannel_shapes.append(PolychannelShape("cube", output_port.size, output_port.get_origin(), absolute_position=True))
+            polychannel_shapes.append(PolychannelShape("cube", position=point, size=self.channel_size, absolute_position=True))
+        polychannel_shapes.append(PolychannelShape("cube", position=output_port.get_origin(), size=output_port.size, absolute_position=True))
         return polychannel_shapes
 
     def route(self):
