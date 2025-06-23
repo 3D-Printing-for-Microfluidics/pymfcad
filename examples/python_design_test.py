@@ -23,14 +23,14 @@ set_fn(50)
 # # component.add_shape("text", component.make_text("Hello Greg!!"), label="default")
 # # component.add_shape("import", component.import_model("examples/Diamond_21.stl").resize((1,1,1)), label="default")
 # # component.add_shape("tpms", component.make_tpms_cell((10,10,8)), label="default")
-# # component.add_shape("polychannel", component.make_polychannel(
-# #     [
-# #         PolychannelShape("sphere", position=(0,20,0), size=chan_size),
-# #         PolychannelShape("sphere", position=(-33,0,0), size=chan_size),
-# #         PolychannelShape("rounded_cube", position=(0,0,-30), size=chan_size, rounded_cube_radius=(1,1,1)),
-# #         PolychannelShape("sphere", position=(0,-41,0), size=chan_size),
-# #     ]
-# # ), label="default")
+# component.add_shape("polychannel", component.make_polychannel(
+#     [
+#         PolychannelShape("sphere", position=(0,20,0), size=chan_size),
+#         PolychannelShape("sphere", position=(-33,0,0), size=chan_size, corner_radius=10),
+#         PolychannelShape("rounded_cube", position=(0,0,-30), size=chan_size, rounded_cube_radius=(1,1,1)),
+#         PolychannelShape("sphere", position=(0,-41,0), size=chan_size),
+#     ]
+# ), label="default")
 # # component.add_shape("beziercurve", component.make_polychannel(
 # #     [
 # #         PolychannelShape("cube", position=(0,0,0), size=chan_size),

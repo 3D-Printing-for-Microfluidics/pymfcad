@@ -8,6 +8,7 @@ import pickle
 import importlib
 from rtree import index
 from pathlib import Path
+from typing import Union
 
 from pymfd import PolychannelShape, Port, get_backend
 
@@ -106,7 +107,7 @@ class Router:
             "label": label
         }
 
-    def route_with_polychannel(self, input_port:Port, output_port:Port, polychannel_shapes:list[PolychannelShape], label:str):
+    def route_with_polychannel(self, input_port:Port, output_port:Port, polychannel_shapes:list[Union[PolychannelShape, BezierCurveShape]], label:str):
         if input_port.parent is None:
             raise ValueError("Port must be added to component before routing! (input)")
         if output_port.parent is None:

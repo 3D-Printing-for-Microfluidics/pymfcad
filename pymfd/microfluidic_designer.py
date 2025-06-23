@@ -1,13 +1,12 @@
 from __future__ import annotations
 
 import inspect
-import numpy as np
 from enum import Enum
 from pathlib import Path
 from typing import Union
 from scipy.special import comb
 
-from pymfd.backend import Backend, Manifold3D, Color
+from pymfd.backend import Backend, Manifold3D, Color, PolychannelShape, BezierCurveShape, _preprocess_polychannel_shapes
 
 _backend:Backend = None
 
@@ -25,117 +24,6 @@ def get_backend() -> Backend:
 def set_fn(fn):
     global _backend
     _backend.set_fn(fn)
-
-class PolychannelShape:
-    def __init__(self, shape_type:str=None, position:tuple[int,int,int]=None, size:tuple[int,int,int]=None, rounded_cube_radius:tuple[float,float,float]=None, rotation:tuple[float,float,float]=None, absolute_position:bool=None):
-        self.shape_type = shape_type  # e.g., "cube", "sphere", "rounded_cube" (default to last shape type)
-        self.size = size  # e.g., (width, height, depth) (default to last size)
-        self.rounded_cube_radius = rounded_cube_radius  # e.g., (rx, ry, rz) for rounded cubes (default to last radius)
-        self.position = position  # e.g., (x, y, z) (default to last position)
-        self.rotation = rotation  # e.g., (rx, ry, rz) in degrees (default to no rotation (0, 0, 0))
-        self.absolute_position = absolute_position, # If True, position is absolute; if False, relative to last shape (default to False)
-
-    def __eq__(self, other):
-        if isinstance(other, PolychannelShape):
-            return (
-                self.shape_type == other.shape_type and
-                self.size == other.size and
-                self.rounded_cube_radius == other.rounded_cube_radius and
-                self.position == other.position and
-                self.rotation == other.rotation and
-                self.absolute_position == other.absolute_position
-                )
-        return False
-
-    def __ne__(self, other):
-        return not self.__eq__(other)
-    
-class BezierCurveShape:
-    def __init__(
-        self,
-        control_points: list[tuple[int, int, int]],
-        number_of_segments: int,
-        shape_type: str = None,
-        size: tuple[int, int, int] = None,
-        position: tuple[int, int, int] = None,
-        rounded_cube_radius: tuple[float, float, float] = None,
-        rotation: tuple[float, float, float] = None,
-        absolute_position: bool = None
-    ):
-        self.shape_type = shape_type
-        self.control_points = control_points
-        self.size = size
-        self.position = position
-        self.rounded_cube_radius = rounded_cube_radius
-        self.rotation = rotation
-        self.absolute_position = absolute_position
-        self.number_of_segments = number_of_segments
-
-    def generate(self, last_shape: PolychannelShape) -> list[PolychannelShape]:
-        shape_type = self.shape_type
-        position = self.position
-        size = self.size
-        rounded_cube_radius = self.rounded_cube_radius
-        rotation = self.rotation
-        absolute_position = self.absolute_position
-
-        if shape_type is None and last_shape.shape_type is not None:
-            shape_type = last_shape.shape_type
-        if position is None and last_shape.position is not None:
-            position = last_shape.position
-        if size is None and last_shape.size is not None:
-            size = last_shape.size
-        if rounded_cube_radius is None and last_shape.rounded_cube_radius is not None:
-            rounded_cube_radius = last_shape.rounded_cube_radius
-        if rotation is None:
-            rotation = (0, 0, 0)
-        if absolute_position is None:
-            absolute_position = False
-
-        def bezier(t, points):
-            n = len(points) - 1
-            return sum(comb(n, i) * (1 - t)**(n - i) * t**i * np.array(p) for i, p in enumerate(points))
-
-        ts = np.linspace(0, 1, self.number_of_segments)
-        shapes = []
-
-        # Blending helpers
-        def lerp(a, b, t):
-            return tuple(a[i] * (1 - t) + b[i] * t for i in range(len(a)))
-        
-        if shape_type != last_shape.shape_type:
-            if shape_type == "cube":
-                rounded_cube_radius = (0, 0, 0)  # Reset radius for cube
-            if shape_type == "sphere":
-                rounded_cube_radius = (size[0]/2, size[1]/2, size[2]/2)
-            shape_type = "rounded_cube"
-
-        if absolute_position:
-            control_points = self.control_points
-            control_points.insert(0, last_shape.position)
-            control_points.append(position)
-        else:
-            control_points = [tuple(np.array(p) + np.array(last_shape.position)) for p in self.control_points]
-            control_points.insert(0, last_shape.position)
-            control_points.append(tuple(np.array(position) + np.array(last_shape.position)))
-
-        for t in ts:
-            position = tuple(bezier(t, control_points))
-            blended_size = lerp(last_shape.size, size, t)
-            blended_radius = lerp(last_shape.rounded_cube_radius, rounded_cube_radius, t)
-            blended_rotation = lerp(last_shape.rotation, rotation, t)
-
-            shape = PolychannelShape(
-                shape_type=shape_type,
-                size=blended_size,
-                rounded_cube_radius=blended_radius,
-                position=position,
-                rotation=blended_rotation,
-                absolute_position=True
-            )
-            shapes.append(shape)
-
-        return shapes
 
 class InstantiationTrackerMixin:
     def __init__(self):
@@ -406,98 +294,42 @@ class Component(InstantiationTrackerMixin):
 
     def make_tpms_cell(self, size:tuple[int, int, int], func:Callable[[int, int, int], int]=Backend.TPMS.diamond) -> Backend.TPMS:
         return get_backend().TPMS(size, func, self.px_size, self.layer_size)
-
+    
     def make_polychannel(self, shapes:list[Union[PolychannelShape, BezierCurveShape]], show_only_shapes:bool=False) -> Backend.Shape:
-            shape_list = []
-            last_shape = PolychannelShape(absolute_position=True)
+        shape_list = []
+        last_shape = PolychannelShape(absolute_position=True)
 
-            for shape in shapes:
-                def _polychan(shape:Union[PolychannelShape, BezierCurveShape]):
-                    shape_type = shape.shape_type
-                    position = shape.position
-                    size = shape.size
-                    rounded_cube_radius = shape.rounded_cube_radius
-                    rotation = shape.rotation
-                    absolute_position = shape.absolute_position
+        shapes = _preprocess_polychannel_shapes(shapes)
 
-                    if shape_type is None and last_shape.shape_type is not None:
-                        shape_type = last_shape.shape_type
-                    elif shape_type is None:
-                        raise ValueError("Shape type must be specified for the first shape in a polychannel")
-                    if position is None and last_shape.position is not None:
-                        position = last_shape.position
-                    elif position is None:
-                        position = (0, 0, 0)
-                    if size is None and last_shape.size is not None:
-                        size = last_shape.size
-                    elif size is None:
-                        raise ValueError("Size must be specified for the first shape in a polychannel")
-                    if rounded_cube_radius is None and last_shape.rounded_cube_radius is not None:
-                        rounded_cube_radius = last_shape.rounded_cube_radius
-                    elif rounded_cube_radius is None and shape_type == "rounded_cube":
-                        raise ValueError("Rounded cube radius must be specified for the first round cube shape in a polychannel")
-                    if rotation is None:
-                        rotation = (0, 0, 0)
-                    if absolute_position is None:
-                        absolute_position = False
-
-                    if shape_type == "cube":
-                        s = self.make_cube(size, center=False)
-                        last_shape.shape_type = "cube"
-                        last_shape.rounded_cube_radius = (0,0,0)
-
-                    elif shape_type == "sphere":
-                        s = self.make_sphere(size, center=False)
-                        last_shape.shape_type = "sphere"
-                        last_shape.rounded_cube_radius = (size[0]/2, size[1]/2, size[2]/2)
-
-                    elif shape_type == "rounded_cube":
-                        s = self.make_rounded_cube(size, rounded_cube_radius, center=False)
-                        last_shape.shape_type = "rounded_cube"
-                        last_shape.rounded_cube_radius = rounded_cube_radius
-
-                    else:
-                        raise ValueError(f"Unsupported shape type: {shape_type}")
-                    
-                    last_shape.size = size
-                    last_shape.rotation = rotation
-                    
-                    s.rotate(rotation)
-                    if absolute_position or last_shape.position is None:
-                        s.translate(position)
-                        last_shape.position = position
-                    else:
-                        s.translate(tuple(position[i] + last_shape.position[i] for i in range(3)))
-                        last_shape.position = tuple(position[i] + last_shape.position[i] for i in range(3))
-                    shape_list.append(s)
-            
-                if type(shape) is BezierCurveShape:
-                    if last_shape.shape_type is None:
-                        raise ValueError("Bezier curve requires a previous shape to generate from")
-                    bz_shapes = shape.generate(last_shape)
-                    for bz_shape in bz_shapes:
-                        _polychan(bz_shape)
-                elif type(shape) is PolychannelShape:
-                    _polychan(shape)
-                else:
-                    raise ValueError(f"Unsupported shape type: {type(shape)}")
-
-            # Hull shapes pairwise
-            if len(shape_list) > 1:
-                if show_only_shapes:
-                    path = shape_list[0]
-                    for shape in shape_list[1:]:
-                        path += shape
-                    return path
-                else:
-                    path = shape_list[0].hull(shape_list[1])
-                    last_shape = shape_list[1]
-                    for shape in shape_list[2:]:
-                        path += last_shape.hull(shape)
-                        last_shape = shape
-                    return path
+        for shape in shapes:
+            if shape.shape_type == "cube":
+                s = self.make_cube(shape.size, center=False)
+            elif shape.shape_type == "sphere":
+                s = self.make_sphere(shape.size, center=False)
+            elif shape.shape_type == "rounded_cube":
+                s = self.make_rounded_cube(shape.size, shape.rounded_cube_radius, center=False)
             else:
-                raise ValueError("Polychannel requires at least 2 shapes")
+                raise ValueError(f"Unsupported shape type: {shape.shape_type}")
+            s.rotate(shape.rotation)
+            s.translate(shape.position)
+            shape_list.append(s)
+
+        # Hull shapes pairwise
+        if len(shape_list) > 1:
+            if show_only_shapes:
+                path = shape_list[0]
+                for shape in shape_list[1:]:
+                    path += shape
+                return path
+            else:
+                path = shape_list[0].hull(shape_list[1])
+                last_shape = shape_list[1]
+                for shape in shape_list[2:]:
+                    path += last_shape.hull(shape)
+                    last_shape = shape
+                return path
+        else:
+            raise ValueError("Polychannel requires at least 2 shapes")
 
     def translate(self, translation:tuple[int, int, int], set_origin:bool=True) -> Component:
         for component in self.subcomponents:
