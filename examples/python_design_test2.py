@@ -1,9 +1,8 @@
 from pymfd.components import Valve20px
 from pymfd.router import Router
-from pymfd import set_fn, set_manifold3d_backend, Device, Component, Color
+from pymfd import set_fn, Device, Component, Color
 from pymfd.slicer import Settings, Header, Design, ResinType, Printer, Resolution, BurninSettings, PositionSettings, ExposureSettings
 
-set_manifold3d_backend()
 set_fn(50)
 
 settings = Settings(

@@ -6,24 +6,19 @@ from pathlib import Path
 from typing import Union
 from scipy.special import comb
 
-from pymfd.backend import Backend, Manifold3D, Color, PolychannelShape, BezierCurveShape, _preprocess_polychannel_shapes
+from pymfd.backend import Manifold3D, Color, PolychannelShape, BezierCurveShape, _preprocess_polychannel_shapes
 
-_backend:Backend = None
+_backend = Manifold3D()
 
-def set_manifold3d_backend():
+def get_backend() -> Manifold3D:
     global _backend
-    _backend = Manifold3D()
-    set_fn(20)
-
-def get_backend() -> Backend:
-    global _backend
-    if _backend is None:
-        raise ValueError("Backend not set. Please set the backend using set_backend().")
     return _backend
 
 def set_fn(fn):
     global _backend
     _backend.set_fn(fn)
+
+set_fn(20)
 
 class InstantiationTrackerMixin:
     def __init__(self):
@@ -224,7 +219,7 @@ class Component(InstantiationTrackerMixin):
         self.labels[name] = color
         setattr(self, name, color)
 
-    def add_shape(self, name:str, shape:Backend.Shape, label:str):
+    def add_shape(self, name:str, shape:Manifold3D.Shape, label:str):
         self._validate_name(name)
         shape.name = name
         shape.parent = self
@@ -232,7 +227,7 @@ class Component(InstantiationTrackerMixin):
         self.shapes.append(shape)
         setattr(self, name, shape)
 
-    def add_bulk_shape(self, name:str, shape:Backend.Shape, label:str):
+    def add_bulk_shape(self, name:str, shape:Manifold3D.Shape, label:str):
         self._validate_name(name)
         shape.name = name
         shape.parent = self
@@ -274,40 +269,37 @@ class Component(InstantiationTrackerMixin):
         for s in shapes:
             s.color = self.labels[label]
 
-    def make_cube(self, size:tuple[int, int, int], center:bool=False) -> Backend.Cube:
-        return get_backend().Cube(size, self.px_size, self.layer_size, center=center)
+    def make_cube(self, size:tuple[int, int, int], center:bool=False, _no_validation=True) -> Manifold3D.Cube:
+        return get_backend().Cube(size, self.px_size, self.layer_size, center=center, _no_validation=_no_validation)
 
-    def make_cylinder(self, h:int, r:float=None, r1:float=None, r2:float=None, center_xy:bool=True, center_z:bool=False, fn:int=0) -> Backend.Cylinder:
+    def make_cylinder(self, h:int, r:float=None, r1:float=None, r2:float=None, center_xy:bool=True, center_z:bool=False, fn:int=0) -> Manifold3D.Cylinder:
         return get_backend().Cylinder(h, r, r1, r2, self.px_size, self.layer_size, center_xy=center_xy, center_z=center_z, fn=fn)
 
-    def make_sphere(self, size:tuple[int, int, int], center:bool=True, fn:int=0) -> Backend.Sphere:
-        return get_backend().Sphere(size, self.px_size, self.layer_size, center=center, fn=fn)
+    def make_sphere(self, size:tuple[int, int, int], center:bool=True, fn:int=0, _no_validation=True) -> Manifold3D.Sphere:
+        return get_backend().Sphere(size, self.px_size, self.layer_size, center=center, fn=fn, _no_validation=_no_validation)
     
-    def make_rounded_cube(self, size:tuple[int, int, int], radius:tuple[int, int, int], center:bool=False, fn:int=0) -> Backend.RoundedCube:
-        return get_backend().RoundedCube(size, radius, self.px_size, self.layer_size, center=center, fn=fn)
+    def make_rounded_cube(self, size:tuple[int, int, int], radius:tuple[int, int, int], center:bool=False, fn:int=0, _no_validation=True) -> Manifold3D.RoundedCube:
+        return get_backend().RoundedCube(size, radius, self.px_size, self.layer_size, center=center, fn=fn, _no_validation=_no_validation)
         
-    def make_text(self, text:str, height:int=1, font:str="arial", font_size:int=10) -> Backend.TextExtrusion:
+    def make_text(self, text:str, height:int=1, font:str="arial", font_size:int=10) -> Manifold3D.TextExtrusion:
         return get_backend().TextExtrusion(text, height, font, font_size, self.px_size, self.layer_size)
 
-    def import_model(self, filename:str, auto_repair:bool=True) -> Backend.ImportModel:
+    def import_model(self, filename:str, auto_repair:bool=True) -> Manifold3D.ImportModel:
         return get_backend().ImportModel(filename, auto_repair, self.px_size, self.layer_size)
 
-    def make_tpms_cell(self, size:tuple[int, int, int], func:Callable[[int, int, int], int]=Backend.TPMS.diamond) -> Backend.TPMS:
+    def make_tpms_cell(self, size:tuple[int, int, int], func:Callable[[int, int, int], int]=Manifold3D.TPMS.diamond) -> Manifold3D.TPMS:
         return get_backend().TPMS(size, func, self.px_size, self.layer_size)
     
-    def make_polychannel(self, shapes:list[Union[PolychannelShape, BezierCurveShape]], show_only_shapes:bool=False) -> Backend.Shape:
+    def make_polychannel(self, shapes:list[Union[PolychannelShape, BezierCurveShape]], show_only_shapes:bool=False) -> Manifold3D.Shape:
         shape_list = []
-        last_shape = PolychannelShape(absolute_position=True)
-
-        shapes = _preprocess_polychannel_shapes(shapes)
-
+        shapes = _preprocess_polychannel_shapes(shapes, px_size=self.px_size, layer_size=self.layer_size)
         for shape in shapes:
             if shape.shape_type == "cube":
-                s = self.make_cube(shape.size, center=False)
+                s = self.make_cube(shape.size, center=True, _no_validation=shape._no_validation)
             elif shape.shape_type == "sphere":
-                s = self.make_sphere(shape.size, center=False)
+                s = self.make_sphere(shape.size, center=True, _no_validation=shape._no_validation)
             elif shape.shape_type == "rounded_cube":
-                s = self.make_rounded_cube(shape.size, shape.rounded_cube_radius, center=False)
+                s = self.make_rounded_cube(shape.size, shape.rounded_cube_radius, center=True, _no_validation=shape._no_validation)
             else:
                 raise ValueError(f"Unsupported shape type: {shape.shape_type}")
             s.rotate(shape.rotation)

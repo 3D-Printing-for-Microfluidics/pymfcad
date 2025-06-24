@@ -164,10 +164,10 @@ class Color:
         - b (int): The blue value.
         - a (int): The alpha value.
         """
-        self.r = self._clamp(r)
-        self.g = self._clamp(g)
-        self.b = self._clamp(b)
-        self.a = self._clamp(a)
+        self._r = self._clamp(r)
+        self._g = self._clamp(g)
+        self._b = self._clamp(b)
+        self._a = self._clamp(a)
 
     @classmethod
     def from_name(cls, name:str = "aqua", alpha:int = 255):
@@ -220,34 +220,34 @@ class Color:
         Input:
         - color (Color): The color to change to.
         """
-        self.r = color.r
-        self.g = color.g
-        self.b = color.b
-        self.a = color.a
+        self._r = color._r
+        self._g = color._g
+        self._b = color._b
+        self._a = color._a
 
     def to_rgba(self):
         """
         Convert the color to a tuple of 4 integers.
         """
-        return (self.r, self.g, self.b, self.a)
+        return (self._r, self._g, self._b, self._a)
 
     def to_float(self):
         """
         Convert the color to a tuple of 4 floats.
         """
-        return (self.r/256, self.g/256, self.b/256, self.a/256)
+        return (self._r/256, self._g/256, self._b/256, self._a/256)
 
     def __str__(self):
         """
         Convert the color to a string.
         """
-        return f"rgba({self.r}, {self.g}, {self.b}, {self.a})"
+        return f"rgba({self._r}, {self._g}, {self._b}, {self._a})"
 
     def __repr__(self):
         """
         Convert the color to a string.
         """
-        return f"Color(r={self.r}, g={self.g}, b={self.b}, a={self.a})"
+        return f"Color(r={self._r}, g={self._g}, b={self._b}, a={self._a})"
 
     @staticmethod
     def _clamp(value):

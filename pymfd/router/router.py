@@ -6,29 +6,17 @@ import time
 import heapq
 import pickle
 import importlib
+import numpy as np
 from rtree import index
 from pathlib import Path
 from typing import Union
+from copy import deepcopy
 
-from pymfd import PolychannelShape, Port, get_backend
+from pymfd import PolychannelShape, Port
 
 heuristic_weight = 10
 turn_weight = 2
 timeout = 120 # per channel in seconds
-
-
-# # Blend shape
-# r = shape/2;
-# translate(position) rotate(a=a, v=v)  scale(size) hull(){
-#     translate([-0.5+r,-0.5+r,-0.5+r]) sphere(d=r*2);
-#     translate([-0.5+r,-0.5+r,0.5-r]) sphere(d=r*2);
-#     translate([-0.5+r,0.5-r,-0.5+r]) sphere(d=r*2);
-#     translate([-0.5+r,0.5-r,0.5-r]) sphere(d=r*2);
-#     translate([0.5-r,-0.5+r,-0.5+r]) sphere(d=r*2);
-#     translate([0.5-r,-0.5+r,0.5-r]) sphere(d=r*2);
-#     translate([0.5-r,0.5-r,-0.5+r]) sphere(d=r*2);
-#     translate([0.5-r,0.5-r,0.5-r]) sphere(d=r*2);
-# }
 
 class AutorouterNode:
     def __init__(self, pos, parent=None, cost=0, turns=0, direction=None, heuristic=0):
@@ -166,10 +154,42 @@ class Router:
         }
 
     def _path_to_polychannel_shapes(self, input_port, output_port, path):
-        polychannel_shapes = [PolychannelShape("cube", position=input_port.get_origin(), size=input_port.size, absolute_position=True)]
+        polychannel_shapes = []
+
+        # Handle input port
+        input_pos = np.array(input_port.get_origin()) + np.array(input_port.size) / 2
+        polychannel_shapes.append(
+            PolychannelShape(
+                "cube",
+                position=tuple(input_pos),
+                size=input_port.size,
+                absolute_position=True,
+            )
+        )
+
+        # Handle middle path segments
         for point in path[1:-1]:
-            polychannel_shapes.append(PolychannelShape("cube", position=point, size=self.channel_size, absolute_position=True))
-        polychannel_shapes.append(PolychannelShape("cube", position=output_port.get_origin(), size=output_port.size, absolute_position=True))
+            point_pos = np.array(point) + np.array(self.channel_size) / 2
+            polychannel_shapes.append(
+                PolychannelShape(
+                    "cube",
+                    position=tuple(point_pos),
+                    size=self.channel_size,
+                    absolute_position=True,
+                )
+            )
+
+        # Handle output port
+        output_pos = np.array(output_port.get_origin()) + np.array(output_port.size) / 2
+        polychannel_shapes.append(
+            PolychannelShape(
+                "cube",
+                position=tuple(output_pos),
+                size=output_port.size,
+                absolute_position=True,
+            )
+        )
+
         return polychannel_shapes
 
     def route(self):
@@ -263,7 +283,7 @@ class Router:
         output_port = route_info["output"]
 
         # create polychannel
-        polychannel_shapes = route_info["_path"]
+        polychannel_shapes = deepcopy(route_info["_path"])
         polychannel = self.component.make_polychannel(polychannel_shapes)
 
         # validate keepouts if autoroute
