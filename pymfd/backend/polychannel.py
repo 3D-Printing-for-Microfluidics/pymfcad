@@ -2,39 +2,92 @@ import numpy as np
 from typing import Union
 from scipy.special import comb
 
-def lerp(a, b, t):
+
+def _lerp(
+    a: tuple[float, float, float], b: tuple[float, float, float], t: float
+) -> tuple[float, float, float]:
+    """
+    Linear interpolation between two points a and b with parameter t.
+    Points can be positions, sizes, rounded cube radii, or any other 3D vector.
+    a, b: 3 dimensional tuples or lists.
+    t: Parameter value (0 <= t <= 1).
+    Returns a point that is t percent of the way from a to b.
+    """
     return tuple(a[i] * (1 - t) + b[i] * t for i in range(len(a)))
 
+
 class PolychannelShape:
-    def __init__(self, shape_type:str=None, position:tuple[int,int,int]=None, size:tuple[int,int,int]=None, rounded_cube_radius:tuple[float,float,float]=None, rotation:tuple[float,float,float]=(0, 0, 0), absolute_position:bool=None, corner_radius:float=0, _no_validation:bool=False):
-        self.shape_type = shape_type  # e.g., "cube", "sphere", "rounded_cube" (default to last shape type)
-        self.size = size  # e.g., (width, height, depth) (default to last size)
-        self.rounded_cube_radius = rounded_cube_radius  # e.g., (rx, ry, rz) for rounded cubes (default to last radius)
-        self.position = position  # e.g., (x, y, z) (default to last position)
-        self.rotation = rotation  # e.g., (rx, ry, rz) in degrees (default to no rotation (0, 0, 0))
-        self.absolute_position = absolute_position # If True, position is absolute; if False, relative to last shape (default to False)
-        self.corner_radius = corner_radius # e.g. radius for non-manhattan corners (default to 0)
-        self._no_validation = _no_validation  # If True, skip validation (for internal use)
+    """
+    ###### Represents a shape in a polychannel.
+    """
 
+    def __init__(
+        self,
+        shape_type: str = None,
+        position: tuple[int, int, int] = None,
+        size: tuple[int, int, int] = None,
+        rounded_cube_radius: tuple[float, float, float] = None,
+        rotation: tuple[float, float, float] = None,
+        absolute_position: bool = None,
+        corner_radius: float = None,
+        _no_validation: bool = False,
+    ):
+        """
+        ###### Parameters:
+        - shape_type: Type of shape (e.g., "cube", "sphere", "rounded_cube").
+        - position: Position of the shape in 3D space (x, y, z).
+        - size: Size of the shape (width, height, depth).
+        - rounded_cube_radius: Radius for rounded cubes (rx, ry, rz).
+        - rotation: Rotation of the shape in degrees (rx, ry, rz).
+        - absolute_position: If True, the position is absolute; if False, it is relative to the last shape.
+        - corner_radius: Radius for non-manhattan corners.
+        - _no_validation: If True, skip validation (for internal use).
 
-    def __eq__(self, other):
+        ###### Default behaviors are as follows:
+        - shape_type: Defaults to last shape's shape_type'.
+        - size: Defaults to the last shape's size.
+        - rounded_cube_radius: Defaults to the last shape's radius
+            - cubes have a radius of 0
+            - spheres have a radius of (size[0]/2, size[1]/2, size[2]/2)
+        - position: Defaults to the last shape's position.
+            - If absolute_position is False, it will be relative to the last shape's position.
+        - rotation: Defaults to last shape's rotation ((0, 0, 0) if first shape).
+        - corner_radius: Defaults the last shape's radius (0 if first shape).
+
+        If the shape is the first in a polychannel, it must have a defined type, size, and position (and rounded_cube_radius if rounded_cube shape).
+        """
+        self._shape_type = shape_type
+        self._size = size
+        self._rounded_cube_radius = rounded_cube_radius
+        self._position = position
+        self._rotation = rotation
+        self._absolute_position = absolute_position
+        self._corner_radius = corner_radius
+        self._no_validation = _no_validation
+
+    def __eq__(self, other) -> bool:
         if isinstance(other, PolychannelShape):
             return (
-                self.shape_type == other.shape_type and
-                self.size == other.size and
-                self.rounded_cube_radius == other.rounded_cube_radius and
-                self.position == other.position and
-                self.rotation == other.rotation and
-                self.absolute_position == other.absolute_position and
-                self.corner_radius == other.corner_radius and
-                self._no_validation == other._no_validation
-                )
+                self._shape_type == other._shape_type
+                and self._size == other._size
+                and self._rounded_cube_radius == other._rounded_cube_radius
+                and self._position == other._position
+                and self._rotation == other._rotation
+                and self._absolute_position == other._absolute_position
+                and self._corner_radius == other._corner_radius
+                and self._no_validation == other._no_validation
+            )
         return False
 
-    def __ne__(self, other):
+    def __ne__(self, other) -> bool:
         return not self.__eq__(other)
-    
+
+
 class BezierCurveShape:
+    """
+    ###### Represents a Bezier curve shape in a polychannel.
+    """
+
     def __init__(
         self,
         control_points: list[tuple[int, int, int]],
@@ -43,60 +96,105 @@ class BezierCurveShape:
         size: tuple[int, int, int] = None,
         position: tuple[int, int, int] = None,
         rounded_cube_radius: tuple[float, float, float] = None,
-        rotation: tuple[float, float, float] = (0, 0, 0),
+        rotation: tuple[float, float, float] = None,
         absolute_position: bool = None,
-        corner_radius: float = 0, 
-        _no_validation:bool=False
+        corner_radius: float = None,
+        _no_validation: bool = False,
     ):
-        self.shape_type = shape_type
-        self.control_points = control_points
-        self.size = size
-        self.position = position
-        self.rounded_cube_radius = rounded_cube_radius
-        self.rotation = rotation
-        self.absolute_position = absolute_position
-        self.corner_radius = corner_radius
-        self.number_of_segments = number_of_segments
-        self._no_validation = _no_validation  # If True, skip validation (for internal use)
+        """
+        ###### Parameters:
+        - control_points: List of control points defining the Bezier curve.
+        - number_of_segments: Number of segments to divide the curve into.
 
-    def __eq__(self, other):
-        if isinstance(other, PolychannelShape):
+        ###### Inputs for the final shape of the curve:
+        - shape_type: Type of shape (e.g., "cube", "sphere", "rounded_cube").
+        - size: Size of shape.
+        - position: Position of the shape in 3D space.
+        - rounded_cube_radius: Radius (if rounded cube).
+        - rotation: Rotation of the shape in degrees (x, y, z).
+        - absolute_position: If True, the position is absolute; if False, it is relative to the last shape.
+        - corner_radius: Radius for non-manhattan corners.
+        - _no_validation: If True, skip validation (for internal use).
+
+        ###### Default behaviors are as follows:
+        - shape_type: Defaults to last shape's shape_type'.
+        - size: Defaults to the last shape's size.
+        - rounded_cube_radius: Defaults to the last shape's radius
+            - cubes have a radius of 0
+            - spheres have a radius of (size[0]/2, size[1]/2, size[2]/2)
+        - position: Defaults to the last shape's position.
+            - If absolute_position is False, it will be relative to the last shape's position.
+        - rotation: Defaults to last shape's rotation ((0, 0, 0) if first shape).
+        - corner_radius: Defaults to last shape's radius (0 if first shape).
+
+        Bezier curves cannot be the first shape in a polychannel.
+        """
+        self._shape_type = shape_type
+        self._control_points = control_points
+        self._size = size
+        self._position = position
+        self._rounded_cube_radius = rounded_cube_radius
+        self._rotation = rotation
+        self._absolute_position = absolute_position
+        self._corner_radius = corner_radius
+        self._number_of_segments = number_of_segments
+        self._no_validation = (
+            _no_validation  # If True, skip validation (for internal use)
+        )
+
+    def __eq__(self, other) -> bool:
+        if isinstance(other, BezierCurveShape):
             return (
-                self.shape_type == other.shape_type and
-                self.size == other.size and
-                self.rounded_cube_radius == other.rounded_cube_radius and
-                self.position == other.position and
-                self.rotation == other.rotation and
-                self.absolute_position == other.absolute_position and
-                self.corner_radius == other.corner_radius and
-                self.control_points == other.control_points and
-                self.number_of_segments == other.number_of_segments and
-                self._no_validation == other._no_validation
-                )
+                self._shape_type == other._shape_type
+                and self._size == other._size
+                and self._rounded_cube_radius == other._rounded_cube_radius
+                and self._position == other._position
+                and self._rotation == other._rotation
+                and self._absolute_position == other._absolute_position
+                and self._corner_radius == other._corner_radius
+                and self._control_points == other._control_points
+                and self._number_of_segments == other._number_of_segments
+                and self._no_validation == other._no_validation
+            )
         return False
 
-    def __ne__(self, other):
+    def __ne__(self, other) -> bool:
         return not self.__eq__(other)
 
-    def generate(self, last_shape: PolychannelShape) -> list[PolychannelShape]:
-        def bezier(t, points):
-            n = len(points) - 1
-            return sum(comb(n, i) * (1 - t)**(n - i) * t**i * np.array(p) for i, p in enumerate(points))
+    def _generate(self, last_shape: PolychannelShape) -> list[PolychannelShape]:
+        """Generate a list of PolychannelShape objects representing the Bezier curve."""
 
-        shape_type = self.shape_type
-        if shape_type != last_shape.shape_type:
+        def _bezier(
+            t: float, points: list[tuple[int, int, int]]
+        ) -> tuple[float, float, float]:
+            """
+            Calculate a point on the Bezier curve at parameter t using the Bernstein polynomial.
+            points: List of control points defining the Bezier curve.
+            t: Parameter value (0 <= t <= 1).
+            Returns the point on the curve as a tuple (x, y, z).
+            """
+            n = len(points) - 1
+            return sum(
+                comb(n, i) * (1 - t) ** (n - i) * t**i * np.array(p)
+                for i, p in enumerate(points)
+            )
+
+        shape_type = self._shape_type
+        if shape_type != last_shape._shape_type:
             shape_type = "rounded_cube"
 
-        self.control_points.insert(0, last_shape.position)
-        self.control_points.append(self.position)
+        self._control_points.insert(0, last_shape._position)
+        self._control_points.append(self._position)
 
-        ts = np.linspace(0, 1, self.number_of_segments)
+        ts = np.linspace(0, 1, self._number_of_segments)
         shapes = []
         for t in ts:
-            position = tuple(bezier(t, self.control_points))
-            blended_size = lerp(last_shape.size, self.size, t)
-            blended_radius = lerp(last_shape.rounded_cube_radius, self.rounded_cube_radius, t)
-            blended_rotation = lerp(last_shape.rotation, self.rotation, t)
+            position = tuple(_bezier(t, self._control_points))
+            blended_size = _lerp(last_shape._size, self._size, t)
+            blended_radius = _lerp(
+                last_shape._rounded_cube_radius, self._rounded_cube_radius, t
+            )
+            blended_rotation = _lerp(last_shape._rotation, self._rotation, t)
 
             _no_validation = True
             if t == 0 or t == 1:
@@ -109,75 +207,118 @@ class BezierCurveShape:
                 position=position,
                 rotation=blended_rotation,
                 absolute_position=True,
-                _no_validation=_no_validation
+                _no_validation=_no_validation,
             )
             shapes.append(shape)
 
         return shapes
-    
-def _validate_polychannel_shapes(shapes: list[Union[PolychannelShape, BezierCurveShape]]) -> list[Union[PolychannelShape, BezierCurveShape]]:
+
+
+def _validate_polychannel_shapes(
+    shapes: list[Union[PolychannelShape, BezierCurveShape]],
+) -> list[Union[PolychannelShape, BezierCurveShape]]:
     """
     Validate polychannel shapes to ensure all shapes have a defined type, size, and position.
     This function modifies the input list in place.
     """
     for i, shape in enumerate(shapes):
         if i == 0:
-            if shape.shape_type is None:
-                raise ValueError("Shape type must be specified for the first shape in a polychannel")
-            if shape.size is None:
-                raise ValueError("Size must be specified for the first shape in a polychannel")
-            if shape.rounded_cube_radius is None and shape.shape_type == "rounded_cube":
-                raise ValueError("Rounded cube radius must be specified for the first round cube shape in a polychannel")
-            elif shape.shape_type == "cube":
-                shape.rounded_cube_radius = (0, 0, 0)
-            elif shape.shape_type == "sphere":
-                shape.rounded_cube_radius = (shape.size[0]/2, shape.size[1]/2, shape.size[2]/2)
-            if shape.position is None:
-                shape.position = (0, 0, 0)
+            if shape._shape_type is None:
+                raise ValueError(
+                    "Shape type must be specified for the first shape in a polychannel"
+                )
+            if shape._size is None:
+                raise ValueError(
+                    "Size must be specified for the first shape in a polychannel"
+                )
+            if shape._rounded_cube_radius is None and shape._shape_type == "rounded_cube":
+                raise ValueError(
+                    "Rounded cube radius must be specified for the first round cube shape in a polychannel"
+                )
+            elif shape._shape_type == "cube":
+                shape._rounded_cube_radius = (0, 0, 0)
+            elif shape._shape_type == "sphere":
+                shape._rounded_cube_radius = (
+                    shape._size[0] / 2,
+                    shape._size[1] / 2,
+                    shape._size[2] / 2,
+                )
+            if shape._position is None:
+                shape._position = (0, 0, 0)
             if type(shape) is BezierCurveShape:
-                raise ValueError("Bezier curve cannot be the first shape in a polychannel")
+                raise ValueError(
+                    "Bezier curve cannot be the first shape in a polychannel"
+                )
+            if shape._corner_radius is None:
+                shape._corner_radius = 0
+            if shape._rotation is None:
+                shape._rotation = (0, 0, 0)
         else:
-            if shape.shape_type is None:
-                shape.shape_type = shapes[i-1].shape_type
-            if shape.size is None:
-                shape.size = shapes[i-1].size
-            if shape.rounded_cube_radius is None:
-                if shape.shape_type == "cube":
-                    shape.rounded_cube_radius = (0,0,0)
-                elif shape.shape_type == "sphere":
-                    shape.rounded_cube_radius = (shape.size[0]/2, shape.size[1]/2, shape.size[2]/2)
-                elif shape.shape_type == "rounded_cube":
-                    shape.rounded_cube_radius = shapes[i-1].rounded_cube_radius
+            if shape._shape_type is None:
+                shape._shape_type = shapes[i - 1]._shape_type
+            if shape._size is None:
+                shape._size = shapes[i - 1]._size
+            if shape._rounded_cube_radius is None:
+                if shape._shape_type == "cube":
+                    shape._rounded_cube_radius = (0, 0, 0)
+                elif shape._shape_type == "sphere":
+                    shape._rounded_cube_radius = (
+                        shape._size[0] / 2,
+                        shape._size[1] / 2,
+                        shape._size[2] / 2,
+                    )
+                elif shape._shape_type == "rounded_cube":
+                    shape._rounded_cube_radius = shapes[i - 1]._rounded_cube_radius
                 else:
-                    raise ValueError(f"Unsupported shape type: {shape.shape_type}")
-            if shape.absolute_position is None:
-                shape.absolute_position = False
-            if shape.position is None:
-                shape.position = shapes[i-1].position
-            if not shape.absolute_position:
-                shape.position = tuple(shape.position[j] + shapes[i-1].position[j] for j in range(3))
+                    raise ValueError(f"Unsupported shape type: {shape._shape_type}")
+            if shape._absolute_position is None:
+                shape._absolute_position = False
+            if shape._position is None:
+                shape._position = shapes[i - 1]._position
+            if not shape._absolute_position:
+                shape._position = tuple(
+                    shape._position[j] + shapes[i - 1]._position[j] for j in range(3)
+                )
+            if shape._corner_radius is None:
+                shape._corner_radius = shapes[i - 1]._corner_radius
+            if shape._rotation is None:
+                shape._rotation = shapes[i - 1]._rotation
 
         if type(shape) is BezierCurveShape:
-            if shape.control_points is None or len(shape.control_points) < 1:
+            if shape._control_points is None or len(shape._control_points) < 1:
                 raise ValueError("Bezier curve requires at least 1 control points")
-            if not shape.absolute_position:
-                shape.control_points = [tuple(np.array(p) + np.array(shapes[i - 1].position)) for p in shape.control_points]
-            if shape.number_of_segments is None or shape.number_of_segments < 2:
+            if not shape._absolute_position:
+                shape._control_points = [
+                    tuple(np.array(p) + np.array(shapes[i - 1]._position))
+                    for p in shape._control_points
+                ]
+            if shape._number_of_segments is None or shape._number_of_segments < 2:
                 raise ValueError("Bezier curve requires at least 2 segments")
-            
-        shape.absolute_position = True
+
+        shape._absolute_position = True
 
     return shapes
 
-def _predominant_axis_mask(v):
-    """Returns a boolean mask with True in the predominant axis position."""
-    # i = np.argmax(np.abs(v))
-    # mask = np.zeros(3, dtype=bool)
-    # mask[i] = True
-    # return mask
-    return np.argmax(np.abs(v))
-    
-def _arc_between_angle_3d(A, B, C, r, n):
+
+def _arc_between_angle_3d(
+    A: tuple[int, int, int],
+    B: tuple[int, int, int],
+    C: tuple[int, int, int],
+    r: float,
+    n: int,
+) -> tuple[list[tuple[float, float, float]], list[tuple[float, float, float]], int, int]:
+    """
+    Calculate a 3D arc between points A, B, and C with radius r.
+    A, B, C are 3D points (tuples or lists).
+    r is the radius of the arc.
+    n is the number of points to generate along the arc.
+
+    Returns:
+    - arc_points: List of points along the arc.
+    - rotation_vectors: List of rotation vectors for each point.
+    - start_dir: Index of the direction along BA (0 for x, 1 for y, 2 for z).
+    - end_dir: Index of the direction along BC (0 for x, 1 for y, 2 for z).
+    """
     A = np.array(A, dtype=float)
     B = np.array(B, dtype=float)
     C = np.array(C, dtype=float)
@@ -191,7 +332,9 @@ def _arc_between_angle_3d(A, B, C, r, n):
     # r must be less than BA and BC length
     if r > round(np.linalg.norm(BA)) or r > round(np.linalg.norm(BC)):
         print(f"Radius r: {r}")
-        print(f"Incoming and outgoing channel lengths: {np.linalg.norm(BA)}, {np.linalg.norm(BC)}")
+        print(
+            f"Incoming and outgoing channel lengths: {np.linalg.norm(BA)}, {np.linalg.norm(BC)}"
+        )
         raise ValueError("Radius r is larger than incoming and outgoing channel lengths")
 
     # Angle and bisector
@@ -201,15 +344,19 @@ def _arc_between_angle_3d(A, B, C, r, n):
 
     # Distance along BA and BC to arc endpoints
     offset = r / np.tan(half_theta)
-    if round(offset) > round(np.linalg.norm(BA)) or round(offset) > round(np.linalg.norm(BC)):
+    if round(offset) > round(np.linalg.norm(BA)) or round(offset) > round(
+        np.linalg.norm(BC)
+    ):
         print(f"Offset: {offset}")
-        print(f"Incoming and outgoing channel lengths: {np.linalg.norm(BA)}, {np.linalg.norm(BC)}")
+        print(
+            f"Incoming and outgoing channel lengths: {np.linalg.norm(BA)}, {np.linalg.norm(BC)}"
+        )
         raise ValueError("Arc radius is too large geometry")
     P1 = B + uBA * offset  # start of arc
     P2 = B + uBC * offset  # end of arc
 
     # Angle bisector direction
-    bisector = (uBA + uBC)
+    bisector = uBA + uBC
     bisector /= np.linalg.norm(bisector)
 
     # Arc center lies along the bisector
@@ -243,9 +390,15 @@ def _arc_between_angle_3d(A, B, C, r, n):
     arc_points = [center + r * (np.cos(a) * u + np.sin(a) * v) for a in angles]
 
     rotation_vectors = [tuple(normal * np.degrees(a)) for a in angles]
-    return arc_points, rotation_vectors, _predominant_axis_mask(uBA), _predominant_axis_mask(uBC)
+    return arc_points, rotation_vectors, np.argmax(np.abs(uBA)), np.argmax(np.abs(uBC))
 
-def _round_polychannel_corners(shapes:list[Union[PolychannelShape, BezierCurveShape]], n:int, px_size:float, layer_size:float) -> list[Union[PolychannelShape, BezierCurveShape]]:
+
+def _round_polychannel_corners(
+    shapes: list[Union[PolychannelShape, BezierCurveShape]],
+    n: int,
+    px_size: float,
+    layer_size: float,
+) -> list[Union[PolychannelShape, BezierCurveShape]]:
     """
     Use arc function to create non-manhattan corners for polychannel shapes.
     Loop through all shapes. If corner radius is 0 (or None initially) do nothing. If it is not 0, replace it with the arc shapes.
@@ -254,24 +407,26 @@ def _round_polychannel_corners(shapes:list[Union[PolychannelShape, BezierCurveSh
     """
     if len(shapes) < 3:
         return shapes
-    
+
     # Create a new list to hold the rounded shapes
     rounded_shapes = []
     for i, shape in enumerate(shapes):
-        if shape.corner_radius > 0:
+        if shape._corner_radius > 0:
             if i == 0 or i == len(shapes) - 1:
-                raise ValueError("First and last shapes in a polychannel cannot have a corner radius")
+                raise ValueError(
+                    "First and last shapes in a polychannel cannot have a corner radius"
+                )
             # Calculate the arc points
             arc_points, rotations, start_dir, end_dir = _arc_between_angle_3d(
-                shapes[i - 1].position,
-                shape.position,
-                shapes[i + 1].position,
-                shape.corner_radius,
-                n
+                shapes[i - 1]._position,
+                shape._position,
+                shapes[i + 1]._position,
+                shape._corner_radius,
+                n,
             )
 
             # Blend the start and end sizes in real space
-            start_size = list(shape.size)
+            start_size = list(shape._size)
             start_size[0] = start_size[0] * px_size
             start_size[1] = start_size[1] * px_size
             start_size[2] = start_size[2] * layer_size
@@ -284,7 +439,7 @@ def _round_polychannel_corners(shapes:list[Union[PolychannelShape, BezierCurveSh
             ts = np.linspace(0, 1, n)
             for point, rotation, t in zip(arc_points, rotations, ts):
                 # Interpolate the size based on the parameter t and convert back to px/layer
-                size = list(lerp(start_size, end_size, t))
+                size = list(_lerp(start_size, end_size, t))
                 size[0] = size[0] / px_size
                 size[1] = size[1] / px_size
                 size[2] = size[2] / layer_size
@@ -293,23 +448,28 @@ def _round_polychannel_corners(shapes:list[Union[PolychannelShape, BezierCurveSh
                 if t == 0:
                     _no_validation = False
 
-                rounded_shapes.append(PolychannelShape(
-                    shape_type=shape.shape_type,
-                    position=point,
-                    size=size,
-                    rounded_cube_radius=shape.rounded_cube_radius,
-                    rotation=tuple(a + b for a, b in zip(shape.rotation, rotation)),
-                    absolute_position=True,
-                    corner_radius=shape.corner_radius,
-                    _no_validation=_no_validation
-                ))
+                rounded_shapes.append(
+                    PolychannelShape(
+                        shape_type=shape._shape_type,
+                        position=point,
+                        size=size,
+                        rounded_cube_radius=shape._rounded_cube_radius,
+                        rotation=tuple(a + b for a, b in zip(shape._rotation, rotation)),
+                        absolute_position=True,
+                        corner_radius=shape._corner_radius,
+                        _no_validation=_no_validation,
+                    )
+                )
         else:
             # If no corner radius, just append the shape as is
             rounded_shapes.append(shape)
 
     return rounded_shapes
 
-def _expand_bezier_shapes(shapes:list[Union[PolychannelShape, BezierCurveShape]]) -> list[Union[PolychannelShape, BezierCurveShape]]:
+
+def _expand_bezier_shapes(
+    shapes: list[Union[PolychannelShape, BezierCurveShape]],
+) -> list[Union[PolychannelShape, BezierCurveShape]]:
     """
     Expand Bezier shapes into a list of PolychannelShapes.
     This function modifies the input list in place.
@@ -317,12 +477,17 @@ def _expand_bezier_shapes(shapes:list[Union[PolychannelShape, BezierCurveShape]]
     expanded_shapes = []
     for i, shape in enumerate(shapes):
         if isinstance(shape, BezierCurveShape):
-            expanded_shapes.extend(shape.generate(shapes[i - 1]))
+            expanded_shapes.extend(shape._generate(shapes[i - 1]))
         else:
             expanded_shapes.append(shape)
     return expanded_shapes
 
-def _preprocess_polychannel_shapes(shapes: list[Union[PolychannelShape, BezierCurveShape]], px_size:float, layer_size:float) -> list[Union[PolychannelShape, BezierCurveShape]]:
+
+def _preprocess_polychannel_shapes(
+    shapes: list[Union[PolychannelShape, BezierCurveShape]],
+    px_size: float,
+    layer_size: float,
+) -> list[Union[PolychannelShape, BezierCurveShape]]:
     """
     Preprocess polychannel shapes validating their properties, rounding corners, and expanding Bezier curves.
     This function modifies the input list in place.

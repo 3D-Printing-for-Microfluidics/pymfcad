@@ -1,9 +1,13 @@
 from __future__ import annotations
 
+from typing import Union
+
+
 class Color:
     """
     Color class.
     """
+
     SVG_COLORS = {
         "black": (0, 0, 0),
         "silver": (192, 192, 192),
@@ -151,14 +155,14 @@ class Color:
         "violet": (238, 130, 238),
         "wheat": (245, 222, 179),
         "whitesmoke": (245, 245, 245),
-        "yellowgreen": (154, 205, 50)
+        "yellowgreen": (154, 205, 50),
     }
 
-    def __init__(self, r, g, b, a=255):
+    def __init__(self, r: int, g: int, b: int, a: int = 255):
         """
         Initialize the color.
 
-        Input:
+        Parameters:
         - r (int): The red value.
         - g (int): The green value.
         - b (int): The blue value.
@@ -170,11 +174,11 @@ class Color:
         self._a = self._clamp(a)
 
     @classmethod
-    def from_name(cls, name:str = "aqua", alpha:int = 255):
+    def from_name(cls, name: str = "aqua", alpha: int = 255) -> Color:
         """
         Initialize the color from a name.
 
-        Input:
+        Parameters:
         - name (str): The name of the color.
         - alpha (int): The alpha value.
         """
@@ -185,11 +189,11 @@ class Color:
         return cls(r, g, b, alpha)
 
     @classmethod
-    def from_rgba(cls, rgba:tuple[int, int, int, int]):
+    def from_rgba(cls, rgba: tuple[int, int, int, int]) -> Color:
         """
         Initialize the color from a tuple of 4 integers.
 
-        Input:
+        Parameters:
         - rgba (tuple[int, int, int, int]): The RGBA values.
         """
         if len(rgba) != 4:
@@ -197,15 +201,15 @@ class Color:
         return cls(*rgba)
 
     @classmethod
-    def from_hex(cls, hex_code:str, alpha:int = 255):
+    def from_hex(cls, hex_code: str, alpha: int = 255) -> Color:
         """
         Initialize the color from a hex code.
 
-        Input:
+        Parameters:
         - hex_code (str): The hex code.
         - alpha (int): The alpha value.
         """
-        hex_code = hex_code.strip().lstrip('#')
+        hex_code = hex_code.strip().lstrip("#")
         if len(hex_code) != 6:
             raise ValueError("Hex code must be 6 characters long")
         r = int(hex_code[0:2], 16)
@@ -213,11 +217,11 @@ class Color:
         b = int(hex_code[4:6], 16)
         return cls(r, g, b, alpha)
 
-    def change_to_color(self, color:Color):
+    def _change_to_color(self, color: Color) -> None:
         """
         Change the color to another color.
 
-        Input:
+        Parameters:
         - color (Color): The color to change to.
         """
         self._r = color._r
@@ -225,32 +229,32 @@ class Color:
         self._b = color._b
         self._a = color._a
 
-    def to_rgba(self):
+    def _to_rgba(self) -> tuple[int, int, int, int]:
         """
         Convert the color to a tuple of 4 integers.
         """
         return (self._r, self._g, self._b, self._a)
 
-    def to_float(self):
+    def _to_float(self) -> tuple[float, float, float, float]:
         """
         Convert the color to a tuple of 4 floats.
         """
-        return (self._r/256, self._g/256, self._b/256, self._a/256)
+        return (self._r / 256, self._g / 256, self._b / 256, self._a / 256)
 
-    def __str__(self):
+    def __str__(self) -> str:
         """
         Convert the color to a string.
         """
         return f"rgba({self._r}, {self._g}, {self._b}, {self._a})"
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         """
         Convert the color to a string.
         """
         return f"Color(r={self._r}, g={self._g}, b={self._b}, a={self._a})"
 
     @staticmethod
-    def _clamp(value):
+    def _clamp(value: Union[float, int]) -> int:
         """
         Clamp the value between 0 and 255.
         """

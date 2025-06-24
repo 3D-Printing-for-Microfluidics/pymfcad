@@ -4,42 +4,50 @@ from pymfd import PolychannelShape, BezierCurveShape, Device, Component, Color, 
 
 set_fn(50)
 
-# ############### 1 Test all basic components ##################
-component = Component(
-    size=(2560, 1600, 10),
-    position=(0, 0, 0),
-    px_size=0.0076,
-    layer_size=0.01
-)
-chan_size = (8, 8, 6)
-# Add label
-component.add_label("default", Color.from_rgba((0, 255, 0, 127)))
-# Add a shape
-# component.add_shape("simple_cube", component.make_cube((2, 2, 2), center=False).translate((1,1,1)), label="default")
-# component.add_shape("simple_round_cube", component.make_rounded_cube((10, 10, 10), (2.5,2.5,2.5), center=True), label="default")
-# component.add_shape("simple_sphere", component.make_sphere((2,2,2), center=False), label="default")
-# component.add_shape("simple_cylinder", component.make_cylinder(r=1, h=2, center_xy=False, center_z=False), label="default")
-# component.add_shape("text", component.make_text("Hello!!"), label="default")
-# component.add_shape("import", component.import_model("examples/Diamond_21.stl").resize((1,1,1)), label="default")
-# component.add_shape("tpms", component.make_tpms_cell((10,10,8)), label="default")
-component.add_shape("polychannel", component.make_polychannel(
-    [
-        PolychannelShape("cube", position=(0,20,0), size=chan_size),
-        PolychannelShape("sphere", position=(-33,0,0), size=chan_size, corner_radius=10),
-        PolychannelShape("rounded_cube", position=(0,0,-30), size=chan_size, rounded_cube_radius=(1,1,1)),
-        PolychannelShape("cube", position=(0,-41,0), size=chan_size),
-    ]
-), label="default")
-# component.add_shape("beziercurve", component.make_polychannel(
-#     [
-#         PolychannelShape("sphere", position=(0,0,0), size=chan_size),
-#         BezierCurveShape(control_points=[(100,0,0), (100,100,0)], number_of_segments=10, shape_type="sphere", position=(100, 100, 100)),
-#     ]
-# ), label="default")
+# # ############### 1 Test all basic components ##################
+# component = Component(
+#     size=(2560, 1600, 10), position=(0, 0, 0), px_size=0.0076, layer_size=0.01
+# )
+# chan_size = (8, 8, 6)
+# # Add label
+# component.add_label("default", Color.from_rgba((0, 255, 0, 127)))
+# # Add a shape
+# # component.add_shape("simple_cube", component.make_cube((2, 2, 2), center=False).translate((1,1,1)), label="default")
+# # component.add_shape("simple_round_cube", component.make_rounded_cube((10, 10, 10), (2.5,2.5,2.5), center=True), label="default")
+# # component.add_shape("simple_sphere", component.make_sphere((2,2,2), center=False), label="default")
+# # component.add_shape("simple_cylinder", component.make_cylinder(r=1, h=2, center_xy=False, center_z=False), label="default")
+# # component.add_shape("text", component.make_text("Hello!!"), label="default")
+# # component.add_shape("import", component.import_model("examples/Diamond_21.stl").resize((1,1,1)), label="default")
+# # component.add_shape("tpms", component.make_tpms_cell((10,10,8)), label="default")
+# component.add_shape(
+#     "polychannel",
+#     component.make_polychannel(
+#         [
+#             PolychannelShape("cube", position=(0, 20, 0), size=chan_size),
+#             PolychannelShape(
+#                 "sphere", position=(-33, 0, 0), size=chan_size, corner_radius=10
+#             ),
+#             PolychannelShape(
+#                 "rounded_cube",
+#                 position=(0, 0, -30),
+#                 size=chan_size,
+#                 rounded_cube_radius=(1, 1, 1),
+#             ),
+#             PolychannelShape("cube", position=(0, -41, 0), size=chan_size),
+#         ]
+#     ),
+#     label="default",
+# )
+# # component.add_shape("beziercurve", component.make_polychannel(
+# #     [
+# #         PolychannelShape("sphere", position=(0,0,0), size=chan_size),
+# #         BezierCurveShape(control_points=[(100,0,0), (100,100,0)], number_of_segments=10, shape_type="sphere", position=(100, 100, 100)),
+# #     ]
+# # ), label="default")
 
-# Mesh the component
-component.preview()
-# component.slice_component()
+# # Mesh the component
+# component.preview()
+# # component.slice_component()
 
 
 # ################ 2 Test subcomonents ##################
@@ -131,35 +139,36 @@ component.preview()
 # # device.render()
 # # device.slice_component()
 
-# ############### 6 Create serpentine channel ##################
-# component = Component(
-#     size=(2560, 1600, 20),
-#     position=(0, 0, 0),
-#     px_size=0.0076,
-#     layer_size=0.01
-# )
-# chan_size = (8, 8, 6)
-# # Add label
-# component.add_label("default", Color.from_rgba((0, 255, 0, 127)))
-# # Add a shape
-# # component.add_shape("simple_cube", component.make_cube((2, 2, 0), center=True).rotate((90,0,0)), label="default")
-# component.add_shape("polychannel", component.make_polychannel(
-#         [
-#         PolychannelShape("cube", position=(0,0,0), size=(8,8,6)),
-#         PolychannelShape("cube", position=(0,0,16), size=(8,8,2), corner_radius=8),
-#         PolychannelShape("cube", position=(100,0,0), size=(8,8,6), corner_radius=8),
-#         PolychannelShape("cube", position=(0,16,0), size=(8,8,6), corner_radius=8),
-#         PolychannelShape("cube", position=(-100,0,0), size=(8,8,6), corner_radius=8),
-#         PolychannelShape("cube", position=(0,16,0), size=(8,8,6), corner_radius=8),
-#         PolychannelShape("cube", position=(100,0,0), size=(8,8,6), corner_radius=8),
-#         PolychannelShape("cube", position=(0,16,0), size=(8,8,6), corner_radius=8),
-#         PolychannelShape("cube", position=(-100,0,0), size=(8,8,6), corner_radius=8),
-#         PolychannelShape("cube", position=(0,16,0), size=(8,8,6), corner_radius=8),
-#         PolychannelShape("cube", position=(100,0,0), size=(8,8,2), corner_radius=8),
-#         PolychannelShape("cube", position=(0,0,-16), size=(8,8,6)),
-#     ]
-# ), label="default")
+############### 6 Create serpentine channel ##################
+component = Component(
+    size=(2560, 1600, 20), position=(0, 0, 0), px_size=0.0076, layer_size=0.01
+)
+chan_size = (8, 8, 6)
+# Add label
+component.add_label("default", Color.from_rgba((0, 255, 0, 127)))
+# Add a shape
+# component.add_shape("simple_cube", component.make_cube((2, 2, 0), center=True).rotate((90,0,0)), label="default")
+component.add_shape(
+    "polychannel",
+    component.make_polychannel(
+        [
+            PolychannelShape("cube", position=(0, 0, 0), size=(8, 8, 6)),
+            PolychannelShape(position=(0, 0, 16), corner_radius=8),
+            PolychannelShape(position=(100, 0, 0)),
+            PolychannelShape(position=(0, 16, 0)),
+            PolychannelShape(position=(-100, 0, 0)),
+            PolychannelShape(position=(0, 16, 0)),
+            PolychannelShape(position=(100, 0, 0)),
+            PolychannelShape(position=(0, 16, 0)),
+            PolychannelShape(position=(-100, 0, 0)),
+            PolychannelShape(position=(0, 16, 0)),
+            PolychannelShape(position=(100, 0, 0)),
+            PolychannelShape(position=(0, 0, -16), corner_radius=0),
+        ]
+    ),
+    label="default",
+)
 
-# # Mesh the component
-# component.preview()
-# # component.slice_component()
+# Mesh the component
+component.preview()
+# component.slice_component()

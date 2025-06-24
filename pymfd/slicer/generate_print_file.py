@@ -9,8 +9,8 @@ from contextlib import nullcontext
 from zipfile import ZipFile, ZIP_DEFLATED
 from PIL import Image
 
-from utils.json_prettier import pretty_json
-from utils.uniqueimagestore import UniqueImageStore, load_image_from_file
+from .json_prettier import pretty_json
+from .uniqueimagestore import UniqueImageStore, load_image_from_file
 
 
 def lookup_le(le, slicer_settings):
@@ -82,10 +82,10 @@ def create_defaults_json(stl, version, slicer_settings, temp_directory):
         )
 
     if settings["en_secondary"] or settings["en_roof"]:
-        if not (temp_directory/_uuid/"slices/out0001.png").exists():
-            def_layer_settings["Image settings"]["Image file"] = (
-                f"{_uuid}/out0001_primary.png"
-            )
+        if not (temp_directory / _uuid / "slices/out0001.png").exists():
+            def_layer_settings["Image settings"][
+                "Image file"
+            ] = f"{_uuid}/out0001_primary.png"
     return def_layer_settings
 
 
@@ -216,9 +216,9 @@ def create_named_image_settings(stls, default_image_settings, version, slicer_se
                 }
 
                 if i != 0:
-                    tertiary_image_settings[
-                        "Using named image settings"
-                    ] = f"{_uuid}_default"
+                    tertiary_image_settings["Using named image settings"] = (
+                        f"{_uuid}_default"
+                    )
                 named_image_settings[f"{_uuid}_tertiary"] = tertiary_image_settings
 
             primary_image_settings = {
@@ -229,9 +229,9 @@ def create_named_image_settings(stls, default_image_settings, version, slicer_se
             }
             if i != 0:
                 primary_image_settings["Using named image settings"] = f"{_uuid}_default"
-                secondary_image_settings[
-                    "Using named image settings"
-                ] = f"{_uuid}_default"
+                secondary_image_settings["Using named image settings"] = (
+                    f"{_uuid}_default"
+                )
             named_image_settings[f"{_uuid}_primary"] = primary_image_settings
             named_image_settings[f"{_uuid}_secondary"] = secondary_image_settings
 
@@ -384,7 +384,9 @@ def create_file(
 
     try:
         if not zip_output:
-            output_folder = Path(Path(output_filename).parent / Path(output_filename).stem)
+            output_folder = Path(
+                Path(output_filename).parent / Path(output_filename).stem
+            )
             # make directory if it doesn't exist, else throw error
             if output_folder.exists():
                 error_msg = "Error: The directory '" + str(output_folder)
@@ -393,7 +395,11 @@ def create_file(
                 return False
                 # sys.exit(error_msg)
             os.mkdir(output_folder)
-        with ZipFile(output_filename, "x", compression=ZIP_DEFLATED, compresslevel=6) if zip_output else nullcontext() as myzip:
+        with (
+            ZipFile(output_filename, "x", compression=ZIP_DEFLATED, compresslevel=6)
+            if zip_output
+            else nullcontext()
+        ) as myzip:
             if progress is not None:
                 progress("Generating print file", 0, len(image_paths_keys))
 
@@ -436,14 +442,20 @@ def create_file(
                         if zip_output:
                             myzip.write(
                                 image_path,
-                                arcname=Path(slices_folder.name) / _uuid / image_path.name,
+                                arcname=Path(slices_folder.name)
+                                / _uuid
+                                / image_path.name,
                             )
                         else:
                             os.makedirs(
-                                output_folder / slices_folder.name / _uuid, exist_ok=True)
+                                output_folder / slices_folder.name / _uuid, exist_ok=True
+                            )
                             shutil.move(
                                 image_path,
-                                output_folder / slices_folder.name / _uuid / image_path.name,
+                                output_folder
+                                / slices_folder.name
+                                / _uuid
+                                / image_path.name,
                             )
 
                     image_settings = {"Image file": f"{_uuid}/{image_path.name}"}
@@ -459,9 +471,9 @@ def create_file(
                         image_settings["Using named image settings"] = f"{_uuid}_primary"
 
                     elif image_type == "secondary":  # secondary image
-                        image_settings[
-                            "Using named image settings"
-                        ] = f"{_uuid}_secondary"
+                        image_settings["Using named image settings"] = (
+                            f"{_uuid}_secondary"
+                        )
 
                     elif image_type == "tertiary":  # tertiary image
                         image_settings["Using named image settings"] = f"{_uuid}_tertiary"
@@ -471,9 +483,9 @@ def create_file(
 
                     else:  # normal image
                         if f"{_uuid}_default" in data["Named image settings"].keys():
-                            image_settings[
-                                "Using named image settings"
-                            ] = f"{_uuid}_default"
+                            image_settings["Using named image settings"] = (
+                                f"{_uuid}_default"
+                            )
 
                     image_settings_list.append(image_settings)
                 layer["Image settings list"] = image_settings_list
@@ -552,10 +564,12 @@ def create_file(
                 image_count = 0
                 image_progress = 0
                 for stl in stls:
-                    image_count += len(list((minimal_slices_folder / stl["uuid"]).iterdir()))
+                    image_count += len(
+                        list((minimal_slices_folder / stl["uuid"]).iterdir())
+                    )
                 if progress is not None:
                     progress("Saving images", 0, len(image_paths_keys))
-                    
+
                 # save minimal images
                 for stl in stls:
                     _uuid = stl["uuid"]
@@ -572,9 +586,7 @@ def create_file(
                                 os.remove(image_path)
                             else:
                                 os.makedirs(
-                                    output_folder
-                                    / minimal_slices_folder.name
-                                    / _uuid,
+                                    output_folder / minimal_slices_folder.name / _uuid,
                                     exist_ok=True,
                                 )
                                 shutil.move(

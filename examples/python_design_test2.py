@@ -1,66 +1,69 @@
 from pymfd.components import Valve20px
 from pymfd.router import Router
 from pymfd import set_fn, Device, Component, Color
-from pymfd.slicer import Settings, Header, Design, ResinType, Printer, Resolution, BurninSettings, PositionSettings, ExposureSettings
+
+# from pymfd.slicer import (
+#     Settings,
+#     Header,
+#     Design,
+#     ResinType,
+#     Printer,
+#     Resolution,
+#     BurninSettings,
+#     PositionSettings,
+#     ExposureSettings,
+# )
 
 set_fn(50)
 
-settings = Settings(
-    header=Header(
-        schema_version="4.0.0",
-        image_directory="slices",
-        print_under_vacuum=False
-    ),
-    design=Design(
-        user="Test User",
-        purpose="Test Design",
-        description="This is a test design for the pymfd library.",
-        resin=ResinType(
-            monomer=[("PEG", 100)],
-            uv_absorbers=[("NPS", 2.0)],
-            initiators=[("IRG", 1.0)],
-            additives=[]
-        ),
-        printer=Printer(
-            name="HR3v3",
-            resolutions=Resolution(
-                px_size=0.0076,
-                px_count=(2560, 1600)
-            )
-        )
-    ),
-    burnin_settings=BurninSettings(
-        burnin_times=[10000,5000,2500]
-    ),
-    default_position_settings=PositionSettings(
-        layer_thickness=10.0, 
-        distance_up=1.0, 
-        initial_wait=0.0, 
-        up_speed=25.0, 
-        up_acceleration=50.0, 
-        up_wait=0.0, 
-        down_speed=20.0, 
-        down_acceleration=50.0, 
-        force_squeeze=False, 
-        squeeze_count=0, 
-        squeeze_force=0.0, 
-        squeeze_wait=0.0, 
-        final_wait=0.0
-    ),
-    default_exposure_settings=ExposureSettings(
-        image_file="", 
-        grayscale_correction=False, 
-        image_x_offset=0.0, 
-        image_y_offset=0.0, 
-        exposure_time=300.0, 
-        light_engine="visitech", 
-        power_setting=100, 
-        relative_focus_position=0.0, 
-        wait_before_exposure=0.0, 
-        wait_after_exposure=0.0
-    )
-)
-# settings.save("settings.json")
+# settings = Settings(
+#     header=Header(
+#         schema_version="4.0.0", image_directory="slices", print_under_vacuum=False
+#     ),
+#     design=Design(
+#         user="Test User",
+#         purpose="Test Design",
+#         description="This is a test design for the pymfd library.",
+#         resin=ResinType(
+#             monomer=[("PEG", 100)],
+#             uv_absorbers=[("NPS", 2.0)],
+#             initiators=[("IRG", 1.0)],
+#             additives=[],
+#         ),
+#         printer=Printer(
+#             name="HR3v3", resolutions=Resolution(px_size=0.0076, px_count=(2560, 1600))
+#         ),
+#     ),
+#     burnin_settings=BurninSettings(burnin_times=[10000, 5000, 2500]),
+#     default_position_settings=PositionSettings(
+#         layer_thickness=10.0,
+#         distance_up=1.0,
+#         initial_wait=0.0,
+#         up_speed=25.0,
+#         up_acceleration=50.0,
+#         up_wait=0.0,
+#         down_speed=20.0,
+#         down_acceleration=50.0,
+#         force_squeeze=False,
+#         squeeze_count=0,
+#         squeeze_force=0.0,
+#         squeeze_wait=0.0,
+#         final_wait=0.0,
+#     ),
+#     default_exposure_settings=ExposureSettings(
+#         image_file="",
+#         grayscale_correction=False,
+#         image_x_offset=0.0,
+#         image_y_offset=0.0,
+#         exposure_time=300.0,
+#         light_engine="visitech",
+#         power_setting=100,
+#         relative_focus_position=0.0,
+#         wait_before_exposure=0.0,
+#         wait_after_exposure=0.0,
+#     ),
+# )
+# # settings.save("settings.json")
 
 
 device_size = (2560, 1600, 500)
@@ -90,12 +93,12 @@ for l in range(z):
         for r in range(y):
             v = Valve20px()
             mirror = False
-            if c%2 == 1:
+            if c % 2 == 1:
                 mirror = not mirror
-            if l%2 == 1:
+            if l % 2 == 1:
                 mirror = not mirror
             v.mirror(mirror_y=mirror, in_place=True)
-            v.translate(((c+1)*50, (r+1)*50, (l+1)*38))
+            v.translate(((c + 1) * 50, (r + 1) * 50, (l + 1) * 38))
             if mirror:
                 valve_row.insert(0, v)
             else:
@@ -105,7 +108,7 @@ for l in range(z):
             device.relabel_labels([f"Valve_{l}_{c}_{r}.pneumatic"], "pneumatic")
             device.relabel_labels([f"Valve_{l}_{c}_{r}.fluidic"], "fluidic")
 
-        if l%2 == 1:
+        if l % 2 == 1:
             valve_col.insert(0, valve_row)
         else:
             valve_col.append(valve_row)
@@ -121,13 +124,13 @@ for l in range(z):
             v1 = None
             v2 = None
             if r != 0:
-                v1 = valve_grid[l][c][r-1]
+                v1 = valve_grid[l][c][r - 1]
                 v2 = valve_grid[l][c][r]
             elif c != 0:
-                v1 = valve_grid[l][c-1][-1]
+                v1 = valve_grid[l][c - 1][-1]
                 v2 = valve_grid[l][c][0]
             elif l != 0:
-                v1 = valve_grid[l-1][-1][-1]
+                v1 = valve_grid[l - 1][-1][-1]
                 v2 = valve_grid[l][0][0]
             else:
                 continue
