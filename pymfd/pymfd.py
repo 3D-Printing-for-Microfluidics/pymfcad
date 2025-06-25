@@ -20,8 +20,8 @@ from .backend import (
     Polychannel,
     PolychannelShape,
     BezierCurveShape,
-    _render,
-    _slice_component,
+    render_component,
+    slice_component,
     Color,
 )
 
@@ -231,7 +231,7 @@ class Component(_InstantiationTrackerMixin):
         self._px_size = px_size
         self._layer_size = layer_size
         self.shapes = []
-        self.bulk_shape = []
+        self.bulk_shapes = []
         self.ports = []
         self.subcomponents = []
         self.labels = {}
@@ -312,7 +312,7 @@ class Component(_InstantiationTrackerMixin):
         shape._name = name
         shape._parent = self
         shape._color = self.labels[label]
-        self.bulk_shape.append(shape)
+        self.bulk_shapes.append(shape)
         setattr(self, name, shape)
 
     def add_port(self, name: str, port: Port):
@@ -648,7 +648,7 @@ class Component(_InstantiationTrackerMixin):
         return self
 
     def render(self, filename: str = "component.glb", do_bulk_difference: bool = True):
-        scene = _render(
+        scene = render_component(
             component=self,
             render_bulk=True,
             do_bulk_difference=do_bulk_difference,
@@ -665,7 +665,7 @@ class Component(_InstantiationTrackerMixin):
         do_bulk_difference: bool = False,
         wireframe: bool = False,
     ):
-        scene = _render(
+        scene = render_component(
             component=self,
             render_bulk=render_bulk,
             do_bulk_difference=do_bulk_difference,
@@ -703,10 +703,8 @@ class Component(_InstantiationTrackerMixin):
         # with open("scene.html", "w") as f:
         #     f.write(html_str)
 
-    def slice_component(
-        self, filename: str = "component.glb", do_bulk_difference: bool = True
-    ):
-        _slice_component(component=self, render_bulk=False, do_bulk_difference=False)
+    def slice(self, filename: str = "component.glb", do_bulk_difference: bool = True):
+        slice_component(component=self, render_bulk=False, do_bulk_difference=False)
 
 
 class Device(Component):

@@ -13,8 +13,8 @@ from .manifold3d import (
     TextExtrusion,
     ImportModel,
     TPMS,
-    _render,
-    _slice_component,
+    render_component,
+    slice_component,
 )
 from .polychannel import (
     Polychannel,

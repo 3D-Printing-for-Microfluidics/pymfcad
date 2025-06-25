@@ -1127,7 +1127,7 @@ def _component_to_manifold(
             recurse(sub, name)
 
         # itterate bulk shapes (if device and not inverted)
-        for bulk in comp.bulk_shape:
+        for bulk in comp.bulk_shapes:
             key = str(bulk._color)
             if key in bulk_manifolds.keys():
                 bulk_manifolds[key] += bulk
@@ -1179,7 +1179,7 @@ def _component_to_manifold(
     return manifolds, bulk_manifolds, ports
 
 
-def _render(
+def render_component(
     component: Component,
     render_bulk: bool = True,
     do_bulk_difference: bool = True,
@@ -1241,7 +1241,7 @@ def _render(
         return scene
 
 
-def _slice_component(
+def slice_component(
     component: Component,
     render_bulk: bool = True,
     do_bulk_difference: bool = True,
