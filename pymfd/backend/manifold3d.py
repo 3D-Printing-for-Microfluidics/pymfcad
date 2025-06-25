@@ -699,7 +699,7 @@ class TextExtrusion(Shape):
         """
         super().__init__(px_size, layer_size)
 
-        def glyph_to_polygons(face, char, scale=1.0):
+        def glyph_to_polygons(face, char, scale=1.0, curve_steps=10):
             face.load_char(char, freetype.FT_LOAD_NO_BITMAP)
             outline = face.glyph.outline
             points = np.array(outline.points, dtype=np.float32) * scale
@@ -709,10 +709,46 @@ class TextExtrusion(Shape):
             polys = []
             start = 0
             for end in contours:
-                contour = points[start : end + 1]
-                if len(contour) >= 3:
-                    polys.append(contour)
+                pts = points[start : end + 1]
+                tgs = tags[start : end + 1]
+                n = len(pts)
+
+                # Wrap-around: emulate circular indexing
+                pts = list(pts)
+                tgs = list(tgs)
+                pts.append(pts[0])
+                tgs.append(tgs[0])
+
+                path = []
+                i = 0
+                while i < n:
+                    pt1 = pts[i]
+                    tag1 = tgs[i] & 1
+                    if tag1:  # on-curve
+                        path.append(pt1)
+                        i += 1
+                    else:
+                        # pt1 is control point
+                        if tgs[i + 1] & 1:  # next is on-curve
+                            pt2 = pts[i + 1]
+                            p0 = path[-1] if path else (pt1 + pt2) / 2
+                            for t in np.linspace(0, 1, curve_steps):
+                                p = (1 - t) ** 2 * p0 + 2 * (1 - t) * t * pt1 + t**2 * pt2
+                                path.append(p)
+                            i += 2
+                        else:
+                            # next is off-curve → implied on-curve midpoint
+                            mid = (pt1 + pts[i + 1]) / 2
+                            p0 = path[-1] if path else mid
+                            for t in np.linspace(0, 1, curve_steps):
+                                p = (1 - t) ** 2 * p0 + 2 * (1 - t) * t * pt1 + t**2 * mid
+                                path.append(p)
+                            i += 1
+
+                if len(path) >= 3:
+                    polys.append(np.array(path))
                 start = end + 1
+
             return polys
 
         def text_to_manifold(
