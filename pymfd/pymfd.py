@@ -6,7 +6,7 @@ import importlib
 from enum import Enum
 from pathlib import Path
 from typing import Union
-from typing import TYPE_CHECKING
+from collections.abc import Callable
 
 from .backend import (
     Shape,
@@ -21,12 +21,11 @@ from .backend import (
     PolychannelShape,
     BezierCurveShape,
     render_component,
-    slice_component,
+    # slice_component,
     Color,
 )
 
-if TYPE_CHECKING:
-    from collections.abs import Callable
+from .slicer import Resolution
 
 
 class _InstantiationTrackerMixin:
@@ -46,7 +45,8 @@ class _InstantiationTrackerMixin:
         """Return (directory, filename_stem) of the file that instantiated the component, if it's a Device or Component."""
         class_name = type(self).__name__
 
-        if class_name in {"Device", "Component"}:
+        # if class_name in {"Device", "Component"}:
+        if class_name in {"Component"}:
             return self._instantiation_path.parent
 
         # Fallback: use where the class is defined
@@ -60,7 +60,8 @@ class _InstantiationTrackerMixin:
         """Return (directory, filename_stem) of the file that instantiated the component, if it's a Device or Component."""
         class_name = type(self).__name__
 
-        if class_name in {"Device", "Component"}:
+        # if class_name in {"Device", "Component"}:
+        if class_name in {"Component"}:
             return self._instantiation_path.stem
 
         # Fallback: use where the class is defined
@@ -157,11 +158,17 @@ class Port(_InstantiationTrackerMixin):
         except KeyError:
             raise ValueError(f"Unsupported surface normal: {self._surface_normal}")
 
-    def get_bounding_box(self) -> tuple[int, int, int, int, int, int]:
+    def get_bounding_box(
+        self, px_size: float = None, layer_size: float = None
+    ) -> tuple[int, int, int, int, int, int]:
         """
         Get the bounding box of the port.
         The bounding box is defined by the position and size of the port,
         adjusted based on the surface normal direction.
+
+        Parameters:
+        - px_size (float, optional): The pixel size in mm. If not provided, uses the component's pixel size.
+        - layer_size (float, optional): The layer size in mm. If not provided, uses the component's layer size.
 
         Returns:
         - A tuple of six integers representing the bounding box coordinates:
@@ -179,18 +186,71 @@ class Port(_InstantiationTrackerMixin):
         if dz < 0:
             pos[2] -= size[2]
 
+        _px_size = self._parent._px_size if px_size is None else px_size
+        _layer_size = self._parent._layer_size if layer_size is None else layer_size
+
         return (
-            pos[0],
-            pos[1],
-            pos[2],
-            pos[0] + size[0],
-            pos[1] + size[1],
-            pos[2] + size[2],
+            pos[0] * self._parent._px_size / _px_size,
+            pos[1] * self._parent._px_size / _px_size,
+            pos[2] * self._parent._layer_size / _layer_size,
+            pos[0] * self._parent._px_size / _px_size
+            + size[0] * self._parent._px_size / _px_size,
+            pos[1] * self._parent._px_size / _px_size
+            + size[1] * self._parent._px_size / _px_size,
+            pos[2] * self._parent._layer_size / _layer_size
+            + size[2] * self._parent._layer_size / _layer_size,
         )
 
-    def get_origin(self):
-        """Get the origin of the port, which is the minimum corner of its bounding box."""
-        return self.get_bounding_box()[0:3]
+    def get_origin(self, px_size: float = None, layer_size: float = None):
+        """
+        Get the origin of the port, which is the minimum corner of its bounding box.
+
+        Parameters:
+        - px_size (float, optional): The pixel size in mm. If not provided, uses the component's pixel size.
+        """
+        return self.get_bounding_box(px_size, layer_size)[0:3]
+
+    def get_position(
+        self, px_size: float = None, layer_size: float = None
+    ) -> tuple[int, int, int]:
+        """
+        Get the position of the port in 3D space.
+
+        Parameters:
+        - px_size (float, optional): The pixel size in mm. If not provided, uses the component's pixel size.
+        - layer_size (float, optional): The layer size in mm. If not provided, uses the component's layer size.
+
+        Returns:
+        - A tuple of three integers representing the position of the port (x, y, z).
+        """
+
+        _px_size = self._parent._px_size if px_size is None else px_size
+        _layer_size = self._parent._layer_size if layer_size is None else layer_size
+        return (
+            self._position[0] * self._parent._px_size / _px_size,
+            self._position[1] * self._parent._px_size / _px_size,
+            self._position[2] * self._parent._layer_size / _layer_size,
+        )
+
+    def get_size(
+        self, px_size: float = None, layer_size: float = None
+    ) -> tuple[int, int, int]:
+        """
+        Get the size of the port.
+
+        Parameters:
+        - px_size (float, optional): The pixel size in mm. If not provided, uses the component's pixel size.
+
+        Returns:
+        - A tuple of three integers representing the size of the port (width, height, depth).
+        """
+        _px_size = self._parent._px_size if px_size is None else px_size
+        _layer_size = self._parent._layer_size if layer_size is None else layer_size
+        return (
+            self._size[0] * self._parent._px_size / _px_size,
+            self._size[1] * self._parent._px_size / _px_size,
+            self._size[2] * self._parent._layer_size / _layer_size,
+        )
 
     def get_color(self):
         """
@@ -234,8 +294,8 @@ class Component(_InstantiationTrackerMixin):
         ###### Parameters:
         - size (tuple[int, int, int]): The size of the component in pixels (width, height, depth).
         - position (tuple[int, int, int]): The position of the component in 3D space (x, y, z).
-        - px_size (float): The size of a pixel in meters. Default is 0.0076 m.
-        - layer_size (float): The size of a layer in meters. Default is 0.01 m.
+        - px_size (float): The size of a pixel in mm. Default is 0.0076 m.
+        - layer_size (float): The size of a layer in mm. Default is 0.01 m.
         """
         super().__init__()
         self._parent = None
@@ -244,11 +304,39 @@ class Component(_InstantiationTrackerMixin):
         self._size = size
         self._px_size = px_size
         self._layer_size = layer_size
+        self._translations = [0, 0, 0]
+        self._rotation = 0
+        self._mirroring = [False, False]
         self.shapes = []
         self.bulk_shapes = []
         self.ports = []
         self.subcomponents = []
         self.labels = {}
+
+    def __eq__(self, other):
+        """
+        ###### Check if two components are equivilant based on their attribute.
+        ###### We only need to compare the instantiated attributes, the rotation, and mirroring.
+        """
+        if not isinstance(other, Component):
+            return False
+        if not type(self) == type(other):
+            return False
+        if self._rotation != other._rotation:
+            return False
+        if self._mirroring != other._mirroring:
+            return False
+        if len(self.init_args) != len(other.init_args):
+            return False
+        for i, arg in enumerate(self.init_args):
+            if arg != other.init_args[i]:
+                return False
+        if len(self.init_kwargs) != len(other.init_kwargs):
+            return False
+        for k, v in self.init_kwargs.items():
+            if k not in other.init_kwargs or v != other.init_kwargs[k]:
+                return False
+        return True
 
     def __getattr__(self, name):
         """
@@ -275,18 +363,81 @@ class Component(_InstantiationTrackerMixin):
                 return name
         return name
 
-    def get_bounding_box(self):
+    def get_bounding_box(
+        self, px_size: float = None, layer_size: float = None
+    ) -> tuple[int, int, int, int, int, int]:
         """
         Get the bounding box of the component.
         The bounding box is defined by the position and size of the component.
+
+        Parameters:
+        - px_size (float, optional): The pixel size in mm. If not provided, uses the component's pixel size.
+        - layer_size (float, optional): The layer size in mm. If not provided, uses the component's layer size.
+
+        Returns:
+        - A tuple of six integers representing the bounding box coordinates:
         """
-        min_x = self._position[0]
-        max_x = self._position[0] + self._size[0]
-        min_y = self._position[1]
-        max_y = self._position[1] + self._size[1]
-        min_z = self._position[2]
-        max_z = self._position[2] + self._size[2]
+        _px_size = self._px_size if px_size is None else px_size
+        _layer_size = self._layer_size if layer_size is None else layer_size
+
+        min_x = self._position[0] * self._px_size / _px_size
+        max_x = (
+            self._position[0] * self._px_size / _px_size
+            + self._size[0] * self._px_size / _px_size
+        )
+        min_y = self._position[1] * self._px_size / _px_size
+        max_y = (
+            self._position[1] * self._px_size / _px_size
+            + self._size[1] * self._px_size / _px_size
+        )
+        min_z = self._position[2] * self._layer_size / _layer_size
+        max_z = (
+            self._position[2] * self._layer_size / _layer_size
+            + self._size[2] * self._layer_size / _layer_size
+        )
         return (min_x, min_y, min_z, max_x, max_y, max_z)
+
+    def get_size(
+        self, px_size: float = None, layer_size: float = None
+    ) -> tuple[int, int, int]:
+        """
+        Get the size of the component.
+
+        Parameters:
+        - px_size (float, optional): The pixel size in mm. If not provided, uses the component's pixel size.
+        - layer_size (float, optional): The layer size in mm. If not provided, uses the component's layer size.
+
+        Returns:
+        - A tuple of three integers representing the size of the component (width, height, depth).
+        """
+        _px_size = self._px_size if px_size is None else px_size
+        _layer_size = self._layer_size if layer_size is None else layer_size
+        return (
+            self._size[0] * self._px_size / _px_size,
+            self._size[1] * self._px_size / _px_size,
+            self._size[2] * self._layer_size / _layer_size,
+        )
+
+    def get_position(
+        self, px_size: float = None, layer_size: float = None
+    ) -> tuple[int, int, int]:
+        """
+        Get the position of the component in 3D space.
+
+        Parameters:
+        - px_size (float, optional): The pixel size in mm. If not provided, uses the component's pixel size.
+        - layer_size (float, optional): The layer size in mm. If not provided, uses the component's layer size.
+
+        Returns:
+        - A tuple of three integers representing the position of the component (x, y, z).
+        """
+        _px_size = self._px_size if px_size is None else px_size
+        _layer_size = self._layer_size if layer_size is None else layer_size
+        return (
+            self._position[0] * self._px_size / _px_size,
+            self._position[1] * self._px_size / _px_size,
+            self._position[2] * self._layer_size / _layer_size,
+        )
 
     def _validate_name(self, name):
         """
@@ -385,6 +536,7 @@ class Component(_InstantiationTrackerMixin):
         self._validate_name(name)
         component._name = name
         component._parent = self
+        component.run_translate()
         self.subcomponents.append(component)
         setattr(self, name, component)
 
@@ -581,33 +733,72 @@ class Component(_InstantiationTrackerMixin):
         return Polychannel(shapes, self._px_size, self._layer_size, show_only_shapes)
 
     def translate(
-        self, translation: tuple[int, int, int], set_origin: bool = True
+        self, translation: tuple[int, int, int], _internal: bool = False
     ) -> Component:
         """
         ###### Translate the component by a given translation vector.
         ###### Parameters:
-        - translation (tuple[int, int, int]): The translation vector in pixels/layers (dx, dy, dz) to apply to the component.
-        - set_origin (bool): If True, sets the component's origin to the new position after translation. Default is True.
+        - translation (tuple[int, int, int]): The translation vector in parent pixels/layers (dx, dy, dz) to apply to the component.
+        - _internal (bool): If True, the translation uses the component's pixels/layers for internal calculations and opperates immediatly. Default is False.
         ###### Returns:
         - self: The translated component.
         """
+        if self._parent is None and not _internal:
+            self._translations[0] += translation[0]
+            self._translations[1] += translation[1]
+            self._translations[2] += translation[2]
+        else:
+            if not _internal:
+                translation = (
+                    translation[0] / self._px_size * self._parent._px_size,
+                    translation[1] / self._px_size * self._parent._px_size,
+                    translation[2] / self._layer_size * self._parent._layer_size,
+                )
+            for component in self.subcomponents:
+                component.translate(translation)
+            for shape in self.shapes:
+                shape.translate(translation)
+            for bulk_shape in self.bulk_shapes:
+                bulk_shape.translate(translation)
+            for port in self.ports:
+                port._position = (
+                    port._position[0] + translation[0],
+                    port._position[1] + translation[1],
+                    port._position[2] + translation[2],
+                )
+            if not _internal:
+                self._position = (
+                    self._position[0] + translation[0],
+                    self._position[1] + translation[1],
+                    self._position[2] + translation[2],
+                )
+        return self
+
+    def run_translate(self) -> Component:
+        translation = (
+            self._translations[0] / self._px_size * self._parent._px_size,
+            self._translations[1] / self._px_size * self._parent._px_size,
+            self._translations[2] / self._layer_size * self._parent._layer_size,
+        )
+
         for component in self.subcomponents:
             component.translate(translation)
         for shape in self.shapes:
             shape.translate(translation)
+        for bulk_shape in self.bulk_shapes:
+            bulk_shape.translate(translation)
         for port in self.ports:
             port._position = (
                 port._position[0] + translation[0],
                 port._position[1] + translation[1],
                 port._position[2] + translation[2],
             )
-        if set_origin:
-            self._position = (
-                self._position[0] + translation[0],
-                self._position[1] + translation[1],
-                self._position[2] + translation[2],
-            )
-        return self
+        # if set_origin:
+        self._position = (
+            self._position[0] + translation[0],
+            self._position[1] + translation[1],
+            self._position[2] + translation[2],
+        )
 
     def rotate(self, rotation: int, in_place: bool = False) -> Component:
         """
@@ -621,12 +812,14 @@ class Component(_InstantiationTrackerMixin):
         if rotation % 90 != 0:
             raise ValueError("Rotation must be a multiple of 90 degrees")
 
+        self._rotation = (self._rotation + rotation) % 360
+
         if in_place:
             original_position = self._position
             # Translate the component to position for in-place rotation
             self.translate(
                 (-self._position[0], -self._position[1], -self._position[2]),
-                set_origin=False,
+                _internal=True,
             )
 
         for component in self.subcomponents:
@@ -634,6 +827,9 @@ class Component(_InstantiationTrackerMixin):
 
         for shape in self.shapes:
             shape.rotate((0, 0, rotation))
+
+        for bulk_shape in self.bulk_shapes:
+            bulk_shape.rotate((0, 0, rotation))
 
         rot = rotation % 360
 
@@ -661,7 +857,6 @@ class Component(_InstantiationTrackerMixin):
 
         for port in self.ports:
             x, y, z = port._position
-            size_x, size_y = port._size[0], port._size[1]
 
             if rot == 90:
                 port._position = (-y, x, z)
@@ -712,7 +907,7 @@ class Component(_InstantiationTrackerMixin):
                         original_position[1],
                         original_position[2],
                     ),
-                    set_origin=False,
+                    _internal=True,
                 )
             elif rot == 180:
                 self.translate(
@@ -721,7 +916,7 @@ class Component(_InstantiationTrackerMixin):
                         original_position[1] + self._size[1],
                         original_position[2],
                     ),
-                    set_origin=False,
+                    _internal=True,
                 )
             elif rot == 270:
                 self.translate(
@@ -730,7 +925,7 @@ class Component(_InstantiationTrackerMixin):
                         original_position[1] + self._size[0],
                         original_position[2],
                     ),
-                    set_origin=False,
+                    _internal=True,
                 )
 
         return self
@@ -753,12 +948,14 @@ class Component(_InstantiationTrackerMixin):
         if mirror_x and mirror_y:
             return self.rotate(180, in_place=in_place)
 
+        self._mirroring = [mirror_x ^ self._mirroring[0], mirror_y ^ self._mirroring[1]]
+
         if in_place:
             original_position = self._position
             # Translate the component to position for in-place mirroring
             self.translate(
                 (-self._position[0], -self._position[1], -self._position[2]),
-                set_origin=False,
+                _internal=True,
             )
 
         for component in self.subcomponents:
@@ -766,6 +963,9 @@ class Component(_InstantiationTrackerMixin):
 
         for shape in self.shapes:
             shape.mirror((mirror_x, mirror_y, False))
+
+        for bulk_shape in self.bulk_shapes:
+            bulk_shape.mirror((mirror_x, mirror_y, False))
 
         # Surface normal flips
         mirror_vector_map = {
@@ -816,7 +1016,7 @@ class Component(_InstantiationTrackerMixin):
                         original_position[1],
                         original_position[2],
                     ),
-                    set_origin=False,
+                    _internal=True,
                 )
             elif not mirror_x and mirror_y:
                 self.translate(
@@ -825,7 +1025,7 @@ class Component(_InstantiationTrackerMixin):
                         original_position[1] + self._size[1],
                         original_position[2],
                     ),
-                    set_origin=False,
+                    _internal=True,
                 )
 
         return self
@@ -913,30 +1113,187 @@ class Component(_InstantiationTrackerMixin):
         ###### Returns:
         - None: The sliced component is exported to the specified file.
         """
-        slice_component(component=self, render_bulk=False, do_bulk_difference=False)
+        pass
+        # slice_component(component=self, render_bulk=False, do_bulk_difference=False)
+
+
+# class Device(Component):
+#     def __init__(
+#         self,
+#         name: str,
+#         size: tuple[int, int, int],
+#         position: tuple[int, int, int],
+#         px_size: float = 0.0076,
+#         layer_size: float = 0.01,
+#     ):
+#         super().__init__(size, position, px_size, layer_size)
+#         self._name = name
+
+from math import gcd
+from functools import reduce
+from fractions import Fraction
+
+
+def float_gcf(numbers, max_denominator=10**6):
+    if not numbers:
+        raise ValueError("Input list must not be empty")
+
+    # Convert all floats to Fractions
+    fracs = [Fraction(x).limit_denominator(max_denominator) for x in numbers]
+
+    # Get least common multiple (LCM) of all denominators
+    def lcm(a, b):
+        return abs(a * b) // gcd(a, b)
+
+    common_den = reduce(lcm, (f.denominator for f in fracs))
+
+    # Convert all to integers with common denominator
+    int_values = [int(f * common_den) for f in fracs]
+
+    # Compute GCF of these integers
+    result = reduce(gcd, int_values)
+
+    # Convert back to float
+    return result / common_den
+
+
+class VariableLayerThicknessComponent(Component):
+    """
+    A component with variable layer thickness, allowing for different layer sizes at each height.
+    """
+
+    def __init__(
+        self,
+        size: tuple[int, int, int],
+        position: tuple[int, int, int],
+        px_size: float = 0.0076,
+        layer_sizes: list[tuple[int, float]] = [(1, 0.01)],
+    ):
+        """
+        Initialize a VariableLayerThicknessComponent.
+
+        Parameters:
+        - size (tuple[int, int, int]): The size of the component in pixels/layers (width, height, depth).
+        - position (tuple[int, int, int]): The position of the component in parent pixels/layers (x, y, z).
+        - px_size (float): The pixel size in mm. Default is 0.0076.
+        - layer_sizes (list[tuple[int, float]]): A list of layer sizes (as tuples) where each tuple contains the number of duplicates and its size in mm.
+        """
+        self._layer_sizes = layer_sizes
+
+        layer_count = sum(layer_size[0] for layer_size in layer_sizes)
+
+        if layer_count != size[2]:
+            raise ValueError(
+                f"Layers in layer sizes {layer_count} does not match component height {size[2]}"
+            )
+        layer_size = float_gcf([layer_size[1] for layer_size in layer_sizes])
+        print(f"Using common denominator of {layer_size} for layer size for modeling.")
+        print(
+            "For best results, VariableLayerThicknessComponent height should align with parent component layers."
+        )
+        super().__init__(size, position, px_size, layer_size)
+
+    def _expand_layer_sizes(self) -> list[float]:
+        """Expand the layer sizes into a list of heights for each layer."""
+        expanded_sizes = []
+        for count, size in self._layer_sizes:
+            expanded_sizes.extend([size] * count)
+        return expanded_sizes
+
+    def _get_device_height(self) -> float:
+        """Get the height of the device in mm based on the layer sizes."""
+        return sum(
+            self._layer_sizes[i][0] * self._layer_sizes[i][1]
+            for i in range(len(self._layer_sizes))
+        )
+
+    def get_bounding_box(
+        self, px_size: float = None, layer_size: float = None
+    ) -> tuple[int, int, int, int, int, int]:
+        """
+        Get the bounding box of the component.
+        The bounding box is defined by the position and size of the component.
+
+        Parameters:
+        - px_size (float, optional): The pixel size in mm. If not provided, uses the component's pixel size.
+        - layer_size (float, optional): The layer size in mm. If not provided, uses the component's layer size.
+
+        Returns:
+        - A tuple of six integers representing the bounding box coordinates:
+        """
+        _px_size = self._px_size if px_size is None else px_size
+        _layer_size = self._layer_size if layer_size is None else layer_size
+
+        min_x = self._position[0] * self._px_size / _px_size
+        max_x = (
+            self._position[0] * self._px_size / _px_size
+            + self._size[0] * self._px_size / _px_size
+        )
+        min_y = self._position[1] * self._px_size / _px_size
+        max_y = (
+            self._position[1] * self._px_size / _px_size
+            + self._size[1] * self._px_size / _px_size
+        )
+        min_z = self._position[2] * self._layer_size / _layer_size
+        max_z = (
+            self._position[2] * self._layer_size / _layer_size
+            + self._get_device_height() / _layer_size
+        )
+        return (min_x, min_y, min_z, max_x, max_y, max_z)
+
+    def get_size(
+        self, px_size: float = None, layer_size: float = None
+    ) -> tuple[int, int, int]:
+        """
+        Get the size of the component.
+
+        Parameters:
+        - px_size (float, optional): The pixel size in mm. If not provided, uses the component's pixel size.
+        - layer_size (float, optional): The layer size in mm. If not provided, uses the component's layer size.
+
+        Returns:
+        - A tuple of three integers representing the size of the component (width, height, depth).
+        """
+        _px_size = self._px_size if px_size is None else px_size
+        _layer_size = self._layer_size if layer_size is None else layer_size
+        return (
+            self._size[0] * self._px_size / _px_size,
+            self._size[1] * self._px_size / _px_size,
+            self._get_device_height() / _layer_size,
+        )
 
 
 class Device(Component):
     def __init__(
         self,
         name: str,
-        size: tuple[int, int, int],
+        resolution: Resolution,
         position: tuple[int, int, int],
-        px_size: float = 0.0076,
+        layers: int = 0,
         layer_size: float = 0.01,
     ):
-        super().__init__(size, position, px_size, layer_size)
+        super().__init__(
+            (resolution.px_count[0], resolution.px_count[1], layers),
+            position,
+            resolution.px_size,
+            layer_size,
+        )
         self._name = name
+        self.resolution = resolution
 
 
-# class Device(Component):
-#     def __init__(self, resolution:Resolution, position:tuple[int, int, int], layers:int=0, layer_size:float=0.01):
-#         super().__init__((resolution.px_count[0],resolution.px_count[1],layers), position, resolution._px_size, layer_size)
+class Visitech_LRS10_Device(Device):
+    def __init__(
+        self,
+        name: str,
+        position: tuple[int, int, int],
+        layers: int = 0,
+        layer_size: float = 0.01,
+    ):
+        # resolution = Resolution(px_size=0.0076, px_count=(2560, 1600))
+        resolution = Resolution(px_size=0.0076, px_count=(200, 200))
+        super().__init__(name, resolution, position, layers, layer_size)
 
-# class Visitech_LRS10_Device(Device):
-#     def __init__(self, position:tuple[int, int, int], layers:int=0, layer_size:float=0.01):
-#         resolution = Resolution(px_size=0.0076, px_count=(2560, 1600))
-#         super().__init__(resolution, position, layers, layer_size)
 
 # class Visitech_LRS20_Device(Device):
 #     def __init__(self, position:tuple[int, int, int], layers:int=0, layer_size:float=0.01):

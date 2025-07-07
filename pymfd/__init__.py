@@ -12,7 +12,13 @@ Advanced structures such as polychannels and Bézier curves are also supported, 
 complex microfluidic architectures.
 """
 
-from .pymfd import Port, Component, Device
+from .pymfd import (
+    Port,
+    Component,
+    VariableLayerThicknessComponent,
+    Device,
+    Visitech_LRS10_Device,
+)
 from .backend import (
     set_fn,
     Color,
@@ -20,3 +26,4 @@ from .backend import (
     PolychannelShape,
     BezierCurveShape,
 )
+from .router import Router

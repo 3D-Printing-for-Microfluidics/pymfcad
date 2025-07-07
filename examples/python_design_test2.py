@@ -1,6 +1,7 @@
 from pymfd.component_library import Valve20px
 from pymfd.router import Router
-from pymfd import set_fn, Device, Component, Color
+from pymfd import set_fn, Visitech_LRS10_Device, Component, Color
+from pymfd.slicer import Slicer
 
 # from pymfd.slicer import (
 #     Settings,
@@ -66,9 +67,7 @@ set_fn(50)
 # # settings.save("settings.json")
 
 
-device_size = (2560, 1600, 500)
-device_position = (0, 0, 0)
-device = Device("TestDevice", device_size, device_position)
+device = Visitech_LRS10_Device("TestDevice", (0, 0, 0), layers=100, layer_size=0.01)
 
 device.add_label("device", Color.from_rgba((0, 255, 255, 127)))
 device.add_label("pneumatic", Color.from_rgba((0, 255, 0, 127)))
@@ -145,8 +144,8 @@ for l in range(z):
 rtr.route()
 
 # IMPORTANT: If you want to see inside the inverted device, you need to create you bulk shape last
-bulk_cube = device.make_cube(device_size, center=False)
-bulk_cube.translate(device_position)
+bulk_cube = device.make_cube(device._size, center=False)
+bulk_cube.translate(device._position)
 device.add_bulk_shape("bulk_cube", bulk_cube, label="device")
 
 # Mesh the component
@@ -158,3 +157,10 @@ device.preview(render_bulk=False, do_bulk_difference=False, wireframe=False)
 # device.preview(render_bulk=True, do_bulk_difference=True, wireframe=False)
 # device.preview(render_bulk=True, do_bulk_difference=True, wireframe=True)
 # device.slice()
+
+slicer = Slicer(
+    device=device,
+    settings={},
+    filename="test_slicer",
+)
+slicer.make_print_file()

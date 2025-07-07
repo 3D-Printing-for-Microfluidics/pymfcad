@@ -1,19 +1,15 @@
 from __future__ import annotations
 
 import os
-import sys
 import time
 import heapq
 import pickle
-import importlib
 import numpy as np
 from rtree import index
-from pathlib import Path
 from typing import Union
 from copy import deepcopy
 
-from .. import PolychannelShape, BezierCurveShape, Port, Component
-from ..backend import Shape
+from .. import PolychannelShape, BezierCurveShape
 
 
 class _AutorouterNode:
@@ -78,7 +74,7 @@ class Router:
 
     def __init__(
         self,
-        component: Component,
+        component: "Component",
         channel_size: tuple[int, int, int] = (0, 0, 0),
         channel_margin: tuple[int, int, int] = (0, 0, 0),
     ):
@@ -104,7 +100,7 @@ class Router:
         for subcomponent in self._component.subcomponents:
             # add subcomponet keepout
             key = subcomponent._name
-            ko = subcomponent.get_bounding_box()
+            ko = subcomponent.get_bounding_box(component._px_size, component._layer_size)
             idx.insert(cnt, ko)
             self._keepouts[key] = (cnt, ko)
             cnt += 1
@@ -112,7 +108,10 @@ class Router:
             # add port keepout
             for port in subcomponent.ports:
                 key = port.get_name()
-                ko = self._add_margin(port.get_bounding_box(), self._channel_margin)
+                ko = self._add_margin(
+                    port.get_bounding_box(component._px_size, component._layer_size),
+                    self._channel_margin,
+                )
                 idx.insert(cnt, ko)
                 self._keepouts[key] = (cnt, ko)
                 cnt += 1
@@ -147,8 +146,8 @@ class Router:
 
     def autoroute_channel(
         self,
-        input_port: Port,
-        output_port: Port,
+        input_port: "Port",
+        output_port: "Port",
         label: str,
         timeout: int = 120,
         heuristic_weight: int = 10,
@@ -185,8 +184,8 @@ class Router:
 
     def route_with_polychannel(
         self,
-        input_port: Port,
-        output_port: Port,
+        input_port: "Port",
+        output_port: "Port",
         polychannel_shapes: list[Union[PolychannelShape, BezierCurveShape]],
         label: str,
     ):
@@ -207,26 +206,42 @@ class Router:
 
         name = f"{input_port.get_name()}__to__{output_port.get_name()}"
 
+        input_size = input_port.get_size(
+            self._component._px_size, self._component._layer_size
+        )
         input_pos = tuple(
-            np.array(input_port.get_origin()) + np.array(input_port._size) / 2
+            np.array(
+                input_port.get_origin(
+                    self._component._px_size, self._component._layer_size
+                )
+            )
+            + np.array(input_size) / 2
         )
         polychannel_shapes.insert(
             0,
             PolychannelShape(
                 "cube",
                 position=input_pos,
-                size=input_port._size,
+                size=input_size,
                 absolute_position=True,
             ),
         )
+        output_size = output_port.get_size(
+            self._component._px_size, self._component._layer_size
+        )
         output_pos = tuple(
-            np.array(output_port.get_origin()) + np.array(output_port._size) / 2
+            np.array(
+                output_port.get_origin(
+                    self._component._px_size, self._component._layer_size
+                )
+            )
+            + np.array(output_size) / 2
         )
         polychannel_shapes.append(
             PolychannelShape(
                 "cube",
                 position=output_pos,
-                size=output_port._size,
+                size=output_size,
                 absolute_position=True,
             )
         )
@@ -241,8 +256,8 @@ class Router:
 
     def route_with_fractional_path(
         self,
-        input_port: Port,
-        output_port: Port,
+        input_port: "Port",
+        output_port: "Port",
         route: list[tuple[float, float, float]],
         label: str,
     ):
@@ -264,8 +279,12 @@ class Router:
         name = f"{input_port.get_name()}__to__{output_port.get_name()}"
 
         # get locations
-        start_loc = input_port._position
-        end_loc = output_port._position
+        start_loc = input_port.get_position(
+            self._component._px_size, self._component._layer_size
+        )
+        end_loc = output_port.get_position(
+            self._component._px_size, self._component._layer_size
+        )
         diff = tuple(a - b for a, b in zip(end_loc, start_loc))
 
         # relative positions to absolute path
@@ -317,12 +336,22 @@ class Router:
         polychannel_shapes = []
 
         # Handle input port
-        input_pos = np.array(input_port.get_origin()) + np.array(input_port._size) / 2
+        input_size = input_port.get_size(
+            self._component._px_size, self._component._layer_size
+        )
+        input_pos = (
+            np.array(
+                input_port.get_origin(
+                    self._component._px_size, self._component._layer_size
+                )
+            )
+            + np.array(input_size) / 2
+        )
         polychannel_shapes.append(
             PolychannelShape(
                 "cube",
                 position=tuple(input_pos),
-                size=input_port._size,
+                size=input_size,
                 absolute_position=True,
             )
         )
@@ -340,12 +369,22 @@ class Router:
             )
 
         # Handle output port
-        output_pos = np.array(output_port.get_origin()) + np.array(output_port._size) / 2
+        output_size = output_port.get_size(
+            self._component._px_size, self._component._layer_size
+        )
+        output_pos = (
+            np.array(
+                output_port.get_origin(
+                    self._component._px_size, self._component._layer_size
+                )
+            )
+            + np.array(output_size) / 2
+        )
         polychannel_shapes.append(
             PolychannelShape(
                 "cube",
                 position=tuple(output_pos),
-                size=output_port._size,
+                size=output_size,
                 absolute_position=True,
             )
         )
@@ -419,9 +458,11 @@ class Router:
             return False
 
         # validate input and output locations
-        if tuple(cached_info["input"]) != tuple(input_port.get_origin()) or tuple(
-            cached_info["output"]
-        ) != tuple(output_port.get_origin()):
+        if tuple(cached_info["input"]) != tuple(
+            input_port.get_origin(self._component._px_size, self._component._layer_size)
+        ) or tuple(cached_info["output"]) != tuple(
+            output_port.get_origin(self._component._px_size, self._component._layer_size)
+        ):
             return False
 
         # validate path (for non-autorouted channels)
@@ -437,7 +478,9 @@ class Router:
         self._route(name, route_info, loaded=True)
         return True
 
-    def _validate_keepouts(self, input_port: Port, output_port: Port, polychannel: Shape):
+    def _validate_keepouts(
+        self, input_port: "Port", output_port: "Port", polychannel: "Shape"
+    ):
         """
         ###### Checks if the polychannel does not violate any keepouts.
         ###### Parameters:
@@ -545,8 +588,12 @@ class Router:
         if route_info is not None:
             save_dict = {
                 "route_type": route_info["route_type"],
-                "input": route_info["input"].get_origin(),
-                "output": route_info["output"].get_origin(),
+                "input": route_info["input"].get_origin(
+                    self._component._px_size, self._component._layer_size
+                ),
+                "output": route_info["output"].get_origin(
+                    self._component._px_size, self._component._layer_size
+                ),
                 "_path": route_info["_path"],
             }
 
@@ -695,7 +742,7 @@ class Router:
 
         return None  # No path found
 
-    def _move_outside_port(self, port: Port):
+    def _move_outside_port(self, port: "Port"):
         """
         ###### Moves the port position outside its bounding box in the direction of its vector.
         ###### Parameters:
@@ -703,15 +750,19 @@ class Router:
         ###### Returns:
         - A tuple representing the new position of the port outside its bounding box.
         """
-        pos = list(port._position)
+        pos = list(
+            port.get_position(self._component._px_size, self._component._layer_size)
+        )
         direction = port.to_vector()
-
-        # Extend the bounding box of the port to include its margin
-        port_bbox = port.get_bounding_box()
 
         pos_box = self._get_box_from_pos_and_size(pos, self._channel_size)
 
-        while self._intersects_with_bbox(pos_box, port._parent.get_bounding_box()):
+        while self._intersects_with_bbox(
+            pos_box,
+            port._parent.get_bounding_box(
+                self._component._px_size, self._component._layer_size
+            ),
+        ):
             pos = list(pos[i] + direction[i] for i in range(3))
             pos_box = self._get_box_from_pos_and_size(pos, self._channel_size)
         return tuple(pos)

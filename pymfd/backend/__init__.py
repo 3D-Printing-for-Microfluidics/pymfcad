@@ -13,9 +13,11 @@ from .manifold3d import (
     TextExtrusion,
     ImportModel,
     TPMS,
-    render_component,
-    slice_component,
 )
+from .render import render_component
+
+# from .slice import slice_component, slice
+from .slice import slice
 from .polychannel import (
     Polychannel,
     PolychannelShape,

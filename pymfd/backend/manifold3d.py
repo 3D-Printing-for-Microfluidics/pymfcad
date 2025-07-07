@@ -3,21 +3,11 @@ from __future__ import annotations
 import os
 import trimesh
 import freetype
-import functools
 import numpy as np
 from numba import njit
-from trimesh.scene import Scene
-from PIL import Image, ImageDraw
-from typing import TYPE_CHECKING
-from shapely.geometry import Polygon
-from trimesh.visual import ColorVisuals
+
+from collections.abc import Callable
 from manifold3d import set_circular_segments, Manifold, Mesh, CrossSection
-
-from ..backend import Color
-
-if TYPE_CHECKING:
-    from collections.abs import Callable
-    from .. import Component, Port, Device
 
 
 def _is_integer(val: float) -> bool:
@@ -294,18 +284,6 @@ class Shape:
             b2[5] / self._layer_size,
         )
 
-        # Determine bridge keepout bounds
-        x0 = min(b1[0], b2[0])
-        y0 = min(b1[1], b2[1])
-        z0 = min(b1[2], b2[2])
-        x1 = max(b1[3], b2[3])
-        y1 = max(b1[4], b2[4])
-        z1 = max(b1[5], b2[5])
-
-        # Determine the separation axis
-        size1 = (b1[3] - b1[0], b1[4] - b1[1], b1[5] - b1[2])
-        size2 = (b2[3] - b2[0], b2[4] - b2[1], b2[5] - b2[2])
-
         center1 = [(b1[0] + b1[3]) / 2, (b1[1] + b1[4]) / 2, (b1[2] + b1[5]) / 2]
         center2 = [(b2[0] + b2[3]) / 2, (b2[1] + b2[4]) / 2, (b2[2] + b2[5]) / 2]
         deltas = [abs(center1[i] - center2[i]) for i in range(3)]
@@ -338,6 +316,26 @@ class Shape:
 
         self._object = Manifold.batch_hull([self._object, other._object])
         return self
+
+    def copy(self, _internal=False) -> "Shape":
+        """
+        ###### Create a copy of the shape.
+
+        ###### Parameters:
+        - _internal (bool): If True, copy internal properties like name, parent, and color. (internal use only)
+
+        ###### Returns:
+        - Shape: A new Shape instance with the same properties.
+        """
+        new_shape = Shape(self._px_size, self._layer_size)
+        if _internal:
+            new_shape._name = self._name
+            new_shape._parent = self._parent
+            new_shape._color = self._color
+        mesh = self._object.to_mesh()
+        new_shape._object = Manifold(mesh)
+        new_shape._keepouts = self._keepouts.copy()
+        return new_shape
 
     def _add_bbox_to_keepout(self, bbox: tuple[float]) -> None:
         # add keepout
@@ -770,14 +768,6 @@ class TextExtrusion(Shape):
                 if not polys:
                     continue
 
-                def is_clockwise(loop):
-                    area = 0.0
-                    for i in range(len(loop)):
-                        x1, y1 = loop[i]
-                        x2, y2 = loop[(i + 1) % len(loop)]
-                        area += (x2 - x1) * (y2 + y1)
-                    return area > 0
-
                 all_loops = []
                 for poly in polys:
                     loop = list(
@@ -982,408 +972,3 @@ class TPMS(Shape):
         )
         self.resize(size)
         self._add_bbox_to_keepout(self._object.bounding_box())
-
-
-def _draw_bounding_box(
-    scene: Scene,
-    size: tuple[int, int, int],
-    origin: tuple[int, int, int],
-    color: Color,
-    px_size: float,
-    layer_size: float,
-    name: str = "bbox",
-) -> None:
-    """Helper function to draw a bounding box in the scene."""
-    # draw lines for component bounding box
-    bbox_size = (size[0] * px_size, size[1] * px_size, size[2] * layer_size)
-    bbox_origin = (origin[0] * px_size, origin[1] * px_size, origin[2] * layer_size)
-    translation = trimesh.transformations.translation_matrix(bbox_origin)
-    translation[:3, 3] = [o + s / 2 for o, s in zip(bbox_origin, bbox_size)]
-    bbox = trimesh.path.creation.box_outline(
-        extents=np.array(bbox_size), transform=translation
-    )
-    bbox.colors = [color._to_rgba()]
-    scene.add_geometry(bbox)
-
-
-def _draw_arrow(
-    scene: Scene,
-    length: float,
-    position: np.typing.NDArray[np.int_],
-    direction: np.typing.NDArray[np.int_],
-    port: Port,
-    reflect: bool = False,
-    half_size: bool = False,
-) -> None:
-    """Helper function to draw an arrow in the scene."""
-    # Align Z axis with arrow direction
-    axis = np.array([0, 0, 1])
-    if not np.allclose(axis, direction):
-        rot = trimesh.geometry.align_vectors(axis, direction)
-    else:
-        rot = np.eye(4)
-    reflect_matrix = (
-        trimesh.transformations.reflection_matrix(
-            point=[0, 0, length / 2], normal=[0, 0, 1]
-        )
-        if reflect
-        else np.eye(4)
-    )
-    transform = rot @ reflect_matrix
-
-    arrow = trimesh.creation.cone(
-        radius=length * 0.25, height=length, sections=8, transform=transform
-    )
-
-    center_offset = np.array([0, 0, 0])
-    if half_size:
-        if not reflect:
-            center_offset = direction * (length)
-    else:
-        center_offset = direction * (length / 2)
-
-    arrow.apply_translation(position - center_offset)
-    arrow.visual.vertex_colors = port.get_color()._to_rgba()
-    scene.add_geometry(arrow)
-
-
-def _draw_port(scene: Scene, port: Port, component: Component) -> None:
-    """Helper function to draw a port in the scene."""
-    arrow_direction = np.array(port.to_vector())
-    adjusted_pos = np.array(port.get_origin())
-
-    # Scale to real-world units
-    scale = np.array([component._px_size, component._px_size, component._layer_size])
-    size_scaled = np.array(port._size) * scale
-    pos_scaled = adjusted_pos * scale
-
-    # Center the bounding box
-    bbox_center = pos_scaled + size_scaled / 2
-
-    # Draw port bounding box
-    _draw_bounding_box(
-        scene,
-        size=port._size,
-        origin=adjusted_pos,
-        color=port.get_color(),
-        px_size=component._px_size,
-        layer_size=component._layer_size,
-        name=f"port-{port._name}",
-    )
-
-    # Arrow positioning
-    arrow_length = np.dot(
-        size_scaled, np.abs(arrow_direction)
-    )  # length in the pointing direction
-    arrow_position = np.array(bbox_center)
-
-    from .. import Port
-
-    if port._type == Port.PortType.INOUT:
-        arrow_length = arrow_length / 2
-        _draw_arrow(
-            scene,
-            arrow_length,
-            arrow_position,
-            arrow_direction,
-            port,
-            reflect=True,
-            half_size=True,
-        )
-        _draw_arrow(
-            scene,
-            arrow_length,
-            arrow_position,
-            arrow_direction,
-            port,
-            reflect=False,
-            half_size=True,
-        )
-
-    # IN arrow
-    if port._type == Port.PortType.IN:
-        _draw_arrow(
-            scene, arrow_length, arrow_position, arrow_direction, port, reflect=True
-        )
-
-    # OUT arrow
-    if port._type == Port.PortType.OUT:
-        _draw_arrow(
-            scene, arrow_length, arrow_position, arrow_direction, port, reflect=False
-        )
-
-
-def _manifold3d_shape_to_trimesh(shape: Shape) -> trimesh.Trimesh:
-    """
-    ###### Convert a Manifold3D shape to a trimesh object.
-
-    ###### Parameters:
-    - shape (Shape): The Manifold3D shape to convert.
-
-    ###### Returns:
-    - tm (trimesh.Trimesh): The converted trimesh object.
-    """
-    m = shape._object.to_mesh()
-    tm = trimesh.Trimesh(vertices=m.vert_properties, faces=m.tri_verts)
-    rgba = shape._color._to_float()
-    tm.visual = ColorVisuals(tm, vertex_colors=[rgba] * len(tm.vertices))
-    return tm
-
-
-def _manifold3d_shape_to_wireframe(shape: Shape) -> trimesh.Trimesh:
-    """
-    ###### Convert a Manifold3D shape to a wireframe representation using trimesh.
-
-    ###### Parameters:
-    - shape (Shape): The Manifold3D shape to convert.
-
-    ###### Returns:
-    - tm (trimesh.Trimesh): The wireframe trimesh object.
-    """
-    mesh = _manifold3d_shape_to_trimesh(shape)
-    edges = mesh.edges_unique
-    vertices = mesh.vertices
-    entities = [trimesh.path.entities.Line([e[0], e[1]]) for e in edges]
-    return trimesh.path.Path3D(entities=entities, vertices=vertices)
-
-
-def _component_to_manifold(
-    component: Component,
-    render_bulk: bool = True,
-    do_bulk_difference: bool = True,
-) -> tuple[dict[str, Shape], dict[str, Shape], list[tuple[Port, Component]]]:
-    """
-    ###### Convert a Component to manifolds and bulk shapes for rendering.
-
-    ###### Parameters:
-    - component (Component): The Component to convert.
-    - render_bulk (bool): Whether to render bulk shapes.
-    - do_bulk_difference (bool): Whether to perform a difference operation on bulk shapes.
-
-    ###### Returns:
-    - manifolds (dict): Dictionary of manifolds keyed by color.
-    - bulk_manifolds (dict): Dictionary of bulk shapes keyed by color.
-    - ports (list): List of ports to draw.
-    """
-    bulk_manifolds = {}
-    manifolds = {}
-    ports = []
-
-    def recurse(comp: Component, parent_name: str = ""):
-        """
-        Recursive function to traverse the component tree and collect shapes and ports.
-        """
-        name = f"{parent_name}/{comp._name}" if parent_name else comp._name
-
-        # itterate subcomponents
-        for sub in comp.subcomponents:
-            recurse(sub, name)
-
-        # itterate bulk shapes (if device and not inverted)
-        for bulk in comp.bulk_shapes:
-            key = str(bulk._color)
-            if key in bulk_manifolds.keys():
-                bulk_manifolds[key] += bulk
-            else:
-                bulk_manifolds[key] = bulk
-
-        # itterate shapes (will also draw an inverted device)
-        for shape in comp.shapes:
-            key = str(shape._color)
-            if key in manifolds.keys():
-                manifolds[key] += shape
-            else:
-                manifolds[key] = shape
-
-        # get list of routes
-        route_names = []
-        if comp._parent is not None:
-            for s in comp._parent.shapes:
-                if "__to__" in s._name:
-                    route_names.append(s._name)
-        # append ports not in a route
-        for port in comp.ports:
-            draw_port = True
-            for n in route_names:
-                if port.get_name() in n:
-                    draw_port = False
-            if draw_port:
-                ports.append((port, comp))
-
-    recurse(component)
-
-    if do_bulk_difference:
-        if not render_bulk:
-            raise ValueError(
-                "Cannot render do bulk difference without rendering bulk device"
-            )
-
-        diff = None
-        for m in bulk_manifolds.values():
-            if diff is None:
-                diff = m
-            else:
-                diff += m
-        for m in manifolds.values():
-            diff -= m
-        manifolds = {}
-        bulk_manifolds = {"device": diff}
-
-    return manifolds, bulk_manifolds, ports
-
-
-def render_component(
-    component: Component,
-    render_bulk: bool = True,
-    do_bulk_difference: bool = True,
-    flatten_scene: bool = True,
-    wireframe_bulk: bool = False,
-    show_assists: bool = False,
-) -> trimesh.Trimesh | Scene:
-    """
-    ###### Render a Component to a Scene.
-
-    ###### Parameters:
-    - component (Component): The Component to render.
-    - render_bulk (bool): Whether to render bulk shapes.
-    - do_bulk_difference (bool): Whether to perform a difference operation on bulk shapes.
-    - flatten_scene (bool): Whether to flatten the scene to a single mesh.
-    - wireframe_bulk (bool): Whether to render bulk shapes as wireframes.
-    - show_assists (bool): Whether to show port assist arrows.
-
-    ###### Returns:
-    - scene (Scene or trimesh.Trimesh): The rendered scene or flattened mesh.
-    """
-    scene = Scene()
-
-    manifolds, bulk_manifolds, ports = _component_to_manifold(
-        component, render_bulk=render_bulk, do_bulk_difference=do_bulk_difference
-    )
-
-    if show_assists:
-        for port in ports:
-            p, c = port
-            _draw_port(scene, p, c)
-
-    for m in manifolds.values():
-        mesh = _manifold3d_shape_to_trimesh(m)
-        scene.add_geometry(mesh)
-
-    if render_bulk:
-        for m in bulk_manifolds.values():
-            if wireframe_bulk:
-                mesh = _manifold3d_shape_to_wireframe(m)
-            else:
-                mesh = _manifold3d_shape_to_trimesh(m)
-            scene.add_geometry(mesh)
-
-    # draw component bounding box
-    _draw_bounding_box(
-        scene,
-        size=component._size,
-        origin=component._position,
-        color=Color.from_name("black", 255),
-        px_size=component._px_size,
-        layer_size=component._layer_size,
-    )
-
-    if flatten_scene:
-        return scene.to_mesh()  # for flattening (trimesh only)
-        # return scene.to_geometry() # for flattening (also allows Path3D and Path2D)
-    else:
-        return scene
-
-
-def slice_component(
-    component: Component,
-    render_bulk: bool = True,
-    do_bulk_difference: bool = True,
-) -> None:
-    """
-    ###### Slice a Component and save each slice as an image.
-
-    ###### Parameters:
-    - component (Component): The Component to slice.
-    - render_bulk (bool): Whether to render bulk shapes.
-    - do_bulk_difference (bool): Whether to perform a difference operation on bulk shapes.
-
-    ###### Returns:
-    - None: Saves images to disk.
-    """
-    manifolds, bulk_manifolds, _ = _component_to_manifold(
-        component, render_bulk=render_bulk, do_bulk_difference=do_bulk_difference
-    )
-
-    manifold = None
-    for m in manifolds.values():
-        if manifold is None:
-            manifold = m
-        else:
-            manifold += m
-
-    if render_bulk:
-        bulk_manifold = None
-        for m in bulk_manifolds.values():
-            if bulk_manifold is None:
-                bulk_manifold = m
-            else:
-                bulk_manifold += m
-        if do_bulk_difference:
-            bulk_manifold -= manifold
-            manifold = bulk_manifold
-        else:
-            manifold += manifold
-
-    slice_num = 0
-    z_height = 0
-    while z_height < component._size[2]:
-        polygons = manifold._object.slice(
-            component._position[2] * component._layer_size
-            + z_height * component._layer_size
-        ).to_polygons()
-
-        # # Step 2: Find bounding box of all points
-        # all_points = np.vstack(polygons)
-        # min_x, min_y = np.min(all_points, axis=0)
-        # max_x, max_y = np.max(all_points, axis=0)
-
-        # # Compute scale to fit image size
-        # width = max_x - min_x
-        # height = max_y - min_y
-        # scale = min((resolution - 2 * padding) / width,
-        #             (resolution - 2 * padding) / height)
-
-        # Create a new blank grayscale image
-        img = Image.new("L", (2560, 1600), 0)
-        draw = ImageDraw.Draw(img)
-
-        # if slice_num == 54:
-        #     print(polygons)
-
-        # Step 3: Draw each polygon
-        for poly in polygons:
-            # snap to pixel grid
-            transformed = np.round(poly / component._px_size).astype(int)
-            transformed[:, 1] = img.height - transformed[:, 1]
-            points = [tuple(p) for p in transformed]
-
-            # Convert poly (Nx2 numpy array) to shapely polygon and offset inward by small amount in px sdpace
-            p = Polygon(points)
-            px_offset = 0.1
-            shrunk = p.buffer(-px_offset)
-            # Only process if still valid
-            if not shrunk.is_empty and shrunk.geom_type == "Polygon":
-                coords = np.array(shrunk.exterior.coords)
-                # do floor to fix issues with polygon inclusivity
-                transformed = np.floor(coords).astype(int)
-                points = [tuple(p) for p in transformed]
-
-            # Draw polygon filled with white (255)
-            draw.polygon(points, fill=255)
-
-        # 5. Save or show the image
-        img.save(f"slice{slice_num}.png")
-        img.show()
-
-        slice_num += 1
-        z_height += 1

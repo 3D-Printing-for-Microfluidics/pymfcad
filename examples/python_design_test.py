@@ -1,6 +1,7 @@
 from pymfd.router import Router
 from pymfd.component_library import Valve20px, TestCube, Pinhole
 from pymfd import PolychannelShape, BezierCurveShape, Device, Component, Color, set_fn
+from pymfd.slicer import Resolution
 
 set_fn(50)
 
@@ -88,7 +89,7 @@ set_fn(50)
 # ################ 2 Test subcomonents ##################
 # device_size = (2560, 1600, 250)
 # device_position = (0, 0, 0)
-# device = Device("TestDevice", device_size, device_position)
+# device = Device("TestDevice", Resolution(), device_position, layers=250, layer_size=0.01)
 
 # component = Valve20px()
 # device.add_subcomponent("valve", component)
@@ -156,7 +157,7 @@ set_fn(50)
 # ################ 4 Test Routing ##################
 # device_size = (150, 150, 100)
 # device_position = (0, 0, 0)
-# device = Device("TestDevice", device_size, device_position)
+# device = Device("TestDevice", Resolution(), device_position, layers=250, layer_size=0.01)
 
 # device.add_label("autopath", Color.from_rgba((0, 255, 0, 127)))
 # device.add_label("device", Color.from_name("aqua", 63))
@@ -189,7 +190,7 @@ set_fn(50)
 # #         PolychannelShape(position=(0, -41, 0)),
 # #     ],
 # #     label="autopath",
-# # )
+# )
 # r.route()
 
 # # IMPORTANT: If you want to see inside the inverted device, you need to create you bulk shape last
@@ -202,35 +203,35 @@ set_fn(50)
 # # device.render()
 # # device.slice()
 
-# ############### 6 Create serpentine channel ##################
-# component = Component(
-#     size=(2560, 1600, 20), position=(0, 0, 0), px_size=0.0076, layer_size=0.01
-# )
-# chan_size = (8, 8, 6)
-# # Add label
-# component.add_label("default", Color.from_rgba((0, 255, 0, 127)))
-# # Add a shape
-# component.add_shape(
-#     "polychannel",
-#     component.make_polychannel(
-#         [
-#             PolychannelShape("cube", position=(0, 0, 0), size=(8, 8, 6)),
-#             PolychannelShape(position=(0, 0, 16), corner_radius=8),
-#             PolychannelShape(position=(100, 0, 0)),
-#             PolychannelShape(position=(0, 16, 0)),
-#             PolychannelShape(position=(-100, 0, 0)),
-#             PolychannelShape(position=(0, 16, 0)),
-#             PolychannelShape(position=(100, 0, 0)),
-#             PolychannelShape(position=(0, 16, 0)),
-#             PolychannelShape(position=(-100, 0, 0)),
-#             PolychannelShape(position=(0, 16, 0)),
-#             PolychannelShape(position=(100, 0, 0)),
-#             PolychannelShape(position=(0, 0, -16), corner_radius=0),
-#         ]
-#     ),
-#     label="default",
-# )
+############### 6 Create serpentine channel ##################
+component = Component(
+    size=(2560, 1600, 20), position=(0, 0, 0), px_size=0.0076, layer_size=0.01
+)
+chan_size = (8, 8, 6)
+# Add label
+component.add_label("default", Color.from_rgba((0, 255, 0, 127)))
+# Add a shape
+component.add_shape(
+    "polychannel",
+    component.make_polychannel(
+        [
+            PolychannelShape("cube", position=(0, 0, 0), size=(8, 8, 6)),
+            PolychannelShape(position=(0, 0, 16), corner_radius=8),
+            PolychannelShape(position=(100, 0, 0)),
+            PolychannelShape(position=(0, 16, 0)),
+            PolychannelShape(position=(-100, 0, 0)),
+            PolychannelShape(position=(0, 16, 0)),
+            PolychannelShape(position=(100, 0, 0)),
+            PolychannelShape(position=(0, 16, 0)),
+            PolychannelShape(position=(-100, 0, 0)),
+            PolychannelShape(position=(0, 16, 0)),
+            PolychannelShape(position=(100, 0, 0)),
+            PolychannelShape(position=(0, 0, -16), corner_radius=0),
+        ]
+    ),
+    label="default",
+)
 
-# # Mesh the component
-# component.preview()
-# # component.slice()
+# Mesh the component
+component.preview()
+# component.slice()
