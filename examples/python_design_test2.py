@@ -3,68 +3,55 @@ from pymfd.router import Router
 from pymfd import set_fn, Visitech_LRS10_Device, Component, Color
 from pymfd.slicer import Slicer
 
-# from pymfd.slicer import (
-#     Settings,
-#     Header,
-#     Design,
-#     ResinType,
-#     Printer,
-#     Resolution,
-#     BurninSettings,
-#     PositionSettings,
-#     ExposureSettings,
-# )
+from pymfd.slicer import (
+    Settings,
+    ResinType,
+    Printer,
+    LightEngine,
+    PositionSettings,
+    ExposureSettings,
+)
 
 set_fn(50)
 
-# settings = Settings(
-#     header=Header(
-#         schema_version="4.0.0", image_directory="slices", print_under_vacuum=False
-#     ),
-#     design=Design(
-#         user="Test User",
-#         purpose="Test Design",
-#         description="This is a test design for the pymfd library.",
-#         resin=ResinType(
-#             monomer=[("PEG", 100)],
-#             uv_absorbers=[("NPS", 2.0)],
-#             initiators=[("IRG", 1.0)],
-#             additives=[],
-#         ),
-#         printer=Printer(
-#             name="HR3v3", resolutions=Resolution(px_size=0.0076, px_count=(2560, 1600))
-#         ),
-#     ),
-#     burnin_settings=BurninSettings(burnin_times=[10000, 5000, 2500]),
-#     default_position_settings=PositionSettings(
-#         layer_thickness=10.0,
-#         distance_up=1.0,
-#         initial_wait=0.0,
-#         up_speed=25.0,
-#         up_acceleration=50.0,
-#         up_wait=0.0,
-#         down_speed=20.0,
-#         down_acceleration=50.0,
-#         force_squeeze=False,
-#         squeeze_count=0,
-#         squeeze_force=0.0,
-#         squeeze_wait=0.0,
-#         final_wait=0.0,
-#     ),
-#     default_exposure_settings=ExposureSettings(
-#         image_file="",
-#         grayscale_correction=False,
-#         image_x_offset=0.0,
-#         image_y_offset=0.0,
-#         exposure_time=300.0,
-#         light_engine="visitech",
-#         power_setting=100,
-#         relative_focus_position=0.0,
-#         wait_before_exposure=0.0,
-#         wait_after_exposure=0.0,
-#     ),
-# )
-# # settings.save("settings.json")
+settings = Settings(
+    # user="Test User",
+    # purpose="Test Design",
+    # description="This is a test design for the pymfd library.",
+    printer=Printer(
+        name="HR3v3",
+        # light_engines=[
+        #     LightEngine(px_size=0.0076, px_count=(2560, 1600), wavelengths=[365])
+        # ],
+    ),
+    resin=ResinType(),
+    print_under_vacuum=False,
+    default_position_settings=PositionSettings(
+        # distance_up=1.0,
+        # initial_wait=0.0,
+        # up_speed=25.0,
+        # up_acceleration=50.0,
+        # up_wait=0.0,
+        # down_speed=20.0,
+        # down_acceleration=50.0,
+        # force_squeeze=False,
+        # squeeze_count=0,
+        # squeeze_force=0.0,
+        # squeeze_wait=0.0,
+        # final_wait=0.0,
+    ),
+    default_exposure_settings=ExposureSettings(
+        # grayscale_correction=False,
+        # exposure_time=300.0,
+        # power_setting=100,
+        # relative_focus_position=0.0,
+        # wait_before_exposure=0.0,
+        # wait_after_exposure=0.0,
+    ),
+)
+settings.save("settings.json")
+settings = Settings.from_file("settings.json")
+settings.save("settings2.json")
 
 
 device = Visitech_LRS10_Device("TestDevice", (0, 0, 0), layers=100, layer_size=0.01)
@@ -76,13 +63,13 @@ device.add_label("white", Color.from_rgba((255, 255, 255, 127)))
 
 chan_size = (8, 8, 6)
 
-# x = 10
-# y = 10
-# z = 10
+# x = 5
+# y = 5
+# z = 2
 
-x = 2
+x = 10
 y = 2
-z = 2
+z = 3
 
 valve_grid = []
 for l in range(z):
@@ -156,11 +143,12 @@ device.preview(render_bulk=False, do_bulk_difference=False, wireframe=False)
 # device.preview(render_bulk=True, do_bulk_difference=False, wireframe=True)
 # device.preview(render_bulk=True, do_bulk_difference=True, wireframe=False)
 # device.preview(render_bulk=True, do_bulk_difference=True, wireframe=True)
-# device.slice()
 
 slicer = Slicer(
     device=device,
-    settings={},
+    settings=settings,
     filename="test_slicer",
+    minimize_file=True,
+    zip_output=True,
 )
 slicer.make_print_file()

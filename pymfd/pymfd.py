@@ -25,7 +25,12 @@ from .backend import (
     Color,
 )
 
-from .slicer import Resolution
+from .slicer import (
+    ExposureSettings,
+    PositionSettings,
+    MembraneSettings,
+    SecondaryDoseSettings,
+)
 
 
 class _InstantiationTrackerMixin:
@@ -42,11 +47,8 @@ class _InstantiationTrackerMixin:
 
     @property
     def instantiation_dir(self) -> Path:
-        """Return (directory, filename_stem) of the file that instantiated the component, if it's a Device or Component."""
-        class_name = type(self).__name__
-
-        # if class_name in {"Device", "Component"}:
-        if class_name in {"Component"}:
+        """Return directory of the file that instantiated the component, if it's a Component type or a Device subtype, otherwise the location the module is defined"""
+        if self is type(Component) or isinstance(self, Device):
             return self._instantiation_path.parent
 
         # Fallback: use where the class is defined
@@ -57,11 +59,10 @@ class _InstantiationTrackerMixin:
 
     @property
     def instantiating_file_stem(self) -> str:
-        """Return (directory, filename_stem) of the file that instantiated the component, if it's a Device or Component."""
-        class_name = type(self).__name__
+        """Return filename_stem of the file that instantiated the component, if it's a Component type or a Device subtype, otherwise the location the module is defined"""
+        from . import Device, Component
 
-        # if class_name in {"Device", "Component"}:
-        if class_name in {"Component"}:
+        if self is type(Component) or isinstance(self, Device):
             return self._instantiation_path.stem
 
         # Fallback: use where the class is defined
@@ -311,6 +312,10 @@ class Component(_InstantiationTrackerMixin):
         self.bulk_shapes = []
         self.ports = []
         self.subcomponents = []
+        self.default_exposure_settings = None
+        self.default_position_settings = None
+        self.regional_settings = {}
+        self.burnin_settings = []
         self.labels = {}
 
     def __eq__(self, other):
@@ -460,6 +465,16 @@ class Component(_InstantiationTrackerMixin):
                 raise ValueError(
                     f"Shape with name '{name}' already exists in component {self._name}"
                 )
+        for s in self.bulk_shapes:
+            if s._name == name:
+                raise ValueError(
+                    f"Bulk shape with name '{name}' already exists in component {self._name}"
+                )
+        for s in self.regional_settings.keys():
+            if s == name:
+                raise ValueError(
+                    f"Regional settings with name '{name}' already exists in component {self._name}"
+                )
         for c in self.subcomponents:
             if c._name == name:
                 raise ValueError(
@@ -542,6 +557,77 @@ class Component(_InstantiationTrackerMixin):
 
         for label, color in component.labels.items():
             self.labels[f"{name}.{label}"] = color
+
+    def add_default_exposure_settings(
+        self,
+        settings: ExposureSettings,
+    ):
+        """
+        ###### Add default exposure settings to the component.
+        ###### Parameters:
+        - settings (ExposureSettings): The exposure settings to be added.
+        """
+        self.default_exposure_settings = settings
+
+    def add_default_position_settings(
+        self,
+        settings: PositionSettings,
+    ):
+        """
+        ###### Add default position settings to the component.
+        ###### Parameters:
+        - settings (PositionSettings): The position settings to be added.
+        """
+        self.default_position_settings = settings
+
+    def add_regional_settings(
+        self,
+        name: str,
+        shape: Shape,
+        settings: Union[
+            PositionSettings,
+            ExposureSettings,
+            MembraneSettings,
+            SecondaryDoseSettings,
+        ],
+        label: str,
+    ):
+        """
+        ###### Add regional settings in a given shape to the component.
+        ###### Parameters:
+        - name (str): The name of the regional settings (must be a unique python identifier).
+        - shape (Shape): The shape to which the regional settings apply.
+        - settings (Union[PositionSettings, ExposureSettings, MembraneSettings, SecondaryDoseSettings]): The settings to be applied in the shape.
+        - label (str): The label for the regional settings, which should be a key in the component's labels dictionary.
+        """
+        self._validate_name(name)
+        shape._name = name
+        shape._parent = self
+        shape._color = self.labels[label]
+
+        # check for collisions with other settings
+        for existing_name, (
+            existing_shape,
+            existing_settings,
+        ) in self.regional_settings.items():
+            if (
+                type(settings) == type(existing_settings)
+                and not (existing_shape.copy() & shape.copy())._object.is_empty()
+            ):
+                raise ValueError(
+                    f"Regional settings '{name}' collides with existing settings '{existing_name}' in component {self._name}"
+                )
+
+        self.regional_settings[name] = (shape, settings)
+        setattr(self, name, settings)
+
+    def set_burn_in_exposure(self, exposure_times: list[float]):
+        """
+        ###### Set burn-in exposure times for the component.
+        ###### Parameters:
+        - exposure_times (list[float]): List of exposure times in seconds for the burn-in process.
+        """
+        self.burnin_settings = exposure_times
 
     def relabel_subcomponents(self, subcomponents: list[Component], label: str):
         """
@@ -760,6 +846,8 @@ class Component(_InstantiationTrackerMixin):
                 shape.translate(translation)
             for bulk_shape in self.bulk_shapes:
                 bulk_shape.translate(translation)
+            for shape, _ in self.regional_settings.values():
+                shape.translate(translation)
             for port in self.ports:
                 port._position = (
                     port._position[0] + translation[0],
@@ -787,6 +875,8 @@ class Component(_InstantiationTrackerMixin):
             shape.translate(translation)
         for bulk_shape in self.bulk_shapes:
             bulk_shape.translate(translation)
+        for shape, _ in self.regional_settings.values():
+            shape.translate(translation)
         for port in self.ports:
             port._position = (
                 port._position[0] + translation[0],
@@ -830,6 +920,9 @@ class Component(_InstantiationTrackerMixin):
 
         for bulk_shape in self.bulk_shapes:
             bulk_shape.rotate((0, 0, rotation))
+
+        for shape, _ in self.regional_settings.values():
+            shape.rotate((0, 0, rotation))
 
         rot = rotation % 360
 
@@ -966,6 +1059,9 @@ class Component(_InstantiationTrackerMixin):
 
         for bulk_shape in self.bulk_shapes:
             bulk_shape.mirror((mirror_x, mirror_y, False))
+
+        for shape, _ in self.regional_settings.values():
+            shape.mirror((mirror_x, mirror_y, False))
 
         # Surface normal flips
         mirror_vector_map = {
@@ -1104,30 +1200,6 @@ class Component(_InstantiationTrackerMixin):
         # with open("scene.html", "w") as f:
         #     f.write(html_str)
 
-    def slice(self, filename: str = "component.glb", do_bulk_difference: bool = True):
-        """
-        ###### Slice the component and export a set of 8-bit grayscale png files.
-        ###### Parameters:
-        - filename (str): The name of the output GLB file. Default is "component.glb".
-        - do_bulk_difference (bool): If True, applies a difference operation for bulk shapes. Default is True.
-        ###### Returns:
-        - None: The sliced component is exported to the specified file.
-        """
-        pass
-        # slice_component(component=self, render_bulk=False, do_bulk_difference=False)
-
-
-# class Device(Component):
-#     def __init__(
-#         self,
-#         name: str,
-#         size: tuple[int, int, int],
-#         position: tuple[int, int, int],
-#         px_size: float = 0.0076,
-#         layer_size: float = 0.01,
-#     ):
-#         super().__init__(size, position, px_size, layer_size)
-#         self._name = name
 
 from math import gcd
 from functools import reduce
@@ -1267,19 +1339,19 @@ class Device(Component):
     def __init__(
         self,
         name: str,
-        resolution: Resolution,
         position: tuple[int, int, int],
         layers: int = 0,
         layer_size: float = 0.01,
+        px_count: tuple[int, int] = (2560, 1600),
+        px_size: float = 0.0076,
     ):
         super().__init__(
-            (resolution.px_count[0], resolution.px_count[1], layers),
+            (px_count[0], px_count[1], layers),
             position,
-            resolution.px_size,
+            px_size,
             layer_size,
         )
         self._name = name
-        self.resolution = resolution
 
 
 class Visitech_LRS10_Device(Device):
@@ -1290,17 +1362,70 @@ class Visitech_LRS10_Device(Device):
         layers: int = 0,
         layer_size: float = 0.01,
     ):
-        # resolution = Resolution(px_size=0.0076, px_count=(2560, 1600))
-        resolution = Resolution(px_size=0.0076, px_count=(200, 200))
-        super().__init__(name, resolution, position, layers, layer_size)
+        frame = inspect.currentframe()
+        args, _, _, values = inspect.getargvalues(frame)
+        self.init_args = [values[arg] for arg in args if arg != "self"]
+        self.init_kwargs = {arg: values[arg] for arg in args if arg != "self"}
+        super().__init__(
+            name,
+            position,
+            layers,
+            layer_size,
+            px_count=(2560, 1600),
+            px_size=0.0076,
+        )
+
+        # super().__init__(
+        #     name,
+        #     position,
+        #     layers,
+        #     layer_size,
+        #     px_count=(200, 200),
+        #     px_size=0.0076,
+        # )
 
 
-# class Visitech_LRS20_Device(Device):
-#     def __init__(self, position:tuple[int, int, int], layers:int=0, layer_size:float=0.01):
-#         resolution = Resolution(px_size=0.0152, px_count=(2560, 1600))
-#         super().__init__(resolution, position, layers, layer_size)
+class Visitech_LRS20_Device(Device):
+    def __init__(
+        self,
+        name: str,
+        position: tuple[int, int, int],
+        layers: int = 0,
+        layer_size: float = 0.01,
+    ):
+        frame = inspect.currentframe()
+        args, _, _, values = inspect.getargvalues(frame)
+        self.init_args = [values[arg] for arg in args if arg != "self"]
+        self.init_kwargs = {arg: values[arg] for arg in args if arg != "self"}
 
-# class Wintech_Device(Device):
-#     def __init__(self, position:tuple[int, int, int], layers:int=0, layer_size:float=0.01):
-#         resolution = Resolution(px_size=0.00075, px_count=(1920, 1080))
-#         super().__init__(resolution, position, layers, layer_size)
+        super().__init__(
+            name,
+            position,
+            layers,
+            layer_size,
+            px_count=(2560, 1600),
+            px_size=0.0152,
+        )
+
+
+class Wintech_Device(Device):
+    def __init__(
+        self,
+        name: str,
+        position: tuple[int, int, int],
+        layers: int = 0,
+        layer_size: float = 0.01,
+    ):
+        frame = inspect.currentframe()
+        args, _, _, values = inspect.getargvalues(frame)
+        self.init_args = [values[arg] for arg in args if arg != "self"]
+        self.init_kwargs = {arg: values[arg] for arg in args if arg != "self"}
+
+        super().__init__(
+            name,
+            position,
+            layers,
+            layer_size,
+            px_count=(1920, 1080),
+            px_size=0.00075,
+        )

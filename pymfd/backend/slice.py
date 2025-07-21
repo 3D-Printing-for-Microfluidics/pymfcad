@@ -6,96 +6,6 @@ from shapely.geometry import Polygon
 
 from . import Cube
 
-# def slice_component(
-#     component: Component,
-#     render_bulk: bool = True,
-#     do_bulk_difference: bool = True,
-# ) -> None:
-#     """
-#     ###### Slice a Component and save each slice as an image.
-
-#     ###### Parameters:
-#     - component (Component): The Component to slice.
-#     - render_bulk (bool): Whether to render bulk shapes.
-#     - do_bulk_difference (bool): Whether to perform a difference operation on bulk shapes.
-
-#     ###### Returns:
-#     - None: Saves images to disk.
-#     """
-#     manifolds, bulk_manifolds, _ = _component_to_manifold(
-#         component, render_bulk=render_bulk, do_bulk_difference=do_bulk_difference
-#     )
-
-#     manifold = None
-#     for m in manifolds.values():
-#         if manifold is None:
-#             manifold = m
-#         else:
-#             manifold += m
-
-#     if render_bulk:
-#         bulk_manifold = None
-#         for m in bulk_manifolds.values():
-#             if bulk_manifold is None:
-#                 bulk_manifold = m
-#             else:
-#                 bulk_manifold += m
-#         if do_bulk_difference:
-#             bulk_manifold -= manifold
-#             manifold = bulk_manifold
-#         else:
-#             manifold += manifold
-
-#     print("Slice")
-
-#     slice_num = 0
-#     z_height = 0
-#     while z_height < component._size[2]:
-#         polygons = manifold._object.slice(
-#             component._position[2] * component._layer_size
-#             + z_height * component._layer_size
-#         ).to_polygons()
-
-#         print(f"Slice {slice_num} at z={z_height}")
-
-#         # Create a new blank grayscale image
-#         img = Image.new("L", (2560, 1600), 0)
-#         draw = ImageDraw.Draw(img)
-
-#         # Step 3: Draw each polygon
-#         for poly in polygons:
-#             # snap to pixel grid
-#             transformed = np.round(poly / component._px_size).astype(int)
-#             transformed[:, 1] = img.height - transformed[:, 1]
-#             points = [tuple(p) for p in transformed]
-
-#             # Determine fill color based on orientation
-#             if _is_clockwise(transformed):
-#                 fill_color = 255  # solid
-#             else:
-#                 fill_color = 0  # hole
-
-#             # Convert poly (Nx2 numpy array) to shapely polygon and offset inward by small amount in px sdpace
-#             p = Polygon(points)
-#             px_offset = 0.1
-#             shrunk = p.buffer(-px_offset)
-#             # Only process if still valid
-#             if not shrunk.is_empty and shrunk.geom_type == "Polygon":
-#                 coords = np.array(shrunk.exterior.coords)
-#                 # do floor to fix issues with polygon inclusivity
-#                 transformed = np.floor(coords).astype(int)
-#                 points = [tuple(p) for p in transformed]
-
-#             # Draw polygon
-#             draw.polygon(points, fill=fill_color)
-
-#         # 5. Save or show the image
-#         img.save(f"slice{slice_num}.png")
-#         img.show()
-
-#         slice_num += 1
-#         z_height += 1
-
 
 def _is_clockwise(polygon: np.ndarray) -> bool:
     """
@@ -107,7 +17,117 @@ def _is_clockwise(polygon: np.ndarray) -> bool:
     return np.sum((x[1:] - x[:-1]) * (y[1:] + y[:-1])) > 0
 
 
-def slice(
+def _slice(
+    device: "Device",
+    composite_shape: "Shape",
+    directory: Path,
+    sliced_devices: list,
+    sliced_devices_info: list,
+):
+
+    ############## Slice manifold at layer height and resolution ##############
+    from .. import VariableLayerThicknessComponent
+
+    resolution = (int(device.get_size()[0]), int(device.get_size()[1]))
+
+    if isinstance(device, VariableLayerThicknessComponent):
+        expanded_layer_sizes = device._expand_layer_sizes()
+
+    # Slice at layer size
+    slice_num = 0
+    slice_position = 0
+    actual_slice_position = (
+        expanded_layer_sizes[0] / 2
+        if isinstance(device, VariableLayerThicknessComponent)
+        else device._layer_size / 2
+    )
+    device_height = (
+        device._get_device_height()
+        if isinstance(device, VariableLayerThicknessComponent)
+        else device.get_size()[2] * device._layer_size
+    )
+    print(f"\tSlicing {type(device).__name__}...")
+    while actual_slice_position < device_height:
+        slice_height = (
+            device.get_position()[2] * device._layer_size + actual_slice_position
+        )
+        polygons = composite_shape._object.slice(slice_height).to_polygons()
+        print(
+            f"\t\tLayer {slice_num} at z={actual_slice_position:.4f}/{slice_position:.4f}/{slice_height:.4f} ({len(polygons)} polygons)"
+        )
+
+        # Translate polygons from device position to pixel space
+        # subtract device position (x&y only, convert to pixel space) from polygons
+        # This assumes polygons are in mm, so we need to convert to pixel space
+        polygons = [
+            poly - np.array(device.get_position()[:2]) * device._px_size
+            for poly in polygons
+        ]
+
+        # Create a new blank grayscale image
+        img = Image.new("L", resolution, 0)
+        draw = ImageDraw.Draw(img)
+
+        # Step 3: Draw each polygon
+        for poly in polygons:
+            # snap to pixel grid
+            transformed = np.round(poly / device._px_size).astype(int)
+            transformed[:, 1] = img.height - transformed[:, 1]
+            points = [tuple(p) for p in transformed]
+
+            # Determine fill color based on orientation
+            if _is_clockwise(transformed):
+                fill_color = 255  # solid
+            else:
+                fill_color = 0  # hole
+
+            # Convert poly (Nx2 numpy array) to shapely polygon and offset inward by small amount in px sdpace
+            p = Polygon(points)
+            px_offset = 0.1
+            shrunk = p.buffer(-px_offset)
+            # Only process if still valid
+            if not shrunk.is_empty and shrunk.geom_type == "Polygon":
+                coords = np.array(shrunk.exterior.coords)
+                # do floor to fix issues with polygon inclusivity
+                transformed = np.floor(coords).astype(int)
+                points = [tuple(p) for p in transformed]
+
+            # Draw polygon
+            draw.polygon(points, fill=fill_color)
+
+        # 5. Save or show the image
+        img.save(
+            f"{directory}/{device.get_fully_qualified_name()}-slice{slice_num:04}.png"
+        )
+
+        if isinstance(device, VariableLayerThicknessComponent):
+            # If the device has variable layer thickness, use the layer size from the device
+            slice_position += expanded_layer_sizes[slice_num]
+            if slice_num < len(expanded_layer_sizes) - 1:
+                actual_slice_position += (
+                    expanded_layer_sizes[slice_num] / 2
+                    + expanded_layer_sizes[slice_num + 1] / 2
+                )
+            else:
+                # If this is the last slice, just use the layer size
+                actual_slice_position += expanded_layer_sizes[slice_num]
+        else:
+            slice_position += device._layer_size
+            actual_slice_position += device._layer_size
+
+        if len(sliced_devices) > 0:
+            device_index = sliced_devices.index(device)
+            sliced_devices_info[device_index]["slices"].append(
+                {
+                    "image_name": f"{device.get_fully_qualified_name()}-slice{slice_num:04}.png",
+                    "layer_position": round(slice_position * 1000, 1),
+                }
+            )
+
+        slice_num += 1
+
+
+def slice_component(
     device: "Device",
     temp_directory: Path,
     sliced_devices: list,
@@ -123,29 +143,32 @@ def slice(
     - sliced_devices: Dictionary to store sliced devices.
     - _create_subdirectory: Whether to create a subdirectory for the slices.
     """
+    # Calculate device relative position
+    if device._parent is None:
+        parent = None
+        x_pos = device.get_position()[0]
+        y_pos = device.get_position()[1]
+        z_pos = device.get_position()[2] * device._layer_size
+    else:
+        parent = device._parent
+        x_pos = device.get_position()[0] - device._parent.get_position()[0]
+        y_pos = device.get_position()[1] - device._parent.get_position()[1]
+        z_pos = (
+            device.get_position()[2] - device._parent.get_position()[2]
+        ) * device._layer_size
     ############## Only slice components when nessicary ##############
     # Check if component with same instantiation parameters has already been sliced
     if device in sliced_devices:
         device_index = sliced_devices.index(device)
         sliced_devices_info[device_index]["positions"].append(
-            (
-                device.get_position()[0] * device._px_size,
-                device.get_position()[1] * device._px_size,
-                device.get_position()[2] * device._layer_size,
-            )
+            (parent, x_pos, y_pos, z_pos)
         )
         return
     else:
         sliced_devices.append(device)
         sliced_devices_info.append(
             {
-                "positions": [
-                    (
-                        device.get_position()[0] * device._px_size,
-                        device.get_position()[1] * device._px_size,
-                        device.get_position()[2] * device._layer_size,
-                    )
-                ],
+                "positions": [(parent, x_pos, y_pos, z_pos)],
                 "slices": [],
             }
         )
@@ -194,7 +217,7 @@ def slice(
         )
         local_shapes = local_shapes + bbox_cube if local_shapes is not None else bbox_cube
 
-        slice(
+        slice_component(
             sub,
             temp_directory,
             sliced_devices,
@@ -208,117 +231,27 @@ def slice(
     composite_shape = (
         composite_shape - local_shapes if local_shapes is not None else composite_shape
     )
-
     time.sleep(0.1)
 
-    ############## Slice manifold at layer height and resolution ##############
-    resolution = None
-    from .. import Device, VariableLayerThicknessComponent
-
-    if isinstance(device, Device):
-        resolution = device.resolution.px_count
-    else:
-        resolution = (int(device.get_size()[0]), int(device.get_size()[1]))
-
-    if isinstance(device, VariableLayerThicknessComponent):
-        expanded_layer_sizes = device._expand_layer_sizes()
-
-    # Slice at layer size
-    slice_num = 0
-    z_height = (
-        expanded_layer_sizes[0] / 2
-        if isinstance(device, VariableLayerThicknessComponent)
-        else device._layer_size / 2
+    # Slice the device
+    _slice(
+        device,
+        composite_shape,
+        device_subdirectory,
+        sliced_devices,
+        sliced_devices_info,
     )
-    device_height = (
-        device._get_device_height()
-        if isinstance(device, VariableLayerThicknessComponent)
-        else device.get_size()[2] * device._layer_size
-    )
-    while z_height < device_height:
-        slice_height = device.get_position()[2] * device._layer_size + z_height
-        polygons = composite_shape._object.slice(slice_height).to_polygons()
-        print(
-            f"slice {slice_num} at z={z_height:.4f}/{slice_height:.4f} ({len(polygons)} polygons)"
+
+    # Slice the device's masks
+    for key, (mask, settings) in device.regional_settings.items():
+        masks_subdirectory = (
+            temp_directory / "masks" / device.get_fully_qualified_name() / key
         )
-
-        # Translate polygons from device position to pixel space
-        # subtract device position (x&y only, convert to pixel space) from polygons
-        # This assumes polygons are in mm, so we need to convert to pixel space
-        polygons = [
-            poly - np.array(device.get_position()[:2]) * device._px_size
-            for poly in polygons
-        ]
-
-        # Create a new blank grayscale image
-        img = Image.new("L", resolution, 0)
-        draw = ImageDraw.Draw(img)
-
-        # Step 3: Draw each polygon
-        for poly in polygons:
-            # snap to pixel grid
-            transformed = np.round(poly / device._px_size).astype(int)
-            transformed[:, 1] = img.height - transformed[:, 1]
-            points = [tuple(p) for p in transformed]
-
-            # Determine fill color based on orientation
-            if _is_clockwise(transformed):
-                fill_color = 255  # solid
-            else:
-                fill_color = 0  # hole
-
-            # Convert poly (Nx2 numpy array) to shapely polygon and offset inward by small amount in px sdpace
-            p = Polygon(points)
-            px_offset = 0.1
-            shrunk = p.buffer(-px_offset)
-            # Only process if still valid
-            if not shrunk.is_empty and shrunk.geom_type == "Polygon":
-                coords = np.array(shrunk.exterior.coords)
-                # do floor to fix issues with polygon inclusivity
-                transformed = np.floor(coords).astype(int)
-                points = [tuple(p) for p in transformed]
-
-            # Draw polygon
-            draw.polygon(points, fill=fill_color)
-
-        # 5. Save or show the image
-        img.save(f"{device_subdirectory}/slice{slice_num}.png")
-
-        sliced_devices_info[-1]["slices"].append(
-            {
-                "image_name": f"slice{slice_num}.png",
-                "layer_position": z_height,
-            }
+        masks_subdirectory.mkdir(parents=True)
+        _slice(
+            device,
+            mask,
+            masks_subdirectory,
+            [],
+            [],
         )
-
-        if isinstance(device, VariableLayerThicknessComponent):
-            # If the device has variable layer thickness, use the layer size from the device
-            if slice_num < len(expanded_layer_sizes) - 1:
-                z_height += (
-                    expanded_layer_sizes[slice_num] / 2
-                    + expanded_layer_sizes[slice_num + 1] / 2
-                )
-            else:
-                # If this is the last slice, just use the layer size
-                z_height += expanded_layer_sizes[slice_num]
-        else:
-            z_height += device._layer_size
-        slice_num += 1
-
-    # slicing() -> images at px_size and layer_size
-    # 	check if in unique_component_index
-    # 		if not unique return else add to index
-    # 	_loop_components()
-    # 	    union bulk
-    # 	    subtract shapes
-    # 		if not exposure device
-    # 			if layer_size is equal
-    # 				_loop_components()
-    # 			else:
-    # 				slicing() in own directory
-    # 		else:
-    # 			slicing() in new directory
-    # 	slice at layer_size
-    # 		slice
-    # 		add to index of image_name and layer position
-    # 	If layers align, merge images

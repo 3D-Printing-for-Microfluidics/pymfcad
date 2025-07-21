@@ -1,7 +1,13 @@
 from pymfd.router import Router
 from pymfd.component_library import Valve20px, TestCube, Pinhole
-from pymfd import PolychannelShape, BezierCurveShape, Device, Component, Color, set_fn
-from pymfd.slicer import Resolution
+from pymfd import (
+    PolychannelShape,
+    BezierCurveShape,
+    Visitech_LRS10_Device,
+    Component,
+    Color,
+    set_fn,
+)
 
 set_fn(50)
 
@@ -84,12 +90,11 @@ set_fn(50)
 
 # # Mesh the component
 # component.preview()
-# # component.slice()
 
 # ################ 2 Test subcomonents ##################
 # device_size = (2560, 1600, 250)
 # device_position = (0, 0, 0)
-# device = Device("TestDevice", Resolution(), device_position, layers=250, layer_size=0.01)
+# device = Visitech_LRS10_Device("TestDevice", device_position, layers=250, layer_size=0.01)
 
 # component = Valve20px()
 # device.add_subcomponent("valve", component)
@@ -157,7 +162,7 @@ set_fn(50)
 # ################ 4 Test Routing ##################
 # device_size = (150, 150, 100)
 # device_position = (0, 0, 0)
-# device = Device("TestDevice", Resolution(), device_position, layers=250, layer_size=0.01)
+# device = Visitech_LRS10_Device("TestDevice", device_position, layers=250, layer_size=0.01)
 
 # device.add_label("autopath", Color.from_rgba((0, 255, 0, 127)))
 # device.add_label("device", Color.from_name("aqua", 63))
@@ -201,7 +206,6 @@ set_fn(50)
 # # Mesh the component
 # device.preview()
 # # device.render()
-# # device.slice()
 
 ############### 6 Create serpentine channel ##################
 component = Component(
@@ -234,4 +238,3 @@ component.add_shape(
 
 # Mesh the component
 component.preview()
-# component.slice()

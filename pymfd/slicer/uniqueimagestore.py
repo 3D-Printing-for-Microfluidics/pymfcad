@@ -9,6 +9,31 @@ from typing import NamedTuple
 from collections import defaultdict
 
 
+def get_unique_path(
+    base_path: Path, stem: str, suffix: str = ".png", postfix: str = ""
+) -> Path:
+    """
+    Generate a unique file path by appending optional postfix and then _n if needed.
+    E.g., stem_postfix.png, stem_postfix_1.png, etc.
+    """
+    count = 0
+    while True:
+        if count == 0:
+            filename = (
+                f"{stem}_{postfix}{suffix}" if postfix is not "" else f"{stem}{suffix}"
+            )
+        else:
+            filename = (
+                f"{stem}_{postfix}_{count}{suffix}"
+                if postfix is not ""
+                else f"{stem}_{count}{suffix}"
+            )
+        full_path = base_path / filename
+        if not full_path.exists():
+            return full_path
+        count += 1
+
+
 def load_image_from_file(image_file):
     """Given image_file, load image as numpy array"""
     return np.array(Image.open(_ensure_path(image_file)))

@@ -16,8 +16,7 @@ from .manifold3d import (
 )
 from .render import render_component
 
-# from .slice import slice_component, slice
-from .slice import slice
+from .slice import slice_component
 from .polychannel import (
     Polychannel,
     PolychannelShape,

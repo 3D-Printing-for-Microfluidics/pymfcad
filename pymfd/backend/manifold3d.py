@@ -7,7 +7,7 @@ import numpy as np
 from numba import njit
 
 from collections.abc import Callable
-from manifold3d import set_circular_segments, Manifold, Mesh, CrossSection
+from manifold3d import set_circular_segments, Manifold, Mesh, CrossSection, OpType
 
 
 def _is_integer(val: float) -> bool:
@@ -248,6 +248,47 @@ class Shape:
         - self (Shape): The resulting shape after subtraction.
         """
         self._object = self._object - other._object
+        return self
+
+    def _intersect_boxes(self, box1, box2):
+        # Compute the intersection of two axis-aligned bounding boxes
+        x_min = max(box1[0], box2[0])
+        y_min = max(box1[1], box2[1])
+        z_min = max(box1[2], box2[2])
+        x_max = min(box1[3], box2[3])
+        y_max = min(box1[4], box2[4])
+        z_max = min(box1[5], box2[5])
+
+        # Check for non-empty intersection
+        if x_min < x_max and y_min < y_max and z_min < z_max:
+            return [x_min, y_min, z_min, x_max, y_max, z_max]
+        else:
+            return None
+
+    def _intersect_keepouts(self, list1, list2):
+        intersections = []
+        for box1 in list1:
+            for box2 in list2:
+                inter = self._intersect_boxes(box1, box2)
+                if inter:
+                    intersections.append(inter)
+        return intersections
+
+    def __and__(self, other: "Shape") -> "Shape":
+        """
+        ###### Intersect this shape with another shape.
+
+        ###### Parameters:
+        - other (Shape): The shape to intersect with.
+
+        ###### Returns:
+        - self (Shape): The resulting shape after intersection.
+        """
+        self._keepouts = self._intersect_keepouts(self._keepouts, other._keepouts)
+        self._object = Manifold.batch_boolean(
+            [self._object, other._object],
+            OpType.Intersect,
+        )
         return self
 
     def hull(self, other: "Shape") -> "Shape":

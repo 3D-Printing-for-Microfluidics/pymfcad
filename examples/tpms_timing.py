@@ -54,4 +54,3 @@ print(f"NJIT Large TPMS: {end_time - start_time:.2f} seconds")
 
 # Mesh the component
 component.preview()
-# component.slice()
