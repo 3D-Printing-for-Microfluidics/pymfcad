@@ -18,12 +18,12 @@ set_fn(50)
 # chan_size = (8, 8, 6)
 # # Add label
 # component.add_label("default", Color.from_rgba((0, 255, 0, 127)))
-# # Add a shape
-# # component.add_shape(
-# #     "simple_cube",
-# #     component.make_cube((2, 2, 2), center=False).translate((1, 1, 1)),
-# #     label="default",
-# # )
+# Add a shape
+# component.add_shape(
+#     "simple_cube",
+#     component.make_cube((2, 2, 2), center=False).translate((1, 1, 1)),
+#     label="default",
+# )
 # # component.add_shape(
 # #     "simple_round_cube",
 # #     component.make_rounded_cube((10, 10, 10), (2.5, 2.5, 2.5), center=True),
@@ -45,6 +45,7 @@ set_fn(50)
 # #     .translate((-10, 0, 0)),
 # #     label="default",
 # # )
+# # from pymfd.backend import TPMS
 # # component.add_shape(
 # #     f"tpms",
 # #     component.make_tpms_cell(
@@ -175,10 +176,10 @@ set_fn(50)
 
 # chan_size = (8, 8, 6)
 # r = Router(component=device, channel_size=chan_size, channel_margin=chan_size)
-# # r.autoroute_channel(c2.F_OUT, c1.F_IN, label="autopath")
-# # r.autoroute_channel(c1.P_OUT, c2.F_IN, label="autopath")
-# # r.autoroute_channel(c1.F_OUT, c2.P_IN, label="autopath")
-# # r.autoroute_channel(c2.P_OUT, c1.P_IN, label="autopath")
+# r.autoroute_channel(c2.F_OUT, c1.F_IN, label="autopath")
+# r.autoroute_channel(c1.P_OUT, c2.F_IN, label="autopath")
+# r.autoroute_channel(c1.F_OUT, c2.P_IN, label="autopath")
+# r.autoroute_channel(c2.P_OUT, c1.P_IN, label="autopath")
 # # r.route_with_fractional_path(
 # #     c2.P_OUT,
 # #     c1.F_IN,

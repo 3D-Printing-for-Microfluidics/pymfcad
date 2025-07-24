@@ -570,7 +570,16 @@ class Router:
             ]
             mins = np.array([box[:3] for box in boxes], dtype=np.float64)
             maxs = np.array([box[3:] for box in boxes], dtype=np.float64)
-            _, counts = self._keepout_index.intersection_v(mins, maxs)
+            try:
+                _, counts = self._keepout_index.intersection_v(mins, maxs)
+            except TypeError:
+                # sometimes intersection_v fails when boxes are outside spactial extent
+                # fall back to intersection
+                counts = []
+                for box in boxes:
+                    ret = list(self._keepout_index.intersection(box))
+                    counts.append(len(ret))
+                counts = np.array(counts, dtype=np.int64)
             violation = np.any(counts > 0)
 
         return not violation
@@ -982,10 +991,18 @@ class Router:
             self._add_margin(b, margin) for b, valid in zip(boxes, inside_mask) if valid
         ]
 
-        if shrunk_boxes:
+        if len(shrunk_boxes) > 0:
             mins = np.array([box[:3] for box in shrunk_boxes], dtype=np.float64)
             maxs = np.array([box[3:] for box in shrunk_boxes], dtype=np.float64)
-            _, counts = self._keepout_index.intersection_v(mins, maxs)
+            try:
+                _, counts = self._keepout_index.intersection_v(mins, maxs)
+            except TypeError:
+                # sometimes intersection_v fails when boxes are outside spactial extent
+                # fall back to intersection
+                counts = []
+                for box in shrunk_boxes:
+                    ret = list(self._keepout_index.intersection(box))
+                    counts.append(len(ret))
         else:
             counts = []
 
