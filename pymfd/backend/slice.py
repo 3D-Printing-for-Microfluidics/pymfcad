@@ -53,7 +53,9 @@ def _slice(
         )
         polygons = composite_shape._object.slice(slice_height).to_polygons()
         print(
-            f"\t\tLayer {slice_num} at z={actual_slice_position:.4f}/{slice_position:.4f}/{slice_height:.4f} ({len(polygons)} polygons)"
+            f"\r\t\tLayer {slice_num} at z={actual_slice_position:.4f}/{slice_position:.4f}/{slice_height:.4f} ({len(polygons)} polygons)",
+            end="",
+            flush=True,
         )
 
         # Translate polygons from device position to pixel space
@@ -126,6 +128,8 @@ def _slice(
 
         slice_num += 1
 
+    print()
+
 
 def slice_component(
     device: "Device",
@@ -180,7 +184,7 @@ def slice_component(
     ############## Create manifold of component ##############
     # Start by unioning this component's bulk shapes
     composite_shape = None
-    for bulk in device.bulk_shapes:
+    for bulk in device.bulk_shapes.values():
         composite_shape = (
             bulk.copy(_internal=True)
             if composite_shape is None
@@ -189,7 +193,7 @@ def slice_component(
 
     local_shapes = None
     # Accumulate this component's shapes (e.g. voids or cutouts)
-    for shape in device.shapes:
+    for shape in device.shapes.values():
         local_shapes = (
             shape.copy(_internal=True)
             if local_shapes is None
@@ -197,7 +201,7 @@ def slice_component(
         )
 
     # Accumulate subcomponent bboxes and recursively process subcomponents
-    for sub in device.subcomponents:
+    for sub in device.subcomponents.values():
         bbox = sub.get_bounding_box(device._px_size, device._layer_size)
         bbox_cube = Cube(
             size=(

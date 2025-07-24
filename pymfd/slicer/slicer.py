@@ -1,30 +1,3 @@
-# Processing a exposure device with settings
-# Check if output already exists
-# Create temp folder
-# Copy code to temp folder
-# slicing() -> images at px_size and layer_size
-# 	check if in unique_component_index
-# 		if not unique return else add to index
-# 	union bulk
-# 	subtract shapes
-# 	_loop_components()
-# 		if not exposure device
-# 			if layer_size is equal
-# 				_loop_components()
-# 			else:
-# 				slicing() in own directory
-# 		else:
-# 			slicing() in new directory
-# 	slice at layer_size
-# 		slice
-# 		add to index of image_name and layer position
-# 	If layers align, merge images
-# Generate secondary and membrane images
-# Generate JSON
-# 	make minimal slices folder
-# Create print job zip/directory
-# Clean up temp folder
-
 import re
 import os
 import cv2
@@ -38,9 +11,6 @@ from typing import Union
 from types import ModuleType
 from datetime import datetime
 
-# from .secondary_image_generation import generate_secondary_images
-
-# from .generate_print_file import create_print_file
 from ..backend import slice_component
 from .uniqueimagestore import get_unique_path, load_image_from_file, UniqueImageStore
 from .json_prettier import pretty_json
@@ -144,7 +114,7 @@ class Slicer:
         shutil.copy2(file_path, destination)
         return relative_path
 
-    def _fill_device_settings(self, device, info):
+    def _fill_device_settings(self, device):
         settings_owner = device._parent if device._parent is not None else self.settings
         if device.default_exposure_settings is None:
             device.default_exposure_settings = (
@@ -163,9 +133,24 @@ class Slicer:
                 settings_owner.default_position_settings,
             )
 
-        for slice in info["slices"]:
-            slice["exposure_settings"] = device.default_exposure_settings
+    def _set_normal_slice_settings(self, device, info):
+        for i, slice in enumerate(info["slices"]):
             slice["position_settings"] = device.default_position_settings
+            slice["exposure_settings"] = device.default_exposure_settings.copy()
+            slice["exposure_settings"].image_x_offset = (
+                device.default_exposure_settings.image_x_offset
+            )
+            slice["exposure_settings"].image_y_offset = (
+                device.default_exposure_settings.image_y_offset
+            )
+            slice["exposure_settings"].light_engine = (
+                device.default_exposure_settings.light_engine
+            )
+
+            # Generate burn-in exposure settings
+            if i < len(device.burnin_settings):
+                slice["exposure_settings"].exposure_time = device.burnin_settings[i]
+                slice["exposure_settings"].burnin = True
 
     def _make_secondary_images(
         self, device, temp_directory, sliced_devices, sliced_devices_info
@@ -285,11 +270,7 @@ class Slicer:
                         image_path = image_path
                         image["image_name"] = f"{image_path.name}"
                 else:
-                    # Create a subdirectory for the device
-                    # device_subdirectory = (
-                    #     slices_folder / device.get_fully_qualified_name()
-                    # )
-
+                    # os.mkdir(slices_folder, exist_ok=True)
                     # Copy the all images from temp_directory/fqn to slices/fqn
                     shutil.copytree(
                         temp_directory / device.get_fully_qualified_name(),
@@ -411,7 +392,7 @@ class Slicer:
             for device_obj, info in embedded_devices:
                 for slice_info in info.get("slices", []):
                     if slice_info["layer_position"] == layer:
-                        current_layer_slices.append((device_obj, slice_info))
+                        current_layer_slices.append(slice_info)
             yield layer, current_layer_slices
 
     def _match_or_find_closest_named_setting(
@@ -452,6 +433,21 @@ class Slicer:
 
         return best_match_key, differences_in_best
 
+    def _get_unique_settings_name(self, stem: str, existing_list: list = []) -> Path:
+        """
+        Generate a unique file path by appending optional postfix and then _n if needed.
+        E.g., stem_postfix.png, stem_postfix_1.png, etc.
+        """
+        count = 0
+        while True:
+            if count == 0:
+                name = stem
+            else:
+                name = f"{stem}_{count}"
+            if not name in existing_list:
+                return name
+            count += 1
+
     def make_print_file(self) -> bool:
         """
         Generate a print file based on the provided device and settings.
@@ -488,7 +484,7 @@ class Slicer:
 
             for device, info in zip(sliced_devices, sliced_devices_info):
                 # Fill default settings for sliced devices
-                self._fill_device_settings(device, info)
+                self._fill_device_settings(device)
 
                 # Fill device specific settings
                 if isinstance(device, Device):
@@ -512,6 +508,9 @@ class Slicer:
                         )
                     device.default_exposure_settings.image_x_offset = x_offset
                     device.default_exposure_settings.image_y_offset = y_offset
+
+                # Set normal slice settings
+                self._set_normal_slice_settings(device, info)
 
                 # Generate secondary, membrane, and regional images
                 self._make_secondary_images(
@@ -560,6 +559,8 @@ class Slicer:
                 "Named position settings": {},
                 "Named image settings": {},
             }
+
+            # Update default layer settings based on the first embedded device
             print_settings["Default layer settings"]["Position settings"][
                 "Layer thickness (um)"
             ] = (embedded_devices[0][0]._layer_size * 1000)
@@ -597,7 +598,7 @@ class Slicer:
                 position_settings = None
                 layer_settings = {}
                 image_settings_list = []
-                for device_obj, slice_info in slices:
+                for slice_info in slices:
                     # Update position settings from slice
                     new_position_settings = slice_info["position_settings"].to_dict()
                     if position_settings is None:
@@ -645,6 +646,15 @@ class Slicer:
                         settings_name = re.sub(
                             r"-slice\d+", "", slice_info["image_name"]
                         ).split(".png")[0]
+                        if slice_info["exposure_settings"].burnin:
+                            settings_name += "_burnin"
+
+                        # if settings_name exists, create a new name
+                        if settings_name in expanded_named_image_settings:
+                            settings_name = self._get_unique_settings_name(
+                                settings_name,
+                                existing_list=expanded_named_image_settings.keys(),
+                            )
 
                         # set named image settings
                         image_settings = match_dict.copy()

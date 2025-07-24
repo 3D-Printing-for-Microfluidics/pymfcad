@@ -199,7 +199,7 @@ settings = Settings(
     ),
     default_exposure_settings=ExposureSettings(
         grayscale_correction=False,
-        exposure_time=300.0,
+        exposure_time=500.0,
         power_setting=100,
         relative_focus_position=0.0,
         wait_before_exposure=0.0,

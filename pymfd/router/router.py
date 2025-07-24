@@ -90,44 +90,75 @@ class Router:
         self._channel_size = channel_size
         self._channel_margin = channel_margin
         self._bounds = self._component.get_bounding_box()
-        self._keepouts = {}
+        self.nonrouted_keepouts = {}
+        self.routed_keepouts = {}
+        self.keepouts_by_port = {}
 
+    def _generate_keepout_index(self, keepouts=None):
+        # Generate rtree and list of keepouts from components, ports, and shapes
+        # If keepouts are provided, only add new or updated keepouts to the index
         p = index.Property()
         p.dimension = 3  # because you're working in 3D
         idx = index.Index(properties=p)
 
         cnt = 0
-        for subcomponent in self._component.subcomponents:
+        for key, subcomponent in self._component.subcomponents.items():
             # add subcomponet keepout
-            key = subcomponent._name
-            ko = subcomponent.get_bounding_box(component._px_size, component._layer_size)
-            idx.insert(cnt, ko)
-            self._keepouts[key] = (cnt, ko)
-            cnt += 1
-
-            # add port keepout
-            for port in subcomponent.ports:
-                key = port.get_name()
-                ko = self._add_margin(
-                    port.get_bounding_box(component._px_size, component._layer_size),
-                    self._channel_margin,
-                )
+            ko = subcomponent.get_bounding_box(
+                self._component._px_size, self._component._layer_size
+            )
+            if keepouts is not None and key in keepouts:
+                if keepouts[key][1] != ko:
+                    idx.insert(cnt, ko)
+                    self.nonrouted_keepouts[key] = (cnt, ko)
+                    cnt += 1
+            else:
                 idx.insert(cnt, ko)
-                self._keepouts[key] = (cnt, ko)
+                self.nonrouted_keepouts[key] = (cnt, ko)
                 cnt += 1
 
+            # add port keepout
+            for port in subcomponent.ports.values():
+                key = port.get_name()
+                ko = self._add_margin(
+                    port.get_bounding_box(
+                        self._component._px_size, self._component._layer_size
+                    ),
+                    self._channel_margin,
+                )
+
+                if keepouts is not None and key in keepouts:
+                    if keepouts[key][1] != ko:
+                        idx.insert(cnt, ko)
+                        self.keepouts_by_port[key] = [key]
+                        self.routed_keepouts[key] = (cnt, ko)
+                        cnt += 1
+                    else:
+                        self.keepouts_by_port[key] = []
+                else:
+                    idx.insert(cnt, ko)
+                    self.keepouts_by_port[key] = [key]
+                    self.routed_keepouts[key] = (cnt, ko)
+                    cnt += 1
+
         # add shape keepout
-        for i, shape in enumerate(self._component.shapes):
+        for i, (shape_name, shape) in enumerate(self._component.shapes.items()):
             for j, keepout in enumerate(shape._keepouts):
                 key = f"{i}_{j}"
-                if shape._name is not None:
-                    key = f"{shape._name}_{j}"
+                if shape_name is not None:
+                    key = f"{shape_name}_{j}"
                 ko = self._add_margin(
                     tuple(float(x) for x in keepout), self._channel_margin
                 )
-                idx.insert(cnt, ko)
-                self._keepouts[key] = (cnt, ko)
-                cnt += 1
+                if keepouts is not None and key in keepouts:
+                    if keepouts[key][1] != ko:
+                        idx.insert(cnt, ko)
+                        self.nonrouted_keepouts[key] = (cnt, ko)
+                        cnt += 1
+                else:
+                    idx.insert(cnt, ko)
+                    self.nonrouted_keepouts[key] = (cnt, ko)
+                    cnt += 1
 
         self._keepout_index = idx
 
@@ -285,6 +316,8 @@ class Router:
         end_loc = output_port.get_position(
             self._component._px_size, self._component._layer_size
         )
+        start_loc = [round(x) for x in start_loc]
+        end_loc = [round(x) for x in end_loc]
         diff = tuple(a - b for a, b in zip(end_loc, start_loc))
 
         # relative positions to absolute path
@@ -398,27 +431,68 @@ class Router:
         It handles both manual routing with polychannels and autorouting using the A* algorithm.
         """
         print("Routing...")
+        keepouts, self.cached_routes = self._load_cached_route()
+        self._generate_keepout_index(keepouts)
         new_routes = []
-        for name, route_info in self._routes.items():  # Route cached paths if valid
-            cached_info = self._load_cached_route(name)
-            if cached_info:
-                print(f"\tLoading {name}...")
-                if self._load_route(name, route_info, cached_info):
-                    print(f"\t\t{name} loaded.")
+        loaded_routes = []
+        print("\r\tLoading cached routes...", end="", flush=True)
+        for i, (name, route_info) in enumerate(
+            self._routes.items()
+        ):  # Route cached paths if valid
+            input_port = route_info["input"]
+            output_port = route_info["output"]
+            print(
+                f"\r\tLoading cached routes ({(i+1)/len(self._routes)*100:.2f}%)...",
+                end="",
+                flush=True,
+            )
+            removed_keepouts = self._remove_port_keepouts(input_port, output_port)
+            if self.cached_routes is not None and name in self.cached_routes:
+                if self._load_route(name, route_info, self.cached_routes[name]):
+                    self._add_port_keepouts(removed_keepouts)
+                    loaded_routes.append(name)
                     continue
                 else:
-                    print(f"\t\tRerouting {name}...")
+                    print(f"\r\n\t\tRerouting {name}...")
+            self._add_port_keepouts(removed_keepouts)
             new_routes.append((name, route_info))  # Cache is stale/missing → reroute
-        for name, route_info in new_routes:
-            if route_info["route_type"] != "autoroute":  # Manual routing
-                print(f"\tManual Routing {name}...")
-                self._route(name, route_info)
-        for name, route_info in new_routes:  # Autoroute paths
-            if route_info["route_type"] == "autoroute":  # Manual routing
-                print(f"\tAutorouting {name}...")
-                self._autoroute(name, route_info)
 
-    def _load_cached_route(self, name: str):
+        # Add keepouts for cached routes
+        self._generate_keepout_index()
+        for name in loaded_routes:
+            self._add_keepouts_from_polychannel(name, self._component.shapes[name])
+
+        print(f"\r\n\tManual Routing...", end="", flush=True)
+        for i, (name, route_info) in enumerate(new_routes):
+            input_port = route_info["input"]
+            output_port = route_info["output"]
+            print(
+                f"\r\tManual Routing ({(i+1)/len(new_routes)*100:.2f}%)...",
+                end="",
+                flush=True,
+            )
+            if route_info["route_type"] != "autoroute":  # Manual routing
+                removed_keepouts = self._remove_port_keepouts(input_port, output_port)
+                self._route(name, route_info)
+                self._add_port_keepouts(removed_keepouts)
+
+        print(f"\r\n\tAutorouting...", end="", flush=True)
+        for i, (name, route_info) in enumerate(new_routes):  # Autoroute paths
+            input_port = route_info["input"]
+            output_port = route_info["output"]
+            print(
+                f"\r\tAutorouting ({(i+1)/len(new_routes)*100:.2f}%)...",
+                end="",
+                flush=True,
+            )
+            if route_info["route_type"] == "autoroute":  # Manual routing
+                removed_keepouts = self._remove_port_keepouts(input_port, output_port)
+                self._autoroute(name, route_info)
+                self._add_port_keepouts(removed_keepouts)
+        print()
+        self._cache_routes()
+
+    def _load_cached_route(self):
         """
         ###### Loads a cached route from a file.
         ###### Parameters:
@@ -431,14 +505,13 @@ class Router:
         cache_file = (
             instantiation_dir
             / f"{file_stem}_cache"
-            / type(self._component).__name__
-            / f"{name}.pkl"
+            / f"{type(self._component).__name__}.pkl"
         )
 
         if os.path.exists(cache_file):
             with open(cache_file, "rb") as f:
                 return pickle.load(f)
-        return None
+        return None, None
 
     def _load_route(self, name: str, route_info: dict, cached_info: dict):
         """
@@ -478,50 +551,27 @@ class Router:
         self._route(name, route_info, loaded=True)
         return True
 
-    def _validate_keepouts(
-        self, input_port: "Port", output_port: "Port", polychannel: "Shape"
-    ):
+    def _validate_keepouts(self, polychannel: "Shape"):
         """
         ###### Checks if the polychannel does not violate any keepouts.
         ###### Parameters:
-        - input_port: The Port instance where the channel starts.
-        - output_port: The Port instance where the channel ends.
         - polychannel: The PolychannelShape instance representing the channel path.
         ###### Returns:
         - True if the polychannel does not violate any keepouts, otherwise False.
         """
-        # remove port keepouts
-        removed_keepouts = {}
-        for keepout_key, (keepout_idx, keepout_box) in list(self._keepouts.items()):
-            if (
-                input_port.get_name() == keepout_key
-                or output_port.get_name() == keepout_key
-                or (
-                    "__to__" in keepout_key
-                    and (
-                        input_port.get_name() in keepout_key
-                        or output_port.get_name() in keepout_key
-                    )
-                )
-            ):
-                removed_keepouts[keepout_key] = (keepout_idx, keepout_box)
-                self._keepout_index.delete(keepout_idx, keepout_box)
-                del self._keepouts[keepout_key]
 
         # check autoroute keepouts
         violation = False
-        for keepout in polychannel._keepouts:
+        if polychannel._keepouts:
             margin = (-1, -1, -1)
-            ko_box = self._add_margin(tuple(float(x) for x in keepout), margin)
-            intersecting = list(self._keepout_index.intersection(ko_box))
-            if intersecting:
-                violation = True
-
-        # add back port keepouts
-        for keepout_key, val in removed_keepouts.items():
-            keepout_idx, keepout_box = val
-            self._keepout_index.insert(keepout_idx, keepout_box)
-            self._keepouts[keepout_key] = (keepout_idx, keepout_box)
+            boxes = [
+                self._add_margin(tuple(float(x) for x in keepout), margin)
+                for keepout in polychannel._keepouts
+            ]
+            mins = np.array([box[:3] for box in boxes], dtype=np.float64)
+            maxs = np.array([box[3:] for box in boxes], dtype=np.float64)
+            _, counts = self._keepout_index.intersection_v(mins, maxs)
+            violation = np.any(counts > 0)
 
         return not violation
 
@@ -535,39 +585,47 @@ class Router:
         ###### Returns:
         - True if the route was successfully created, otherwise False.
         """
-        input_port = route_info["input"]
-        output_port = route_info["output"]
-
         # create polychannel
         polychannel_shapes = deepcopy(route_info["_path"])
         polychannel = self._component.make_polychannel(polychannel_shapes)
 
         # validate keepouts if autoroute
-        if not self._validate_keepouts(input_port, output_port, polychannel):
+        if not self._validate_keepouts(polychannel):
             if route_info["route_type"] == "autoroute":
                 return False
             else:
-                print(f"\t\t⚠️ {name} violates keepouts!")
-
-        # cache results
-        if not loaded:
-            ret = self._cache_route(name, route_info)
-            if not ret:
-                print(f"⚠️ failed to cache route {name}")
+                print(f"\r\n\t\t⚠️ {name} violates keepouts!")
 
         # add polychannel keepout
-        for j, keepout in enumerate(polychannel._keepouts):
-            ko_key = f"{name}_{j}"
-            ko = self._add_margin(tuple(float(x) for x in keepout), self._channel_margin)
-            ko = tuple(int(x) for x in ko)
-            self._keepout_index.insert(len(self._keepouts.keys()), ko)
-            self._keepouts[ko_key] = (len(self._keepouts.keys()), ko)
+        if not loaded:
+            self._add_keepouts_from_polychannel(name, polychannel)
 
         # add path to component
         self._component.add_shape(name, polychannel, label=route_info["label"])
         return True
 
-    def _cache_route(self, name: str, route_info: dict):
+    def _add_keepouts_from_polychannel(self, name: str, polychannel: PolychannelShape):
+        """
+        ###### Adds keepouts from a PolychannelShape instance to the router's keepout index.
+        ###### Parameters:
+        - name: The name of the polychannel shape to be added.
+        - polychannel: The PolychannelShape instance from which to extract keepouts.
+        ###### Returns:
+        - None
+        """
+
+        for j, keepout in enumerate(polychannel._keepouts):
+            ko_key = f"{name}_{j}"
+            ko = self._add_margin(tuple(float(x) for x in keepout), self._channel_margin)
+            ko = tuple(round(x) for x in ko)
+            self._keepout_index.insert(len(self.routed_keepouts.keys()), ko)
+            if "__to__" in name:
+                split_name = name.split("__to__")
+                self.keepouts_by_port[split_name[0]].append(ko_key)
+                self.keepouts_by_port[split_name[1]].append(ko_key)
+            self.routed_keepouts[ko_key] = (len(self.routed_keepouts.keys()), ko)
+
+    def _cache_routes(self):
         """
         ###### Caches the route information to a file.
         ###### Parameters:
@@ -581,27 +639,71 @@ class Router:
         cache_file = (
             instantiation_dir
             / f"{file_stem}_cache"
-            / type(self._component).__name__
-            / f"{name}.pkl"
+            / f"{type(self._component).__name__}.pkl"
         )
 
-        if route_info is not None:
-            save_dict = {
-                "route_type": route_info["route_type"],
-                "input": route_info["input"].get_origin(
-                    self._component._px_size, self._component._layer_size
-                ),
-                "output": route_info["output"].get_origin(
-                    self._component._px_size, self._component._layer_size
-                ),
-                "_path": route_info["_path"],
-            }
-
+        save_routes = {}
+        for name, route_info in self._routes.items():
+            if route_info is not None and "_path" in route_info.keys():
+                save_dict = {
+                    "route_type": route_info["route_type"],
+                    "input": route_info["input"].get_origin(
+                        self._component._px_size, self._component._layer_size
+                    ),
+                    "output": route_info["output"].get_origin(
+                        self._component._px_size, self._component._layer_size
+                    ),
+                    "_path": route_info["_path"],
+                }
+                save_routes[name] = save_dict
+        # combine nonrouted and routed keepouts
+        keepouts = {
+            **self.nonrouted_keepouts,
+            **self.routed_keepouts,
+        }
+        if len(save_routes) > 0:
             os.makedirs(os.path.dirname(cache_file), exist_ok=True)
             with open(cache_file, "wb") as f:
-                pickle.dump(save_dict, f)
+                pickle.dump((keepouts, save_routes), f)
             return True
         return False
+
+    def _remove_port_keepouts(self, input_port: "Port", output_port: "Port"):
+        """
+        ###### Removes the keepouts associated with the input and output ports.
+        ###### Parameters:
+        - input_port: The Port instance where the channel starts.
+        - output_port: The Port instance where the channel ends.
+        ###### Returns:
+        - None
+        """
+        input_port_name = input_port.get_name()
+        output_port_name = output_port.get_name()
+
+        # remove port keepouts
+        removed_keepouts = {}
+        for keepout_key in (
+            self.keepouts_by_port[input_port_name]
+            + self.keepouts_by_port[output_port_name]
+        ):
+            if keepout_key not in removed_keepouts:
+                keepout_idx, keepout_box = self.routed_keepouts[keepout_key]
+                removed_keepouts[keepout_key] = (keepout_idx, keepout_box)
+                self._keepout_index.delete(keepout_idx, keepout_box)
+
+        return removed_keepouts
+
+    def _add_port_keepouts(self, removed_keepouts: dict):
+        """
+        ###### Adds back the keepouts that were removed for the input and output ports.
+        ###### Parameters:
+        - removed_keepouts: A dictionary containing the keepouts that were removed.
+        ###### Returns:
+        - None
+        """
+        for keepout_key, val in removed_keepouts.items():
+            keepout_idx, keepout_box = val
+            self._keepout_index.insert(keepout_idx, keepout_box)
 
     def _autoroute(self, name: str, route_info: dict):
         """
@@ -614,24 +716,6 @@ class Router:
         """
         input_port = route_info["input"]
         output_port = route_info["output"]
-
-        # remove port keepouts
-        removed_keepouts = {}
-        for keepout_key, (keepout_idx, keepout_box) in list(self._keepouts.items()):
-            if (
-                input_port.get_name() == keepout_key
-                or output_port.get_name() == keepout_key
-                or (
-                    "__to__" in keepout_key
-                    and (
-                        input_port.get_name() in keepout_key
-                        or output_port.get_name() in keepout_key
-                    )
-                )
-            ):
-                removed_keepouts[keepout_key] = (keepout_idx, keepout_box)
-                self._keepout_index.delete(keepout_idx, keepout_box)
-                del self._keepouts[keepout_key]
 
         # A*
         violation = False
@@ -647,14 +731,8 @@ class Router:
         elif len(path) < 2:
             violation = True
 
-        # add back port keepouts
-        for keepout_key, val in removed_keepouts.items():
-            keepout_idx, keepout_box = val
-            self._keepout_index.insert(keepout_idx, keepout_box)
-            self._keepouts[keepout_key] = (keepout_idx, keepout_box)
-
         if violation:
-            print(f"\t\tError: failed to route {name}")
+            print(f"\r\n\t\tError: failed to route {name}")
             return
 
         # path to constant cross-section polychannel shapes
@@ -685,6 +763,14 @@ class Router:
         start = self._move_outside_port(input_port)
         goal = self._move_outside_port(output_port)
 
+        start_valid, goal_valid = self._is_valid_points([start, goal])
+        if not start_valid:
+            print("\r\n\t\tInput port is blocked or invalid")
+            return None
+        if not goal_valid:
+            print("\r\n\t\tOutput port is blocked or invalid")
+            return None
+
         directions = [(1, 0, 0), (-1, 0, 0), (0, 1, 0), (0, -1, 0), (0, 0, 1), (0, 0, -1)]
 
         open_heap = []
@@ -702,7 +788,7 @@ class Router:
 
         while open_heap:
             if time.time() - start_time > timeout:
-                print("Channel routing timed out")
+                print("\r\n\t\tChannel routing timed out")
                 return None
             current = heapq.heappop(open_heap)
 
@@ -719,9 +805,20 @@ class Router:
                 continue
             visited[current._pos] = (current._cost, current._turns)
 
-            for d in directions:
-                neighbor_pos = tuple(current._pos[i] + d[i] for i in range(3))
-                if not self._is_valid_point(neighbor_pos):
+            # Generate all neighbor positions
+            neighbor_positions = [
+                tuple(current._pos[i] + d[i] for i in range(3)) for d in directions
+            ]
+
+            # Batch filter valid neighbor positions
+            valid_mask = self._is_valid_points(
+                neighbor_positions
+            )  # Expects list -> list[bool]
+
+            for d, neighbor_pos, is_valid in zip(
+                directions, neighbor_positions, valid_mask
+            ):
+                if not is_valid:
                     continue
 
                 is_turn = current._direction is not None and current._direction != d
@@ -753,6 +850,7 @@ class Router:
         pos = list(
             port.get_position(self._component._px_size, self._component._layer_size)
         )
+        pos = [round(x) for x in pos]
         direction = port.to_vector()
 
         pos_box = self._get_box_from_pos_and_size(pos, self._channel_size)
@@ -866,7 +964,7 @@ class Router:
                 simplified.append(p)
         return simplified
 
-    def _is_valid_point(self, point):
+    def _is_valid_points(self, points):
         """
         ###### Checks if a point is valid for routing.
         ###### Parameters:
@@ -874,21 +972,32 @@ class Router:
         ###### Returns:
         - True if the point is valid for routing, otherwise False.
         """
-        pos_box = self._get_box_from_pos_and_size(point, self._channel_size)
 
-        if not self._is_bbox_inside(
-            self._add_margin(pos_box, self._channel_margin), self._bounds
-        ):
-            return False
+        boxes = [self._get_box_from_pos_and_size(p, self._channel_size) for p in points]
+        margin_boxes = [self._add_margin(b, self._channel_margin) for b in boxes]
+        inside_mask = [self._is_bbox_inside(b, self._bounds) for b in margin_boxes]
 
-        # Check global keepouts using Rtree
-        x0, y0, z0, x1, y1, z1 = pos_box
-        pos_box = (x0 + 1, y0 + 1, z0 + 1, x1 - 1, y1 - 1, z1 - 1)
-        hits = list(self._keepout_index.intersection(pos_box))
-        if hits:
-            return False
+        margin = (-1, -1, -1)
+        shrunk_boxes = [
+            self._add_margin(b, margin) for b, valid in zip(boxes, inside_mask) if valid
+        ]
 
-        return True
+        if shrunk_boxes:
+            mins = np.array([box[:3] for box in shrunk_boxes], dtype=np.float64)
+            maxs = np.array([box[3:] for box in shrunk_boxes], dtype=np.float64)
+            _, counts = self._keepout_index.intersection_v(mins, maxs)
+        else:
+            counts = []
+
+        result = []
+        count_idx = 0
+        for valid in inside_mask:
+            if not valid:
+                result.append(False)
+            else:
+                result.append(counts[count_idx] == 0)
+                count_idx += 1
+        return result
 
     def _is_bbox_inside(self, bbox_inner, bbox_outer):
         """

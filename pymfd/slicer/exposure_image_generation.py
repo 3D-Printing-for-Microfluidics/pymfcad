@@ -39,7 +39,7 @@ def generate_exposure_images_from_folders(
             if image is not None:
                 cv2.imwrite(str(image_path), image)
             if cv2.countNonZero(exposure_image) != 0:
-                exposure_path = get_unique_path(image_dir, stem, postfix="")
+                exposure_path = get_unique_path(image_dir, stem, postfix="regional")
                 if "exposure_slices" not in slice_metadata:
                     slice_metadata["exposure_slices"] = []
                 slice_metadata["exposure_slices"].append(

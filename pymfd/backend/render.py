@@ -196,11 +196,11 @@ def _component_to_manifold(
         name = f"{parent_name}/{comp._name}" if parent_name else comp._name
 
         # itterate subcomponents
-        for sub in comp.subcomponents:
+        for sub in comp.subcomponents.values():
             recurse(sub, name)
 
         # itterate bulk shapes (if device and not inverted)
-        for bulk in comp.bulk_shapes:
+        for bulk in comp.bulk_shapes.values():
             key = str(bulk._color)
             if key in bulk_manifolds.keys():
                 bulk_manifolds[key] += bulk.copy(_internal=True)
@@ -208,7 +208,7 @@ def _component_to_manifold(
                 bulk_manifolds[key] = bulk.copy(_internal=True)
 
         # itterate shapes (will also draw an inverted device)
-        for shape in comp.shapes:
+        for shape in comp.shapes.values():
             key = str(shape._color)
             if key in manifolds.keys():
                 manifolds[key] += shape.copy(_internal=True)
@@ -218,14 +218,15 @@ def _component_to_manifold(
         # get list of routes
         route_names = []
         if comp._parent is not None:
-            for s in comp._parent.shapes:
-                if "__to__" in s._name:
-                    route_names.append(s._name)
+            for s in comp._parent.shapes.keys():
+                if "__to__" in s:
+                    route_names.append(s)
         # append ports not in a route
-        for port in comp.ports:
+        for port in comp.ports.values():
+            port_name = port.get_name()
             draw_port = True
             for n in route_names:
-                if port.get_name() in n:
+                if port_name in n:
                     draw_port = False
             if draw_port:
                 ports.append((port, comp))
@@ -274,6 +275,7 @@ def render_component(
     ###### Returns:
     - scene (Scene or trimesh.Trimesh): The rendered scene or flattened mesh.
     """
+    print("Rendering Component...")
     scene = Scene()
 
     manifolds, bulk_manifolds, ports = _component_to_manifold(

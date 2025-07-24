@@ -412,6 +412,7 @@ class ExposureSettings:
         relative_focus_position: float = None,
         wait_before_exposure: float = None,
         wait_after_exposure: float = None,
+        **kwargs,
     ):
         # DEFAULT VALUES
         # # image_file: str = "out0001.png",
@@ -437,6 +438,7 @@ class ExposureSettings:
         self.relative_focus_position = relative_focus_position
         self.wait_before_exposure = wait_before_exposure
         self.wait_after_exposure = wait_after_exposure
+        self.burnin = False
 
     def to_dict(self):
         """Convert exposure settings to a dictionary."""

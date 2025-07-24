@@ -54,7 +54,7 @@ settings = Settings.from_file("settings.json")
 settings.save("settings2.json")
 
 
-device = Visitech_LRS10_Device("TestDevice", (0, 0, 0), layers=100, layer_size=0.01)
+device = Visitech_LRS10_Device("TestDevice", (0, 0, 0), layers=250, layer_size=0.01)
 
 device.add_label("device", Color.from_rgba((0, 255, 255, 127)))
 device.add_label("pneumatic", Color.from_rgba((0, 255, 0, 127)))
@@ -63,13 +63,17 @@ device.add_label("white", Color.from_rgba((255, 255, 255, 127)))
 
 chan_size = (8, 8, 6)
 
-# x = 5
-# y = 5
+# x = 2
+# y = 2
 # z = 2
 
-x = 10
-y = 2
-z = 3
+# x = 45
+# y = 29
+# z = 6
+
+x = 50
+y = 32
+z = 7
 
 valve_grid = []
 for l in range(z):
@@ -84,15 +88,14 @@ for l in range(z):
             if l % 2 == 1:
                 mirror = not mirror
             v.mirror(mirror_y=mirror, in_place=True)
-            v.translate(((c + 1) * 50, (r + 1) * 50, (l + 1) * 38))
+            # v.translate((c * 50 + 50, r * 50 + 50, l * 40 + 20))
+            v.translate((c * 48 + 25, r * 48 + 25, l * 35 + 15))
             if mirror:
                 valve_row.insert(0, v)
             else:
                 valve_row.append(v)
 
             device.add_subcomponent(f"Valve_{l}_{c}_{r}", v)
-            device.relabel_labels([f"Valve_{l}_{c}_{r}.pneumatic"], "pneumatic")
-            device.relabel_labels([f"Valve_{l}_{c}_{r}.fluidic"], "fluidic")
 
         if l % 2 == 1:
             valve_col.insert(0, valve_row)
@@ -100,8 +103,10 @@ for l in range(z):
             valve_col.append(valve_row)
     valve_grid.append(valve_col)
 
+device.relabel_labels([f"pneumatic"], "pneumatic")
+device.relabel_labels([f"fluidic"], "fluidic")
 device.relabel_subcomponents([valve_grid[0][0][0]], "device")
-device.relabel_shapes([valve_grid[0][0][0].FluidicChamber], "white")
+device.relabel_shapes([valve_grid[0][0][0].shapes["FluidicChamber"]], "white")
 
 rtr = Router(component=device, channel_size=chan_size, channel_margin=chan_size)
 for l in range(z):
@@ -149,6 +154,6 @@ slicer = Slicer(
     settings=settings,
     filename="test_slicer",
     minimize_file=True,
-    zip_output=True,
+    zip_output=False,
 )
 slicer.make_print_file()

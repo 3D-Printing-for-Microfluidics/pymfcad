@@ -32,18 +32,26 @@ from .slicer import (
     SecondaryDoseSettings,
 )
 
+_instantiation_paths = {}
+
 
 class _InstantiationTrackerMixin:
     """Mixin class to track where a component was instantiated."""
 
     def __init__(self):
-        # Get the first relevant frame outside of this class
-        for frame_info in inspect.stack():
-            filename = frame_info.filename
-            if "site-packages" in filename or filename == __file__:
-                continue
-            self._instantiation_path = Path(filename).resolve()
-            break
+        name = type(self).__name__
+        if name not in _instantiation_paths:
+            # Get the first relevant frame outside of this class
+            for frame_info in inspect.stack():
+                filename = frame_info.filename
+                if "site-packages" in filename or filename == __file__:
+                    continue
+                self._instantiation_path = Path(filename).resolve()
+                _instantiation_paths[name] = self._instantiation_path
+                break
+        else:
+            # If already instantiated, use the existing path
+            self._instantiation_path = _instantiation_paths[name]
 
     @property
     def instantiation_dir(self) -> Path:
@@ -308,10 +316,10 @@ class Component(_InstantiationTrackerMixin):
         self._translations = [0, 0, 0]
         self._rotation = 0
         self._mirroring = [False, False]
-        self.shapes = []
-        self.bulk_shapes = []
-        self.ports = []
-        self.subcomponents = []
+        self.shapes = {}
+        self.bulk_shapes = {}
+        self.ports = {}
+        self.subcomponents = {}
         self.default_exposure_settings = None
         self.default_position_settings = None
         self.regional_settings = {}
@@ -347,10 +355,9 @@ class Component(_InstantiationTrackerMixin):
         """
         ###### Custom attribute lookup for Component.
         ###### This method is called when an attribute is not found in the usual places.
-        ###### It allows accessing shapes, ports, and subcomponents by their names."""
-        for attr_dict in (self.shapes, self.ports, self.subcomponents):
-            if name in attr_dict:
-                return attr_dict[name]
+        ###### It allows accessing ports by their names."""
+        if name in self.ports:
+            return self.ports[name]
         raise AttributeError(f"'{type(self).__name__}' object has no attribute '{name}'")
 
     def get_fully_qualified_name(self):
@@ -446,39 +453,14 @@ class Component(_InstantiationTrackerMixin):
 
     def _validate_name(self, name):
         """
-        ###### Validate the name for a new label, port, shape, or subcomponent.
+        ###### Validate the name for a new port.
         ###### Raises:
         - ValueError: If the name already exists in the component or is not a valid Python identifier.
         """
-        for l in self.labels:
-            if l == name:
-                raise ValueError(
-                    f"Label with name '{name}' already exists in component {self._name}"
-                )
-        for p in self.ports:
-            if p._name == name:
+        for p in self.ports.keys():
+            if p == name:
                 raise ValueError(
                     f"Port with name '{name}' already exists in component {self._name}"
-                )
-        for s in self.shapes:
-            if s._name == name:
-                raise ValueError(
-                    f"Shape with name '{name}' already exists in component {self._name}"
-                )
-        for s in self.bulk_shapes:
-            if s._name == name:
-                raise ValueError(
-                    f"Bulk shape with name '{name}' already exists in component {self._name}"
-                )
-        for s in self.regional_settings.keys():
-            if s == name:
-                raise ValueError(
-                    f"Regional settings with name '{name}' already exists in component {self._name}"
-                )
-        for c in self.subcomponents:
-            if c._name == name:
-                raise ValueError(
-                    f"Commponent with name '{name}' already exists in component {self._name}"
                 )
         if not name.isidentifier():
             raise ValueError(
@@ -496,7 +478,6 @@ class Component(_InstantiationTrackerMixin):
         """
         self._validate_name(name)
         self.labels[name] = color
-        setattr(self, name, color)
 
     def add_shape(self, name: str, shape: Shape, label: str):
         """
@@ -510,8 +491,7 @@ class Component(_InstantiationTrackerMixin):
         shape._name = name
         shape._parent = self
         shape._color = self.labels[label]
-        self.shapes.append(shape)
-        setattr(self, name, shape)
+        self.shapes[name] = shape
 
     def add_bulk_shape(self, name: str, shape: Shape, label: str):
         """
@@ -525,8 +505,7 @@ class Component(_InstantiationTrackerMixin):
         shape._name = name
         shape._parent = self
         shape._color = self.labels[label]
-        self.bulk_shapes.append(shape)
-        setattr(self, name, shape)
+        self.bulk_shapes[name] = shape
 
     def add_port(self, name: str, port: Port):
         """
@@ -538,8 +517,7 @@ class Component(_InstantiationTrackerMixin):
         self._validate_name(name)
         port._name = name
         port._parent = self
-        self.ports.append(port)
-        setattr(self, name, port)
+        self.ports[name] = port
 
     def add_subcomponent(self, name: str, component: Component):
         """
@@ -552,8 +530,7 @@ class Component(_InstantiationTrackerMixin):
         component._name = name
         component._parent = self
         component.run_translate()
-        self.subcomponents.append(component)
-        setattr(self, name, component)
+        self.subcomponents[name] = component
 
         for label, color in component.labels.items():
             self.labels[f"{name}.{label}"] = color
@@ -619,7 +596,6 @@ class Component(_InstantiationTrackerMixin):
                 )
 
         self.regional_settings[name] = (shape, settings)
-        setattr(self, name, settings)
 
     def set_burn_in_exposure(self, exposure_times: list[float]):
         """
@@ -652,7 +628,7 @@ class Component(_InstantiationTrackerMixin):
         for l, c in self.labels.items():
             if l in labels:
                 c._change_to_color(_color)
-        for c in self.subcomponents:
+        for c in self.subcomponents.values():
             c.relabel_labels(labels, label, _color)
 
     def relabel_shapes(self, shapes: list[Shape], label: str):
@@ -840,15 +816,15 @@ class Component(_InstantiationTrackerMixin):
                     translation[1] / self._px_size * self._parent._px_size,
                     translation[2] / self._layer_size * self._parent._layer_size,
                 )
-            for component in self.subcomponents:
+            for component in self.subcomponents.values():
                 component.translate(translation)
-            for shape in self.shapes:
+            for shape in self.shapes.values():
                 shape.translate(translation)
-            for bulk_shape in self.bulk_shapes:
+            for bulk_shape in self.bulk_shapes.values():
                 bulk_shape.translate(translation)
             for shape, _ in self.regional_settings.values():
                 shape.translate(translation)
-            for port in self.ports:
+            for port in self.ports.values():
                 port._position = (
                     port._position[0] + translation[0],
                     port._position[1] + translation[1],
@@ -869,15 +845,15 @@ class Component(_InstantiationTrackerMixin):
             self._translations[2] / self._layer_size * self._parent._layer_size,
         )
 
-        for component in self.subcomponents:
+        for component in self.subcomponents.values():
             component.translate(translation)
-        for shape in self.shapes:
+        for shape in self.shapes.values():
             shape.translate(translation)
-        for bulk_shape in self.bulk_shapes:
+        for bulk_shape in self.bulk_shapes.values():
             bulk_shape.translate(translation)
         for shape, _ in self.regional_settings.values():
             shape.translate(translation)
-        for port in self.ports:
+        for port in self.ports.values():
             port._position = (
                 port._position[0] + translation[0],
                 port._position[1] + translation[1],
@@ -912,13 +888,13 @@ class Component(_InstantiationTrackerMixin):
                 _internal=True,
             )
 
-        for component in self.subcomponents:
+        for component in self.subcomponents.values():
             component.rotate(rotation)
 
-        for shape in self.shapes:
+        for shape in self.shapes.values():
             shape.rotate((0, 0, rotation))
 
-        for bulk_shape in self.bulk_shapes:
+        for bulk_shape in self.bulk_shapes.values():
             bulk_shape.rotate((0, 0, rotation))
 
         for shape, _ in self.regional_settings.values():
@@ -948,7 +924,7 @@ class Component(_InstantiationTrackerMixin):
             },
         }
 
-        for port in self.ports:
+        for port in self.ports.values():
             x, y, z = port._position
 
             if rot == 90:
@@ -1051,13 +1027,13 @@ class Component(_InstantiationTrackerMixin):
                 _internal=True,
             )
 
-        for component in self.subcomponents:
+        for component in self.subcomponents.values():
             component.mirror(mirror_x, mirror_y)
 
-        for shape in self.shapes:
+        for shape in self.shapes.values():
             shape.mirror((mirror_x, mirror_y, False))
 
-        for bulk_shape in self.bulk_shapes:
+        for bulk_shape in self.bulk_shapes.values():
             bulk_shape.mirror((mirror_x, mirror_y, False))
 
         for shape, _ in self.regional_settings.values():
@@ -1075,7 +1051,7 @@ class Component(_InstantiationTrackerMixin):
             },
         }
 
-        for port in self.ports:
+        for port in self.ports.values():
             x, y, z = port._position
             sx, sy = port._size[0], port._size[1]
 
@@ -1374,6 +1350,15 @@ class Visitech_LRS10_Device(Device):
             px_count=(2560, 1600),
             px_size=0.0076,
         )
+
+        # super().__init__(
+        #     name,
+        #     position,
+        #     layers,
+        #     layer_size,
+        #     px_count=(200, 200),
+        #     px_size=0.0076,
+        # )
 
         # super().__init__(
         #     name,
