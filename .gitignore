@@ -5,3 +5,5 @@ __pycache__/
 *_cache/
 *.glb
 *.prof
+settings.json
+test_slicer/

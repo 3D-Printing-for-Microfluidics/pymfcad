@@ -102,7 +102,7 @@ class MembraneValve6px(VariableLayerThicknessComponent):
                 max_membrane_thickness_um=0.004,
                 exposure_time=350,
                 dilation_px=2,
-                defocus_um=0.0,
+                defocus_um=100.0,
             ),
             label="pneumatic",
         )
@@ -121,14 +121,14 @@ class MembraneValve6px(VariableLayerThicknessComponent):
             label="pneumatic",
         )
 
-        self.add_regional_settings(
-            "exposure_settings",
-            self.make_cube((18, 9, 65), center=False),
-            ExposureSettings(
-                exposure_time=400.0,
-            ),
-            label="pneumatic",
-        )
+        # self.add_regional_settings(
+        #     "exposure_settings",
+        #     self.make_cube((18, 9, 65), center=False),
+        #     ExposureSettings(
+        #         exposure_time=400.0,
+        #     ),
+        #     label="pneumatic",
+        # )
 
         self.add_regional_settings(
             "position_settings",
@@ -173,7 +173,12 @@ settings = Settings(
     printer=Printer(
         name="HR3v3",
         light_engines=LightEngine(
-            px_size=0.0076, px_count=(2560, 1600), wavelengths=[365]
+            px_size=0.0076,
+            px_count=(2560, 1600),
+            wavelengths=[365],
+            # px_size=0.0076,
+            # px_count=(200, 200),
+            # wavelengths=[365],
         ),
     ),
     resin=ResinType(

@@ -37,7 +37,9 @@ class Pinhole(Component):
         shape = self.make_polychannel(
             [
                 PolychannelShape(
-                    "sphere", position=(0, 0, 0), size=(0, pinhole_height, pinhole_width)
+                    "sphere",
+                    position=(0, pinhole_height / 2, pinhole_width / 2),
+                    size=(0, pinhole_height, pinhole_width),
                 ),
                 PolychannelShape(
                     "sphere",
@@ -46,7 +48,7 @@ class Pinhole(Component):
                 ),
                 PolychannelShape(
                     "cube",
-                    position=(taper_length, pinhole_height / 2, pinhole_width / 2),
+                    position=(taper_length, 0, 0),
                     size=(0, channel_size[1], channel_size[2]),
                 ),
             ]

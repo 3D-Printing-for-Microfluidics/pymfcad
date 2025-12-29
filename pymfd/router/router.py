@@ -9,7 +9,7 @@ from rtree import index
 from typing import Union
 from copy import deepcopy
 
-from .. import PolychannelShape, BezierCurveShape
+from .. import Polychannel, PolychannelShape, BezierCurveShape
 
 
 class _AutorouterNode:
@@ -162,6 +162,16 @@ class Router:
 
         self._keepout_index = idx
 
+        # tmp_lst = []
+        # for values in self.nonrouted_keepouts.values():
+        #     tmp_lst.append(values[1])
+        # print(tmp_lst)
+        # print()
+        # tmp_lst = []
+        # for values in self.routed_keepouts.values():
+        #     tmp_lst.append(values[1])
+        # print(tmp_lst)
+
     def _add_margin(self, bbox, margin):
         """
         ###### Adds a margin to a bounding box.
@@ -235,6 +245,23 @@ class Router:
         if output_port._parent is None:
             raise ValueError("Port must be added to component before routing! (output)")
 
+        if input_port.get_name().startswith("None_"):
+            input_port = input_port.copy()
+            vect = input_port.to_vector()
+            size = list(input_port._size)
+            for i in range(3):
+                if vect[i] != 0:
+                    size[i] = 0
+            input_port._size = tuple(size)
+        if output_port.get_name().startswith("None_"):
+            output_port = output_port.copy()
+            vect = output_port.to_vector()
+            size = list(output_port._size)
+            for i in range(3):
+                if vect[i] != 0:
+                    size[i] = 0
+            output_port._size = tuple(size)
+
         name = f"{input_port.get_name()}__to__{output_port.get_name()}"
 
         input_size = input_port.get_size(
@@ -274,6 +301,7 @@ class Router:
                 position=output_pos,
                 size=output_size,
                 absolute_position=True,
+                corner_radius=0,
             )
         )
 
@@ -308,6 +336,23 @@ class Router:
             raise ValueError("Port must be added to component before routing! (output)")
 
         name = f"{input_port.get_name()}__to__{output_port.get_name()}"
+
+        if input_port.get_name().startswith("None_"):
+            input_port = input_port.copy()
+            vect = input_port.to_vector()
+            size = list(input_port._size)
+            for i in range(3):
+                if vect[i] != 0:
+                    size[i] = 0
+            input_port._size = tuple(size)
+        if output_port.get_name().startswith("None_"):
+            output_port = output_port.copy()
+            vect = output_port.to_vector()
+            size = list(output_port._size)
+            for i in range(3):
+                if vect[i] != 0:
+                    size[i] = 0
+            output_port._size = tuple(size)
 
         # get locations
         start_loc = input_port.get_position(
@@ -430,7 +475,7 @@ class Router:
         This method checks for cached routes, loads them if valid, and reroutes if necessary.
         It handles both manual routing with polychannels and autorouting using the A* algorithm.
         """
-        print("Routing...")
+        print(f"Routing {type(self._component).__name__}...")
         keepouts, self.cached_routes = self._load_cached_route()
         self._generate_keepout_index(keepouts)
         new_routes = []
@@ -441,11 +486,12 @@ class Router:
         ):  # Route cached paths if valid
             input_port = route_info["input"]
             output_port = route_info["output"]
-            print(
-                f"\r\tLoading cached routes ({(i+1)/len(self._routes)*100:.2f}%)...",
-                end="",
-                flush=True,
-            )
+            if self.cached_routes is not None:
+                print(
+                    f"\r\tLoading cached routes ({(i+1)/len(self._routes)*100:.2f}%)...",
+                    end="",
+                    flush=True,
+                )
             removed_keepouts = self._remove_port_keepouts(input_port, output_port)
             if self.cached_routes is not None and name in self.cached_routes:
                 if self._load_route(name, route_info, self.cached_routes[name]):
@@ -458,8 +504,14 @@ class Router:
             new_routes.append((name, route_info))  # Cache is stale/missing → reroute
 
         # Add keepouts for cached routes
+        print("\r\n\tGenerating keepouts...", end="", flush=True)
         self._generate_keepout_index()
-        for name in loaded_routes:
+        for i, name in enumerate(loaded_routes):
+            print(
+                f"\r\tGenerating keepouts ({(i+1)/len(loaded_routes)*100:.2f}%)...",
+                end="",
+                flush=True,
+            )
             self._add_keepouts_from_polychannel(name, self._component.shapes[name])
 
         print(f"\r\n\tManual Routing...", end="", flush=True)
@@ -485,7 +537,7 @@ class Router:
                 end="",
                 flush=True,
             )
-            if route_info["route_type"] == "autoroute":  # Manual routing
+            if route_info["route_type"] == "autoroute":  # Autorouting
                 removed_keepouts = self._remove_port_keepouts(input_port, output_port)
                 self._autoroute(name, route_info)
                 self._add_port_keepouts(removed_keepouts)
@@ -611,14 +663,18 @@ class Router:
 
         # add path to component
         self._component.add_shape(name, polychannel, label=route_info["label"])
+        if not route_info["input"].get_name().startswith("None_"):
+            route_info["input"]._parent.connect_port(route_info["input"].get_name())
+        if not route_info["output"].get_name().startswith("None_"):
+            route_info["output"]._parent.connect_port(route_info["output"].get_name())
         return True
 
-    def _add_keepouts_from_polychannel(self, name: str, polychannel: PolychannelShape):
+    def _add_keepouts_from_polychannel(self, name: str, polychannel: Polychannel):
         """
-        ###### Adds keepouts from a PolychannelShape instance to the router's keepout index.
+        ###### Adds keepouts from a Polychannel instance to the router's keepout index.
         ###### Parameters:
-        - name: The name of the polychannel shape to be added.
-        - polychannel: The PolychannelShape instance from which to extract keepouts.
+        - name: The name of the polychannel to be added.
+        - polychannel: The Polychannel instance from which to extract keepouts.
         ###### Returns:
         - None
         """
@@ -630,6 +686,10 @@ class Router:
             self._keepout_index.insert(len(self.routed_keepouts.keys()), ko)
             if "__to__" in name:
                 split_name = name.split("__to__")
+                if split_name[0] not in self.keepouts_by_port:
+                    self.keepouts_by_port[split_name[0]] = []
+                if split_name[1] not in self.keepouts_by_port:
+                    self.keepouts_by_port[split_name[1]] = []
                 self.keepouts_by_port[split_name[0]].append(ko_key)
                 self.keepouts_by_port[split_name[1]].append(ko_key)
             self.routed_keepouts[ko_key] = (len(self.routed_keepouts.keys()), ko)
@@ -691,10 +751,9 @@ class Router:
 
         # remove port keepouts
         removed_keepouts = {}
-        for keepout_key in (
-            self.keepouts_by_port[input_port_name]
-            + self.keepouts_by_port[output_port_name]
-        ):
+        for keepout_key in self.keepouts_by_port.get(
+            input_port_name, []
+        ) + self.keepouts_by_port.get(output_port_name, []):
             if keepout_key not in removed_keepouts:
                 keepout_idx, keepout_box = self.routed_keepouts[keepout_key]
                 removed_keepouts[keepout_key] = (keepout_idx, keepout_box)
@@ -723,8 +782,26 @@ class Router:
         ###### Returns:
         - None
         """
-        input_port = route_info["input"]
-        output_port = route_info["output"]
+        if route_info["input"].get_name().startswith("None_"):
+            input_port = route_info["input"].copy()
+            vect = input_port.to_vector()
+            size = list(input_port._size)
+            for i in range(3):
+                if vect[i] != 0:
+                    size[i] = 0
+            input_port._size = tuple(size)
+        else:
+            input_port = route_info["input"]
+        if route_info["output"].get_name().startswith("None_"):
+            output_port = route_info["output"].copy()
+            vect = output_port.to_vector()
+            size = list(output_port._size)
+            for i in range(3):
+                if vect[i] != 0:
+                    size[i] = 0
+            output_port._size = tuple(size)
+        else:
+            output_port = route_info["output"]
 
         # A*
         violation = False
@@ -769,9 +846,44 @@ class Router:
         """
         start_time = time.time()
 
+        # Check if ports can be routed
+        pos = list(
+            input_port.get_position(self._component._px_size, self._component._layer_size)
+        )
+        pos = [round(x) for x in pos]
+        pos_box = self._get_box_from_pos_and_size(pos, self._channel_size)
+        if not self._is_bbox_inside(
+            self._add_margin(pos_box, self._channel_margin),
+            self._component.get_bounding_box(
+                self._component._px_size, self._component._layer_size
+            ),
+            exclude_axis=input_port.to_vector(),
+        ):
+            print("\r\n\t\tInput port cannot be routed with given router.")
+            return None
+
+        pos = list(
+            output_port.get_position(
+                self._component._px_size, self._component._layer_size
+            )
+        )
+        pos = [round(x) for x in pos]
+        pos_box = self._get_box_from_pos_and_size(pos, self._channel_size)
+        if not self._is_bbox_inside(
+            self._add_margin(pos_box, self._channel_margin),
+            self._component.get_bounding_box(
+                self._component._px_size, self._component._layer_size
+            ),
+            exclude_axis=input_port.to_vector(),
+        ):
+            print("\r\n\t\tInput port cannot be routed with given router.")
+            return None
+
+        # Get start and goal positions
         start = self._move_outside_port(input_port)
         goal = self._move_outside_port(output_port)
 
+        # Validate start and goal positions
         start_valid, goal_valid = self._is_valid_points([start, goal])
         if not start_valid:
             print("\r\n\t\tInput port is blocked or invalid")
@@ -860,18 +972,46 @@ class Router:
             port.get_position(self._component._px_size, self._component._layer_size)
         )
         pos = [round(x) for x in pos]
-        direction = port.to_vector()
+
+        # print()
+        # print("Move outside port:")
+        # print(f"\t{port.get_name()}, {tuple(pos)}")
+
+        if port.get_name().startswith("None_"):
+            # flip vector if port belong to component
+            direction = port.to_vector()
+            direction = tuple(-d for d in direction)
+        else:
+            direction = port.to_vector()
 
         pos_box = self._get_box_from_pos_and_size(pos, self._channel_size)
 
-        while self._intersects_with_bbox(
-            pos_box,
-            port._parent.get_bounding_box(
-                self._component._px_size, self._component._layer_size
-            ),
-        ):
-            pos = list(pos[i] + direction[i] for i in range(3))
-            pos_box = self._get_box_from_pos_and_size(pos, self._channel_size)
+        if port.get_name().startswith("None_"):
+            # print("Start")
+            while not self._is_bbox_inside(
+                self._add_margin(pos_box, self._channel_margin),
+                self._component.get_bounding_box(
+                    self._component._px_size, self._component._layer_size
+                ),
+            ):
+                # print(f"\t{self._is_valid_points([tuple(pos)])[0]}")
+                # print(
+                #     f"\t{self._is_bbox_inside(self._add_margin(pos_box, self._channel_margin),self._component.get_bounding_box(self._component._px_size, self._component._layer_size))}"
+                # )
+                pos = list(pos[i] + direction[i] for i in range(3))
+                pos_box = self._get_box_from_pos_and_size(pos, self._channel_size)
+                time.sleep(0.1)
+            # print("Done")
+        else:
+            while self._intersects_with_bbox(
+                pos_box,
+                port._parent.get_bounding_box(
+                    self._component._px_size, self._component._layer_size
+                ),
+            ):
+                pos = list(pos[i] + direction[i] for i in range(3))
+                pos_box = self._get_box_from_pos_and_size(pos, self._channel_size)
+        # print(f"\t{port.get_name()}, {tuple(pos)}")
         return tuple(pos)
 
     def _get_box_from_pos_and_size(self, pos, size):
@@ -973,7 +1113,7 @@ class Router:
                 simplified.append(p)
         return simplified
 
-    def _is_valid_points(self, points):
+    def _is_valid_points(self, points, alt_margins=None):
         """
         ###### Checks if a point is valid for routing.
         ###### Parameters:
@@ -983,13 +1123,21 @@ class Router:
         """
 
         boxes = [self._get_box_from_pos_and_size(p, self._channel_size) for p in points]
-        margin_boxes = [self._add_margin(b, self._channel_margin) for b in boxes]
+        if alt_margins is not None:
+            margin_boxes = [self._add_margin(b, alt_margins) for b in boxes]
+        else:
+            margin_boxes = [self._add_margin(b, self._channel_margin) for b in boxes]
         inside_mask = [self._is_bbox_inside(b, self._bounds) for b in margin_boxes]
 
         margin = (-1, -1, -1)
         shrunk_boxes = [
             self._add_margin(b, margin) for b, valid in zip(boxes, inside_mask) if valid
         ]
+
+        # print(boxes)
+        # print(margin_boxes)
+        # print(inside_mask)
+        # print(shrunk_boxes)
 
         if len(shrunk_boxes) > 0:
             mins = np.array([box[:3] for box in shrunk_boxes], dtype=np.float64)
@@ -1016,7 +1164,7 @@ class Router:
                 count_idx += 1
         return result
 
-    def _is_bbox_inside(self, bbox_inner, bbox_outer):
+    def _is_bbox_inside(self, bbox_inner, bbox_outer, exclude_axis=None):
         """
         ###### Checks if one bounding box is completely inside another.
         ###### Parameters:
@@ -1027,6 +1175,16 @@ class Router:
         """
         x0i, y0i, z0i, x1i, y1i, z1i = bbox_inner
         x0o, y0o, z0o, x1o, y1o, z1o = bbox_outer
+        # print(f"Inner: {bbox_inner}, Outer: {bbox_outer}")
+        if exclude_axis is not None:
+            # find axis which is not 0
+            axis = exclude_axis.index(next(filter(lambda v: v != 0, exclude_axis)))
+            if axis == 0:
+                return y0o <= y0i and y1i <= y1o and z0o <= z0i and z1i <= z1o
+            elif axis == 1:
+                return x0o <= x0i and x1i <= x1o and z0o <= z0i and z1i <= z1o
+            elif axis == 2:
+                return x0o <= x0i and x1i <= x1o and y0o <= y0i and y1i <= y1o
         return (
             x0o <= x0i
             and x1i <= x1o

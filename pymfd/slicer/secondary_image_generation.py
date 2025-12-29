@@ -69,14 +69,18 @@ def generate_secondary_images_from_folders(
         name = meta["image_name"]
         image_path = image_dir / name
         mask_path = mask_dir / name
-        if not image_path.exists() or not mask_path.exists():
+        if not mask_path.exists():
             continue
-
         mask = cv2.imread(str(mask_path), cv2.IMREAD_GRAYSCALE)
         if mask is None or cv2.countNonZero(mask) == 0:
             continue
 
-        image = cv2.imread(str(image_path), cv2.IMREAD_GRAYSCALE)
+        if meta.get("image_data") is None and not image_path.exists():
+            continue
+        elif meta.get("image_data") is not None:
+            image = meta["image_data"]
+        else:
+            image = cv2.imread(str(image_path), cv2.IMREAD_GRAYSCALE)
         if image is None:
             continue
 
@@ -113,27 +117,36 @@ def generate_secondary_images_from_folders(
         edge_image = cv2.bitwise_and(dilated, cv2.bitwise_not(eroded))
 
         # Make roof image
-        roof_image = np.full_like(image, 255, dtype=np.uint8)
-        for prev_image in prev_images:
-            eroded_prev = cv2.erode(prev_image, roof_erosion_kernel)
-            roof_image = cv2.bitwise_and(roof_image, eroded_prev)
+        roof_image = None
+        if layers_above > 0:
+            roof_image = np.full_like(image, 255, dtype=np.uint8)
+            for prev_image in prev_images:
+                eroded_prev = cv2.erode(prev_image, roof_erosion_kernel)
+                roof_image = cv2.bitwise_and(roof_image, eroded_prev)
 
-        roof_eroded = cv2.erode(image, roof_erosion_kernel)
-        roof_image = (
-            cv2.bitwise_and(
-                roof_eroded, cv2.bitwise_not(cv2.bitwise_or(roof_image, membranes))
+            roof_eroded = cv2.erode(image, roof_erosion_kernel)
+            roof_image = (
+                cv2.bitwise_and(
+                    roof_eroded, cv2.bitwise_not(cv2.bitwise_or(roof_image, membranes))
+                )
+                if membranes is not None
+                else cv2.bitwise_and(roof_eroded, cv2.bitwise_not(roof_image))
             )
-            if membranes is not None
-            else cv2.bitwise_and(roof_eroded, cv2.bitwise_not(roof_image))
-        )
 
-        if len(prev_images) >= layers_above:
+        if len(prev_images) >= layers_above and layers_above > 0:
             prev_images.pop(0)
-        prev_images.append(image.copy())
+        if layers_above > 0:
+            prev_images.append(image.copy())
 
         # Make bulk image
         bulk_image = cv2.bitwise_and(
-            image, cv2.bitwise_not(cv2.bitwise_or(edge_image, roof_image))
+            image,
+            cv2.bitwise_not(
+                cv2.bitwise_or(
+                    edge_image,
+                    roof_image if roof_image is not None else np.zeros_like(image),
+                )
+            ),
         )
 
         if roof_dose is None and edge_dose is None:
@@ -161,9 +174,9 @@ def generate_secondary_images_from_folders(
         # Check if any image is None or empty
         if cv2.countNonZero(bulk_image) == 0:
             bulk_image = None
-        if cv2.countNonZero(edge_image) == 0:
+        if edge_image is not None and cv2.countNonZero(edge_image) == 0:
             edge_image = None
-        if cv2.countNonZero(roof_image) == 0:
+        if roof_image is not None and cv2.countNonZero(roof_image) == 0:
             roof_image = None
 
         # Save images
@@ -188,6 +201,7 @@ def generate_secondary_images_from_folders(
             slice_metadata["secondary_slices"].append(
                 {
                     "image_name": roof_path.name,
+                    "image_data": np.array(roof_image),
                     "layer_position": meta["layer_position"],
                     "exposure_settings": settings.roof_exposure_settings,
                     "position_settings": meta["position_settings"],

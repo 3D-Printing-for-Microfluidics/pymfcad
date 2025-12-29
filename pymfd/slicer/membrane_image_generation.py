@@ -45,9 +45,9 @@ def generate_membrane_images_from_folders(
             delta_z = abs(
                 slices[i]["layer_position"] - slices[prev_image_index]["layer_position"]
             )
-            if abs(delta_z - membrane_thickness_um * 1000) < 0.01:  # 0.01 um tolerance
+            if abs(delta_z - membrane_thickness_um) < 0.01:  # 0.01 um tolerance
                 break
-        if abs(delta_z - membrane_thickness_um * 1000) > 0.01:  # 0.01 um tolerance
+        if abs(delta_z - membrane_thickness_um) > 0.01:  # 0.01 um tolerance
             continue
 
         # make images
@@ -57,21 +57,32 @@ def generate_membrane_images_from_folders(
             curr_name = slices[j]["image_name"]
             curr_path = image_dir / curr_name
             curr_mask_path = mask_dir / curr_name
-            if not curr_path.exists() or not curr_mask_path.exists():
+            if not curr_mask_path.exists():
                 continue
             mask = cv2.imread(str(curr_mask_path.resolve()), 0)
             if mask is None or cv2.countNonZero(mask) == 0:
                 continue  # Skip if mask is completely black
-            image = cv2.imread(str(curr_path.resolve()), 0)
-            if image is None:
+            if slices[j].get("image_data") is None and not curr_path.exists():
+                image = cv2.imread(str(curr_path.resolve()), 0)
+                if image is None:
+                    continue
+            elif slices[j].get("image_data") is not None:
+                image = slices[j]["image_data"]
+            else:
                 continue
 
             # Get previous image
             prev_name = slices[prev_image_index]["image_name"]
             prev_path = image_dir / prev_name
-            if not prev_path.exists():
+            if (
+                slices[prev_image_index].get("image_data") is None
+                and not prev_path.exists()
+            ):
                 continue
-            prev_image = cv2.imread(str(prev_path.resolve()), 0)
+            elif slices[prev_image_index].get("image_data") is not None:
+                prev_image = slices[prev_image_index]["image_data"]
+            else:
+                prev_image = cv2.imread(str(prev_path.resolve()), 0)
             if prev_image is None:
                 continue
 
@@ -80,9 +91,15 @@ def generate_membrane_images_from_folders(
             else:
                 next_name = slices[next_image_index]["image_name"]
                 next_path = image_dir / next_name
-                if not next_path.exists():
+                if (
+                    slices[next_image_index].get("image_data") is None
+                    and not next_path.exists()
+                ):
                     continue
-                next_image = cv2.imread(str(next_path.resolve()), 0)
+                elif slices[next_image_index].get("image_data") is not None:
+                    next_image = slices[next_image_index]["image_data"]
+                else:
+                    next_image = cv2.imread(str(next_path.resolve()), 0)
                 if next_image is None:
                     continue
 
@@ -108,6 +125,7 @@ def generate_membrane_images_from_folders(
 
             # Overwrite original image
             cv2.imwrite(str(curr_path.resolve()), image_minus_membrane)
+            slices[j]["image_data"] = image_minus_membrane
 
             # Write dilated membrane
             stem = Path(curr_name).stem
@@ -117,11 +135,12 @@ def generate_membrane_images_from_folders(
             slice_metadata["membrane_slices"].append(
                 {
                     "image_name": membrane_output_path.name,
+                    "image_data": np.array(dilated_membrane),
                     "layer_position": slices[j]["layer_position"],
                     "exposure_settings": membrane_settings.exposure_settings,
                     "dilation_px": dilation_px,
                     "position_settings": slices[j]["position_settings"],
                 }
             )
-            print(f"\tSaving membrane image to {membrane_output_path.name}")
+            print(f"\t\tSaving membrane image to {membrane_output_path.name}")
             cv2.imwrite(str(membrane_output_path), dilated_membrane)

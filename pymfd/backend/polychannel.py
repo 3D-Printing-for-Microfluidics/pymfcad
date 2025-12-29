@@ -436,6 +436,10 @@ class Polychannel(Shape):
                     shape._corner_radius,
                     shape._corner_segments,
                 )
+                if arc_points is None:
+                    # Straight line, no arc needed
+                    rounded_shapes.append(shape)
+                    continue
 
                 # Blend the start and end sizes in real space
                 start_size = list(shape._size)
@@ -545,6 +549,8 @@ class Polychannel(Shape):
 
         # Angle bisector direction
         bisector = uBA + uBC
+        if np.linalg.norm(bisector) == 0:
+            return None, None, None, None  # Straight line, no arc needed
         bisector /= np.linalg.norm(bisector)
 
         # Arc center lies along the bisector

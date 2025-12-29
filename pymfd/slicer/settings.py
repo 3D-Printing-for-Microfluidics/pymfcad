@@ -370,6 +370,11 @@ class PositionSettings:
             "Final wait (ms)": self.final_wait,
         }
 
+    def __eq__(self, other):
+        if not isinstance(other, PositionSettings):
+            return False
+        return self.to_dict() == other.to_dict()
+
     def copy(self):
         """Create a copy of the position settings."""
         return PositionSettings(
@@ -412,6 +417,7 @@ class ExposureSettings:
         relative_focus_position: float = None,
         wait_before_exposure: float = None,
         wait_after_exposure: float = None,
+        on_film: bool = False,
         **kwargs,
     ):
         # DEFAULT VALUES
@@ -438,6 +444,7 @@ class ExposureSettings:
         self.relative_focus_position = relative_focus_position
         self.wait_before_exposure = wait_before_exposure
         self.wait_after_exposure = wait_after_exposure
+        self.on_film = on_film
         self.burnin = False
 
     def to_dict(self):
@@ -456,6 +463,11 @@ class ExposureSettings:
             "Wait after exposure (ms)": self.wait_after_exposure,
         }
 
+    def __eq__(self, other):
+        if not isinstance(other, ExposureSettings):
+            return False
+        return self.to_dict() == other.to_dict()
+
     def copy(self):
         """Create a copy of the exposure settings."""
         return ExposureSettings(
@@ -470,6 +482,7 @@ class ExposureSettings:
             relative_focus_position=self.relative_focus_position,
             wait_before_exposure=self.wait_before_exposure,
             wait_after_exposure=self.wait_after_exposure,
+            on_film=self.on_film,
         )
 
     def fill_with_defaults(
@@ -489,11 +502,23 @@ class MembraneSettings:
         exposure_time: float = 0.0,
         dilation_px: int = 0,
         defocus_um: float = 0.0,
+        on_film: bool = False,
     ):
         self.max_membrane_thickness_um = max_membrane_thickness_um
         self.dilation_px = dilation_px
         self.exposure_settings = ExposureSettings(
-            exposure_time=exposure_time, relative_focus_position=defocus_um
+            exposure_time=exposure_time,
+            relative_focus_position=defocus_um,
+            on_film=on_film,
+        )
+
+    def __eq__(self, other):
+        if not isinstance(other, MembraneSettings):
+            return False
+        return (
+            self.max_membrane_thickness_um == other.max_membrane_thickness_um
+            and self.dilation_px == other.dilation_px
+            and self.exposure_settings == other.exposure_settings
         )
 
     def copy(self):
@@ -503,6 +528,7 @@ class MembraneSettings:
             exposure_time=self.exposure_settings.exposure_time,
             dilation_px=self.dilation_px,
             defocus_um=self.exposure_settings.relative_focus_position,
+            on_film=self.exposure_settings.on_film,
         )
 
 
@@ -515,6 +541,7 @@ class SecondaryDoseSettings:
         roof_exposure_time: float = None,
         roof_erosion_px: int = 0,
         roof_layers_above: int = 0,
+        roof_on_film: bool = False,
     ):
         if edge_exposure_time is None:
             if edge_erosion_px > 0 or edge_dilation_px > 0:
@@ -531,7 +558,21 @@ class SecondaryDoseSettings:
         self.roof_erosion_px = roof_erosion_px
         self.roof_layers_above = roof_layers_above
         self.edge_exposure_settings = ExposureSettings(exposure_time=edge_exposure_time)
-        self.roof_exposure_settings = ExposureSettings(exposure_time=roof_exposure_time)
+        self.roof_exposure_settings = ExposureSettings(
+            exposure_time=roof_exposure_time, on_film=roof_on_film
+        )
+
+    def __eq__(self, other):
+        if not isinstance(other, SecondaryDoseSettings):
+            return False
+        return (
+            self.edge_erosion_px == other.edge_erosion_px
+            and self.edge_dilation_px == other.edge_dilation_px
+            and self.roof_erosion_px == other.roof_erosion_px
+            and self.roof_layers_above == other.roof_layers_above
+            and self.edge_exposure_settings == other.edge_exposure_settings
+            and self.roof_exposure_settings == other.roof_exposure_settings
+        )
 
     def copy(self):
         """Create a copy of the secondary dose settings."""
@@ -542,4 +583,5 @@ class SecondaryDoseSettings:
             roof_exposure_time=self.roof_exposure_settings.exposure_time,
             roof_erosion_px=self.roof_erosion_px,
             roof_layers_above=self.roof_layers_above,
+            roof_on_film=self.roof_exposure_settings.on_film,
         )

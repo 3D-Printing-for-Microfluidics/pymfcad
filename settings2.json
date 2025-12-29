@@ -1,0 +1,78 @@
+{
+    "Schema version": "5.0.0",
+    "Print under vacuum": false,
+    "User": "",
+    "Purpose": "",
+    "Description": "",
+    "Resin": {
+        "monomer": [
+            [
+                "PEG",
+                100
+            ]
+        ],
+        "uv_absorbers": [
+            [
+                "NPS",
+                2.0
+            ]
+        ],
+        "initiators": [
+            [
+                "IRG",
+                1.0
+            ]
+        ],
+        "additives": []
+    },
+    "Slicer": "pymfd",
+    "Date": "2025-12-19 09:27:17",
+    "Printer name": "HR3v3",
+    "Printer xy stage available": false,
+    "Printer vacuum available": false,
+    "Printer light engines": [
+        {
+            "name": "visitech",
+            "px_size": 0.0076,
+            "px_count": [
+                2560,
+                1600
+            ],
+            "wavelengths": [
+                365
+            ],
+            "grayscale_available": [
+                false
+            ],
+            "origin": [
+                0.0,
+                0.0
+            ]
+        }
+    ],
+    "Default position settings": {
+        "distance_up": 1.0,
+        "initial_wait": 0.0,
+        "up_speed": 25.0,
+        "up_acceleration": 50.0,
+        "up_wait": 0.0,
+        "down_speed": 20.0,
+        "down_acceleration": 50.0,
+        "force_squeeze": false,
+        "squeeze_count": 0,
+        "squeeze_force": 0.0,
+        "squeeze_wait": 0.0,
+        "final_wait": 0.0
+    },
+    "Default exposure settings": {
+        "grayscale_correction": false,
+        "exposure_time": 300.0,
+        "power_setting": 100,
+        "wavelength": 365,
+        "relative_focus_position": 0.0,
+        "wait_before_exposure": 0.0,
+        "wait_after_exposure": 0.0,
+        "on_film": false,
+        "burnin": false
+    }
+}

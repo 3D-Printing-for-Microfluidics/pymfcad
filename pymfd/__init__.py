@@ -8,7 +8,7 @@ To make the most of high-resolution 3D printers, the design operates using pixel
 base units. The package supports the creation of a wide range of shapes, components, and devices, as well
 as tools for rendering and slicing—slicing support is currently limited to our custom 3D printers.
 
-Advanced structures such as polychannels and Bézier curves are also supported, making it suitable for
+Advanced structures such as polychannels (complex hulled shapes) and Bézier curves are also supported, making it suitable for
 complex microfluidic architectures.
 """
 

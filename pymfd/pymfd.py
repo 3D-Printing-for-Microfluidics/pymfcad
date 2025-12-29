@@ -138,6 +138,18 @@ class Port(_InstantiationTrackerMixin):
         self._size = size
         self._surface_normal = surface_normal
 
+    def copy(self) -> "Port":
+        """Create a copy of the port."""
+        p = Port(
+            self._type,
+            self._position,
+            self._size,
+            self._surface_normal,
+        )
+        p._parent = self._parent
+        p._name = self._name
+        return p
+
     def get_name(self) -> str:
         """Get the name of the port, including parent name."""
         if self._name is None:
@@ -319,6 +331,7 @@ class Component(_InstantiationTrackerMixin):
         self.shapes = {}
         self.bulk_shapes = {}
         self.ports = {}
+        self.connected_ports = []
         self.subcomponents = {}
         self.default_exposure_settings = None
         self.default_position_settings = None
@@ -392,6 +405,23 @@ class Component(_InstantiationTrackerMixin):
         _px_size = self._px_size if px_size is None else px_size
         _layer_size = self._layer_size if layer_size is None else layer_size
 
+        # if self._rotation % 180 != 0:
+        #     min_x = self._position[0] * self._px_size / _px_size
+        #     max_x = (
+        #         self._position[0] * self._px_size / _px_size
+        #         + self._size[1] * self._px_size / _px_size
+        #     )
+        #     min_y = self._position[1] * self._px_size / _px_size
+        #     max_y = (
+        #         self._position[1] * self._px_size / _px_size
+        #         + self._size[0] * self._px_size / _px_size
+        #     )
+        #     min_z = self._position[2] * self._layer_size / _layer_size
+        #     max_z = (
+        #         self._position[2] * self._layer_size / _layer_size
+        #         + self._size[2] * self._layer_size / _layer_size
+        #     )
+        # else:
         min_x = self._position[0] * self._px_size / _px_size
         max_x = (
             self._position[0] * self._px_size / _px_size
@@ -473,7 +503,7 @@ class Component(_InstantiationTrackerMixin):
         """
         ###### Add a label to the component.
         ###### Parameters:
-        - name (str): The name of the label (mut be a unique python identifier).
+        - name (str): The name of the label (must be a unique python identifier).
         - color (Color): The color of the label, which can be a Color object or a tuple of RGBA values.
         """
         self._validate_name(name)
@@ -483,7 +513,7 @@ class Component(_InstantiationTrackerMixin):
         """
         ###### Add a shape to the component.
         ###### Parameters:
-        - name (str): The name of the shape (mut be a unique python identifier).
+        - name (str): The name of the shape (must be a unique python identifier).
         - shape (Shape): The shape to be added.
         - label (str): The label for the shape, which should be a key in the component's labels dictionary.
         """
@@ -497,7 +527,7 @@ class Component(_InstantiationTrackerMixin):
         """
         ###### Add a bulk shape to the component.
         ###### Parameters:
-        - name (str): The name of the bulk shape (mut be a unique python identifier).
+        - name (str): The name of the bulk shape (must be a unique python identifier).
         - shape (Shape): The bulk shape to be added.
         - label (str): The label for the bulk shape, which should be a key in the component's labels dictionary.
         """
@@ -511,7 +541,7 @@ class Component(_InstantiationTrackerMixin):
         """
         ###### Add a port to the component.
         ###### Parameters:
-        - name (str): The name of the port (mut be a unique python identifier).
+        - name (str): The name of the port (must be a unique python identifier).
         - port (Port): The port to be added.
         """
         self._validate_name(name)
@@ -523,7 +553,7 @@ class Component(_InstantiationTrackerMixin):
         """
         ###### Add a subcomponent to the component.
         ###### Parameters:
-        - name (str): The name of the subcomponent (mut be a unique python identifier).
+        - name (str): The name of the subcomponent (must be a unique python identifier).
         - component (Component): The subcomponent to be added.
         """
         self._validate_name(name)
@@ -640,6 +670,15 @@ class Component(_InstantiationTrackerMixin):
         """
         for s in shapes:
             s._color = self.labels[label]
+
+    def connect_port(self, port: Port):
+        """
+        ###### Label port as connected.
+        ###### Parameters:
+        - port (Port): Port to connect.
+        """
+        if port not in self.connected_ports:
+            self.connected_ports.append(port)
 
     def make_cube(self, size: tuple[int, int, int], center: bool = False) -> Cube:
         """
@@ -840,9 +879,9 @@ class Component(_InstantiationTrackerMixin):
 
     def run_translate(self) -> Component:
         translation = (
-            self._translations[0] / self._px_size * self._parent._px_size,
-            self._translations[1] / self._px_size * self._parent._px_size,
-            self._translations[2] / self._layer_size * self._parent._layer_size,
+            round(self._translations[0] / self._px_size * self._parent._px_size),
+            round(self._translations[1] / self._px_size * self._parent._px_size),
+            round(self._translations[2] / self._layer_size * self._parent._layer_size),
         )
 
         for component in self.subcomponents.values():
@@ -997,6 +1036,31 @@ class Component(_InstantiationTrackerMixin):
                     _internal=True,
                 )
 
+            if rot in (90, 270):
+                self._size = (self._size[1], self._size[0], self._size[2])
+        else:
+            # Update position and size for non in-place rotation (position is negative-negative corner)
+            if rot == 90:
+                self._position = (
+                    self._position[0] - self._size[1],
+                    self._position[1],
+                    self._position[2],
+                )
+            elif rot == 180:
+                self._position = (
+                    self._position[0] - self._size[0],
+                    self._position[1] - self._size[1],
+                    self._position[2],
+                )
+            elif rot == 270:
+                self._position = (
+                    self._position[0],
+                    self._position[1] - self._size[0],
+                    self._position[2],
+                )
+
+            if rot in (90, 270):
+                self._size = (self._size[1], self._size[0], self._size[2])
         return self
 
     def mirror(
@@ -1099,6 +1163,20 @@ class Component(_InstantiationTrackerMixin):
                     ),
                     _internal=True,
                 )
+        else:
+            # Update position for non in-place mirroring (position is negative-negative corner)
+            if mirror_x and not mirror_y:
+                self._position = (
+                    self._position[0] - self._size[0],
+                    self._position[1],
+                    self._position[2],
+                )
+            elif not mirror_x and mirror_y:
+                self._position = (
+                    self._position[0],
+                    self._position[1] - self._size[1],
+                    self._position[2],
+                )
 
         return self
 
@@ -1111,6 +1189,7 @@ class Component(_InstantiationTrackerMixin):
         ###### Returns:
         - None: The rendered scene is exported to the specified file.
         """
+        print("Rendering Component...")
         scene = render_component(
             component=self,
             render_bulk=True,
@@ -1119,6 +1198,7 @@ class Component(_InstantiationTrackerMixin):
             wireframe_bulk=False,
             show_assists=False,
         )
+        print("Exporting rendering...")
         scene.export(filename)
 
     def preview(
@@ -1138,6 +1218,7 @@ class Component(_InstantiationTrackerMixin):
         ###### Returns:
         - None: The rendered scene is exported to the specified file.
         """
+        print("Rendering Component...")
         scene = render_component(
             component=self,
             render_bulk=render_bulk,
@@ -1146,6 +1227,7 @@ class Component(_InstantiationTrackerMixin):
             wireframe_bulk=wireframe,
             show_assists=True,
         )
+        print("Exporting preview rendering...")
         scene.export(filename)
         # from trimesh.viewer.notebook import scene_to_html
         # html_str = scene_to_html(scene)
@@ -1399,7 +1481,7 @@ class Wintech_Device(Device):
         name: str,
         position: tuple[int, int, int],
         layers: int = 0,
-        layer_size: float = 0.01,
+        layer_size: float = 0.0015,
     ):
         frame = inspect.currentframe()
         args, _, _, values = inspect.getargvalues(frame)

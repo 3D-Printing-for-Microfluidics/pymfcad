@@ -1,5 +1,6 @@
 import inspect
 from .. import Component, Port, Color
+from pymfd.slicer import MembraneSettings
 
 
 class Valve20px(Component):
@@ -41,6 +42,7 @@ class Valve20px(Component):
         self.add_label("device", Color.from_name("cyan", 255))
         self.add_label("pneumatic", Color.from_name("red", 255))
         self.add_label("fluidic", Color.from_name("blue", 255))
+        self.add_label("membrane", Color.from_name("green", 255))
 
         self.add_shape(
             "FluidicChamber",
@@ -62,6 +64,18 @@ class Valve20px(Component):
         pneumatics += self.make_cube((8, 10, 6), center=False).translate((14, 0, 12))
         pneumatics += self.make_cube((8, 10, 6), center=False).translate((14, 26, 12))
         self.add_shape("PneumaticShapes", pneumatics, label="pneumatic")
+
+        self.add_regional_settings(
+            "MembraneExposure",
+            self.make_cylinder(h=1, r=10, center_z=False).translate((18, 18, 6)),
+            MembraneSettings(
+                max_membrane_thickness_um=20,
+                exposure_time=500,
+                defocus_um=50,
+                dilation_px=2,
+            ),
+            label="membrane",
+        )
 
         self.add_bulk_shape(
             "BulkShape", self.make_cube((36, 36, 24), center=False), label="device"

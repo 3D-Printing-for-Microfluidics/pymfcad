@@ -20,9 +20,9 @@ settings = Settings(
     # description="This is a test design for the pymfd library.",
     printer=Printer(
         name="HR3v3",
-        # light_engines=[
-        #     LightEngine(px_size=0.0076, px_count=(2560, 1600), wavelengths=[365])
-        # ],
+        light_engines=[
+            LightEngine(px_size=0.0076, px_count=(2560, 1600), wavelengths=[365])
+        ],
     ),
     resin=ResinType(),
     print_under_vacuum=False,
@@ -63,17 +63,17 @@ device.add_label("white", Color.from_rgba((255, 255, 255, 127)))
 
 chan_size = (8, 8, 6)
 
+x = 2
+y = 2
+z = 2
+
 # x = 2
 # y = 2
-# z = 2
+# z = 7
 
-# x = 45
-# y = 29
-# z = 6
-
-x = 50
-y = 32
-z = 7
+# x = 50
+# y = 32
+# z = 7
 
 valve_grid = []
 for l in range(z):
@@ -103,6 +103,11 @@ for l in range(z):
             valve_col.append(valve_row)
     valve_grid.append(valve_col)
 
+from pymfd.component_library.pinhole import Pinhole
+
+device.add_subcomponent("TestPinhole", Pinhole(channel_size=(6, 6, 4)))
+
+device.relabel_labels([f"device"], "device")
 device.relabel_labels([f"pneumatic"], "pneumatic")
 device.relabel_labels([f"fluidic"], "fluidic")
 device.relabel_subcomponents([valve_grid[0][0][0]], "device")
@@ -141,12 +146,12 @@ bulk_cube.translate(device._position)
 device.add_bulk_shape("bulk_cube", bulk_cube, label="device")
 
 # Mesh the component
-# device.render(do_bulk_difference=False)
-# device.render(do_bulk_difference=True)
-device.preview(render_bulk=False, do_bulk_difference=False, wireframe=False)
-# device.preview(render_bulk=True, do_bulk_difference=False, wireframe=False)
-# device.preview(render_bulk=True, do_bulk_difference=False, wireframe=True)
-# device.preview(render_bulk=True, do_bulk_difference=True, wireframe=False)
+# device.render("component.glb", do_bulk_difference=False)
+# device.render("component.glb")
+device.preview()
+# device.preview(render_bulk=True)
+# device.preview(render_bulk=True, wireframe=True)
+# device.preview(render_bulk=True, do_bulk_difference=True)
 # device.preview(render_bulk=True, do_bulk_difference=True, wireframe=True)
 
 slicer = Slicer(

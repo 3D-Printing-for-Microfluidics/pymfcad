@@ -18,6 +18,7 @@ def _is_clockwise(polygon: np.ndarray) -> bool:
 
 
 def _slice(
+    _type: str,
     device: "Device",
     composite_shape: "Shape",
     directory: Path,
@@ -46,7 +47,9 @@ def _slice(
         if isinstance(device, VariableLayerThicknessComponent)
         else device.get_size()[2] * device._layer_size
     )
-    print(f"\tSlicing {type(device).__name__}...")
+    if _type != "":
+        _type += " "
+    print(f"\tSlicing {type(device).__name__} {_type}...")
     while actual_slice_position < device_height:
         slice_height = (
             device.get_position()[2] * device._layer_size + actual_slice_position
@@ -122,6 +125,7 @@ def _slice(
             sliced_devices_info[device_index]["slices"].append(
                 {
                     "image_name": f"{device.get_fully_qualified_name()}-slice{slice_num:04}.png",
+                    "image_data": np.array(img),
                     "layer_position": round(slice_position * 1000, 1),
                 }
             )
@@ -158,8 +162,13 @@ def slice_component(
         x_pos = device.get_position()[0] - device._parent.get_position()[0]
         y_pos = device.get_position()[1] - device._parent.get_position()[1]
         z_pos = (
-            device.get_position()[2] - device._parent.get_position()[2]
-        ) * device._layer_size
+            device.get_position()[2] * device._layer_size
+            - device._parent.get_position()[2] * device._parent._layer_size
+        )
+        # print(
+        #     device.get_position()[2] * device._layer_size,
+        #     device._parent.get_position()[2] * device._parent._layer_size,
+        # )
     ############## Only slice components when nessicary ##############
     # Check if component with same instantiation parameters has already been sliced
     if device in sliced_devices:
@@ -203,20 +212,21 @@ def slice_component(
     # Accumulate subcomponent bboxes and recursively process subcomponents
     for sub in device.subcomponents.values():
         bbox = sub.get_bounding_box(device._px_size, device._layer_size)
+        print(bbox)
         bbox_cube = Cube(
             size=(
-                (bbox[3] - bbox[0]),
-                (bbox[4] - bbox[1]),
-                (bbox[5] - bbox[2]),
+                int(round(bbox[3] - bbox[0])),
+                int(round(bbox[4] - bbox[1])),
+                int(round(bbox[5] - bbox[2])),
             ),
             px_size=device._px_size,
             layer_size=device._layer_size,
             center=False,
         ).translate(
             (
-                bbox[0],
-                bbox[1],
-                bbox[2],
+                int(round(bbox[0])),
+                int(round(bbox[1])),
+                int(round(bbox[2])),
             )
         )
         local_shapes = local_shapes + bbox_cube if local_shapes is not None else bbox_cube
@@ -239,6 +249,7 @@ def slice_component(
 
     # Slice the device
     _slice(
+        "",
         device,
         composite_shape,
         device_subdirectory,
@@ -253,6 +264,7 @@ def slice_component(
         )
         masks_subdirectory.mkdir(parents=True)
         _slice(
+            f"{key} masks",
             device,
             mask,
             masks_subdirectory,

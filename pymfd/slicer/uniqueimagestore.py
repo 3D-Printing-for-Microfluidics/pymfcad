@@ -48,7 +48,7 @@ def save_image_png(image_array, file):
 def hash_image(img):
     """Use sha1 for image hash."""
     assert isinstance(img, np.ndarray)
-    sha1 = hashlib.sha1(img)
+    sha1 = hashlib.sha1(img.tobytes())
     hashvalue = sha1.hexdigest()
     return hashvalue
 

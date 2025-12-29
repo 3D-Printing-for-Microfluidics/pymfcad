@@ -1,13 +1,21 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <title>GLB Viewer</title>
   <style>
-    body { margin: 0; overflow: hidden; }
-    canvas { display: block; }
+    body {
+      margin: 0;
+      overflow: hidden;
+    }
+
+    canvas {
+      display: block;
+    }
   </style>
 </head>
+
 <body>
   <script type="module">
     import * as THREE from './three/three.module.js';
@@ -137,6 +145,31 @@
 
     loadModel(); // initial load
 
+    let lastModified = null;
+
+    // Function to check if the GLB file has changed
+    async function checkGLBUpdate() {
+      try {
+        const response = await fetch('./component.glb', { method: 'HEAD', cache: 'no-store' });
+        const newModified = response.headers.get('Last-Modified');
+        if (lastModified && newModified && newModified !== lastModified) {
+          lastModified = newModified;
+          loadModel(true); // Reload model, preserve camera
+        }
+      } catch (e) {
+        // Optionally handle errors
+      }
+    }
+
+    // Set initial lastModified value
+    fetch('./component.glb', { method: 'HEAD', cache: 'no-store' })
+      .then(response => {
+        lastModified = response.headers.get('Last-Modified');
+      });
+
+    // Poll every 2 seconds
+    setInterval(checkGLBUpdate, 1000);
+
     // Save position & target on every control change
     controls.addEventListener('change', () => {
       localStorage.setItem('cameraPosition', JSON.stringify(camera.position));
@@ -175,7 +208,8 @@
   <button id="resetCameraBtn">Reset Camera</button>
   <button id="reloadModelBtn">Reload Model</button>
   <style>
-    #resetCameraBtn, #reloadModelBtn {
+    #resetCameraBtn,
+    #reloadModelBtn {
       position: fixed;
       right: 1.25rem;
       padding: 0.5rem 0.5rem;
@@ -183,14 +217,15 @@
       cursor: pointer;
       z-index: 100;
     }
-  
+
     #resetCameraBtn {
       bottom: 4.25rem;
     }
-  
+
     #reloadModelBtn {
       bottom: 1.25rem;
     }
   </style>
 </body>
+
 </html>

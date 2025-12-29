@@ -208,7 +208,7 @@ set_fn(50)
 # device.preview()
 # # device.render()
 
-############### 6 Create serpentine channel ##################
+############## 6 Create serpentine channel ##################
 component = Component(
     size=(2560, 1600, 20), position=(0, 0, 0), px_size=0.0076, layer_size=0.01
 )
