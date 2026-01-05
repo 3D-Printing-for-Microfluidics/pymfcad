@@ -900,9 +900,13 @@ class Slicer:
                             group_images.append(slice_info["image_data"])
 
                     # Compress exposures
-                    output_imgs, output_times = self._compress_exposures(
-                        group_images, group_exposures, temp_directory
-                    )
+                    if len(group_images) > 1:
+                        output_imgs, output_times = self._compress_exposures(
+                            group_images, group_exposures, temp_directory
+                        )
+                    else:
+                        output_imgs = group_images
+                        output_times = group_exposures
                     output_img_files = []
                     for i, arr in enumerate(output_imgs):
                         slice_image_path = slices_folder / f"{layer}.png"
