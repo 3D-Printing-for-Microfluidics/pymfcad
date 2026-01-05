@@ -17,34 +17,443 @@
 </head>
 
 <body>
+  <div id="modelSelector"
+    style="position:fixed;top:1.25rem;right:1.25rem;z-index:200;background:rgba(34,34,34,0.95);padding:0.75rem 1.25rem;border-radius:0.5rem;box-shadow:0 2px 8px #0003;font-size:0.95rem;color:#fff;max-width:300px;">
+    <strong>Models</strong><br>
+    <form id="glbForm"></form>
+  </div>
   <script type="module">
     import * as THREE from './three/three.module.js';
     import { OrbitControls } from './three/controls/OrbitControls.js';
     import { GLTFLoader } from './three/loaders/GLTFLoader.js';
 
+    // Dynamically load GLB file list from server
+    let glbFiles = [];
     let defaultCamPos = new THREE.Vector3();
     let defaultCamTarget = new THREE.Vector3();
+
+    // Model management
+    const loader = new GLTFLoader();
+    let models = [];
+    let modelGroups = [];
+    let lastModifieds = [];
+
+    // Load all models
+    function loadAllModels(preserveCamera = false) {
+      // Remove and dispose all old models (even if new list is shorter)
+      if (modelGroups && modelGroups.length) {
+        for (let group of modelGroups) {
+          if (group && group.parent === world) world.remove(group);
+          if (group) {
+            group.traverse((child) => {
+              if (child.geometry) child.geometry.dispose();
+              if (child.material) {
+                if (Array.isArray(child.material)) {
+                  child.material.forEach(m => m.dispose());
+                } else {
+                  child.material.dispose();
+                }
+              }
+            });
+          }
+        }
+      }
+      models = [];
+      modelGroups = [];
+      lastModifieds = Array(glbFiles.length).fill(null);
+
+      let loadedCount = 0;
+      let totalToLoad = glbFiles.length;
+      let loadedScenes = Array(glbFiles.length).fill(null);
+      glbFiles.forEach((glb, idx) => {
+        loader.load(glb.file, (gltf) => {
+          gltf.scene.traverse((child) => {
+            if (child.isMesh) {
+              let mat = child.material;
+              mat.metalness = 0.5;
+              mat.transparent = true;
+              mat.side = THREE.FrontSide;
+            }
+          });
+          models[idx] = gltf.scene;
+          modelGroups[idx] = gltf.scene;
+          loadedScenes[idx] = gltf.scene;
+          // Set initial visibility from checkbox
+          const cb = document.getElementById('glb_cb_' + idx);
+          gltf.scene.visible = cb ? cb.checked : true;
+          world.add(gltf.scene);
+          loadedCount++;
+          // After all models are loaded, frame camera
+          if (!preserveCamera && loadedCount === totalToLoad) {
+            // Try to frame bounding_box.glb if present and visible
+            let bboxIdx = glbFiles.findIndex(f => f.file.toLowerCase().includes('bounding_box.glb'));
+            let bboxScene = (bboxIdx !== -1 && modelGroups[bboxIdx] && modelGroups[bboxIdx].visible) ? modelGroups[bboxIdx] : null;
+            if (bboxScene) {
+              frameModel(bboxScene, camera, controls);
+            } else {
+              // Frame all visible models
+              let group = new THREE.Group();
+              for (let i = 0; i < modelGroups.length; ++i) {
+                if (modelGroups[i] && modelGroups[i].visible) group.add(modelGroups[i].clone());
+              }
+              if (group.children.length > 0) {
+                frameModel(group, camera, controls);
+              }
+            }
+            defaultCamPos.copy(camera.position);
+            defaultCamTarget.copy(controls.target);
+            const savedCamPos = localStorage.getItem('cameraPosition');
+            const savedCamTarget = localStorage.getItem('cameraTarget');
+            if (savedCamPos) {
+              const pos = JSON.parse(savedCamPos);
+              camera.position.set(pos.x, pos.y, pos.z);
+            } else {
+              camera.position.copy(defaultCamPos);
+            }
+            if (savedCamTarget) {
+              const target = JSON.parse(savedCamTarget);
+              controls.target.set(target.x, target.y, target.z);
+            } else {
+              controls.target.copy(defaultCamTarget);
+            }
+            controls.update();
+          }
+        }, undefined, (err) => {
+          // Optionally handle errors
+        });
+      });
+    }
+
+    // Build model selector widget
+    function buildModelSelector() {
+      const form = document.getElementById('glbForm');
+      form.innerHTML = '';
+      // Group models by type
+      const groups = { bulk: [], void: [], regional: [], ports: [], device: [], "bounding box": [] };
+      // For regional, further group by subtype (from type string)
+      const regionalSubgroups = {};
+      glbFiles.forEach((glb, idx) => {
+        let type = (glb.type || '').toLowerCase();
+        if (type.startsWith('regional')) {
+          // Extract subgroup: e.g. 'regional membrane settings' -> 'membrane settings'
+          let subtype = type.replace(/^regional[ _-]*/i, '').replace(/_/g, ' ');
+          if (!subtype) subtype = 'other';
+          if (!regionalSubgroups[subtype]) regionalSubgroups[subtype] = [];
+          regionalSubgroups[subtype].push({ ...glb, idx });
+          groups['regional'].push({ ...glb, idx, _subtype: subtype });
+        } else if (groups[type]) {
+          groups[type].push({ ...glb, idx });
+        } else {
+          if (!groups.other) groups.other = [];
+          groups.other.push({ ...glb, idx });
+        }
+      });
+
+      // Helper to create a checkbox
+      function createCheckbox(id, checked, labelText, onChange, style = {}) {
+        const label = document.createElement('label');
+        label.style.display = 'block';
+        label.style.marginBottom = '0.25em';
+        Object.assign(label.style, style);
+        const cb = document.createElement('input');
+        cb.type = 'checkbox';
+        cb.id = id;
+        cb.checked = checked;
+        cb.style.marginRight = '0.5em';
+        cb.addEventListener('change', onChange);
+        label.appendChild(cb);
+        label.appendChild(document.createTextNode(labelText));
+        return label;
+      }
+
+      // Top-level: device, bounding box, ports
+      const topTypes = ['device', 'bounding box', 'ports'];
+      topTypes.forEach(type => {
+        groups[type].forEach(({ name, idx }) => {
+          const id = 'glb_cb_' + idx;
+          // Only show these by default
+          const checked = true;
+          const label = createCheckbox(
+            id,
+            checked,
+            name,
+            () => { if (modelGroups[idx]) modelGroups[idx].visible = document.getElementById(id).checked; }
+          );
+          form.appendChild(label);
+        });
+      });
+
+      // Expandable groups for bulk, void, other
+      const expandableTypes = Object.keys(groups).filter(t => !topTypes.includes(t));
+      expandableTypes.forEach(type => {
+        if (!groups[type] || groups[type].length === 0) return;
+        // Special handling for regional
+        if (type === 'regional') {
+          // Regional group master
+          const groupId = 'group_cb_regional';
+          const groupDiv = document.createElement('div');
+          groupDiv.style.marginBottom = '0.5em';
+          groupDiv.style.border = '1px solid #444';
+          groupDiv.style.borderRadius = '0.3em';
+          groupDiv.style.padding = '0.3em 0.5em';
+          groupDiv.style.background = 'rgba(0,0,0,0.10)';
+          // Expand/collapse
+          const expBtn = document.createElement('button');
+          expBtn.type = 'button';
+          expBtn.textContent = '▼';
+          expBtn.style.marginRight = '0.5em';
+          expBtn.style.background = 'none';
+          expBtn.style.border = 'none';
+          expBtn.style.color = '#fff';
+          expBtn.style.cursor = 'pointer';
+          expBtn.style.fontWeight = 'bold';
+          let expanded = false;
+          const groupLabel = document.createElement('span');
+          groupLabel.textContent = 'Regional (' + groups[type].length + ')';
+          const groupCb = document.createElement('input');
+          groupCb.type = 'checkbox';
+          groupCb.id = groupId;
+          groupCb.checked = false;
+          groupCb.style.marginRight = '0.5em';
+          // Toggle all in group, but only for subtypes that are checked
+          groupCb.addEventListener('change', () => {
+            Object.entries(regionalSubgroups).forEach(([subtype, models]) => {
+              const subGroupId = 'group_cb_regional_' + subtype.replace(/\s+/g, '_');
+              const subGroupCb = document.getElementById(subGroupId);
+              if (subGroupCb && subGroupCb.checked) {
+                models.forEach(({ idx }) => {
+                  const cb = document.getElementById('glb_cb_' + idx);
+                  if (cb) {
+                    cb.checked = groupCb.checked;
+                    if (modelGroups[idx]) modelGroups[idx].visible = cb.checked;
+                  }
+                });
+              }
+            });
+          });
+          // Expand/collapse logic
+          expBtn.addEventListener('click', () => {
+            expanded = !expanded;
+            expBtn.textContent = expanded ? '▼' : '►';
+            groupContent.style.display = expanded ? '' : 'none';
+          });
+          // Group header
+          const groupHeader = document.createElement('div');
+          groupHeader.style.display = 'flex';
+          groupHeader.style.alignItems = 'center';
+          groupHeader.appendChild(expBtn);
+          groupHeader.appendChild(groupCb);
+          groupHeader.appendChild(groupLabel);
+          groupDiv.appendChild(groupHeader);
+          // Group content (subgroups)
+          const groupContent = document.createElement('div');
+          groupContent.style.display = 'none';
+          groupContent.style.marginLeft = '1.5em';
+          Object.entries(regionalSubgroups).forEach(([subtype, models]) => {
+            // Subgroup master
+            const subGroupId = 'group_cb_regional_' + subtype.replace(/\s+/g, '_');
+            const subGroupDiv = document.createElement('div');
+            subGroupDiv.style.marginBottom = '0.3em';
+            // Subgroup header
+            const subGroupHeader = document.createElement('div');
+            subGroupHeader.style.display = 'flex';
+            subGroupHeader.style.alignItems = 'center';
+            const subGroupCb = document.createElement('input');
+            subGroupCb.type = 'checkbox';
+            subGroupCb.id = subGroupId;
+            subGroupCb.checked = true;
+            subGroupCb.style.marginRight = '0.5em';
+            // Toggle all in subgroup
+            subGroupCb.addEventListener('change', () => {
+              models.forEach(({ idx }) => {
+                const cb = document.getElementById('glb_cb_' + idx);
+                if (cb) {
+                  cb.checked = subGroupCb.checked;
+                  if (modelGroups[idx]) modelGroups[idx].visible = cb.checked;
+                }
+              });
+            });
+            const subGroupLabel = document.createElement('span');
+            subGroupLabel.textContent = subtype.charAt(0).toUpperCase() + subtype.slice(1) + ' (' + models.length + ')';
+            subGroupHeader.appendChild(subGroupCb);
+            subGroupHeader.appendChild(subGroupLabel);
+            subGroupDiv.appendChild(subGroupHeader);
+            // Subgroup content
+            const subGroupContent = document.createElement('div');
+            subGroupContent.style.marginLeft = '1.5em';
+            models.forEach(({ name, idx }) => {
+              const id = 'glb_cb_' + idx;
+              const checked = false;
+              const label = createCheckbox(
+                id,
+                checked,
+                name,
+                () => {
+                  if (modelGroups[idx]) modelGroups[idx].visible = document.getElementById(id).checked;
+                  // If any unchecked, uncheck subgroup; if all checked, check subgroup
+                  const allChecked = models.every(({ idx }) => document.getElementById('glb_cb_' + idx).checked);
+                  subGroupCb.checked = allChecked;
+                }
+              );
+              subGroupContent.appendChild(label);
+            });
+            subGroupDiv.appendChild(subGroupContent);
+            groupContent.appendChild(subGroupDiv);
+          });
+          groupDiv.appendChild(groupContent);
+          form.appendChild(groupDiv);
+          return;
+        }
+        // Default: non-regional expandable group
+        // Group master checkbox
+        const groupId = 'group_cb_' + type;
+        const groupDiv = document.createElement('div');
+        groupDiv.style.marginBottom = '0.5em';
+        groupDiv.style.border = '1px solid #444';
+        groupDiv.style.borderRadius = '0.3em';
+        groupDiv.style.padding = '0.3em 0.5em';
+        groupDiv.style.background = 'rgba(0,0,0,0.10)';
+        // Expand/collapse
+        const expBtn = document.createElement('button');
+        expBtn.type = 'button';
+        expBtn.textContent = '▼';
+        expBtn.style.marginRight = '0.5em';
+        expBtn.style.background = 'none';
+        expBtn.style.border = 'none';
+        expBtn.style.color = '#fff';
+        expBtn.style.cursor = 'pointer';
+        expBtn.style.fontWeight = 'bold';
+        let expanded = false;
+        const groupLabel = document.createElement('span');
+        groupLabel.textContent = type.charAt(0).toUpperCase() + type.slice(1) + ' (' + groups[type].length + ')';
+        const groupCb = document.createElement('input');
+        groupCb.type = 'checkbox';
+        groupCb.id = groupId;
+        groupCb.checked = false;
+        groupCb.style.marginRight = '0.5em';
+        // Toggle all in group
+        groupCb.addEventListener('change', () => {
+          groups[type].forEach(({ idx }) => {
+            const cb = document.getElementById('glb_cb_' + idx);
+            if (cb) {
+              cb.checked = groupCb.checked;
+              if (modelGroups[idx]) modelGroups[idx].visible = cb.checked;
+            }
+          });
+        });
+        // Expand/collapse logic
+        expBtn.addEventListener('click', () => {
+          expanded = !expanded;
+          expBtn.textContent = expanded ? '▼' : '►';
+          groupContent.style.display = expanded ? '' : 'none';
+        });
+        // Group header
+        const groupHeader = document.createElement('div');
+        groupHeader.style.display = 'flex';
+        groupHeader.style.alignItems = 'center';
+        groupHeader.appendChild(expBtn);
+        groupHeader.appendChild(groupCb);
+        groupHeader.appendChild(groupLabel);
+        groupDiv.appendChild(groupHeader);
+        // Group content
+        const groupContent = document.createElement('div');
+        groupContent.style.display = 'none';
+        groupContent.style.marginLeft = '1.5em';
+        groups[type].forEach(({ name, idx }) => {
+          const id = 'glb_cb_' + idx;
+          // Not checked by default
+          const checked = false;
+          const label = createCheckbox(
+            id,
+            checked,
+            name,
+            () => {
+              if (modelGroups[idx]) modelGroups[idx].visible = document.getElementById(id).checked;
+              // If any unchecked, uncheck group; if all checked, check group
+              const allChecked = groups[type].every(({ idx }) => document.getElementById('glb_cb_' + idx).checked);
+              groupCb.checked = allChecked;
+            }
+          );
+          groupContent.appendChild(label);
+        });
+        groupDiv.appendChild(groupContent);
+        form.appendChild(groupDiv);
+      });
+    }
+
+    // Watch for GLB file changes and model list changes
+    let lastModelListString = '';
+    let models_changed = false;
+    async function checkGLBUpdates() {
+      // Check if the model list has changed
+      let newList = null;
+      try {
+        const resp = await fetch('/glb_list.json', { cache: 'no-store' });
+        newList = await resp.json();
+      } catch (e) {
+        newList = glbFiles;
+      }
+      const newListString = JSON.stringify(newList);
+      if (newListString !== lastModelListString) {
+        models_changed = true;
+        glbFiles = newList;
+        lastModelListString = newListString;
+        return;
+      }
+      if (models_changed) {
+        models_changed = false;
+        glbFiles = newList;
+        lastModelListString = newListString;
+        buildModelSelector();
+        loadAllModels(true);
+        return;
+      }
+      // If model list is the same, check for file updates
+      for (let i = 0; i < glbFiles.length; ++i) {
+        try {
+          const response = await fetch(glbFiles[i].file, { method: 'HEAD', cache: 'no-store' });
+          const newModified = response.headers.get('Last-Modified');
+          if (lastModifieds[i] && newModified && newModified !== lastModifieds[i]) {
+            lastModifieds[i] = newModified;
+            loadAllModels(true);
+            break;
+          }
+          if (!lastModifieds[i]) lastModifieds[i] = newModified;
+        } catch (e) { }
+      }
+    }
+
+    // Fetch the GLB file list and initialize viewer
+    async function initGLBViewer() {
+      try {
+        const resp = await fetch('/glb_list.json');
+        glbFiles = await resp.json();
+        lastModelListString = JSON.stringify(glbFiles);
+      } catch (e) {
+        glbFiles = [];
+        lastModelListString = '';
+      }
+      buildModelSelector();
+      loadAllModels();
+      setInterval(checkGLBUpdates, 1000);
+    }
+
+    // ...existing code...
+
+    // Call initialization
+    initGLBViewer();
 
     function frameModel(object, camera, controls, offset = 1.25) {
       const box = new THREE.Box3().setFromObject(object);
       const size = box.getSize(new THREE.Vector3());
       const center = box.getCenter(new THREE.Vector3());
-
-      // Figure out how far the camera should be
       const maxSize = Math.max(size.x, size.y, size.z);
       const fov = camera.fov * (Math.PI / 180);
       let distance = maxSize / (2 * Math.tan(fov / 2));
-
-      distance *= offset; // add some offset so the model isn't too close
-
-      // Calculate new camera position
-      const direction = new THREE.Vector3(0.5, 0.5, 1).normalize(); // diagonal direction
+      distance *= offset;
+      const direction = new THREE.Vector3(0.5, 0.5, 1).normalize();
       camera.position.copy(center).add(direction.multiplyScalar(distance));
-
-      // Set the controls target to the center of the model
       controls.target.copy(center);
-
-      // Update controls and camera
       controls.update();
       camera.updateProjectionMatrix();
     }
@@ -52,125 +461,22 @@
     // Create Scene
     const scene = new THREE.Scene();
     scene.background = new THREE.Color(0x222222);
-
-    // Create a group to rotate the world
     const world = new THREE.Group();
     scene.add(world);
-
-    // Rotate the world so Z axis points up
     world.rotation.x = -Math.PI / 2;
-
-    // Add axes
     const axes = new THREE.AxesHelper(100);
     axes.position.set(-0.0001, -0.0001, -0.0001);
     world.add(axes);
-
-    // Add lights
     const light = new THREE.DirectionalLight(0xffffff, 1);
     light.position.set(10, 10, 10);
     world.add(light);
     world.add(new THREE.AmbientLight(0xffffff, 0.5));
-
-    // Add and position camera
     const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
-
-    // Create renderer
     const renderer = new THREE.WebGLRenderer({ antialias: true });
     renderer.setSize(window.innerWidth, window.innerHeight);
     document.body.appendChild(renderer.domElement);
-
-    // Create controls
     const controls = new OrbitControls(camera, renderer.domElement);
-    // controls.enableDamping = true;
 
-    // Add Mesh Object
-    const loader = new GLTFLoader();
-    let currentModel = null;
-
-    function loadModel(preserveCamera = false) {
-      loader.load('./component.glb', (gltf) => {
-        if (currentModel) {
-          world.remove(currentModel);
-          currentModel.traverse((child) => {
-            if (child.geometry) child.geometry.dispose();
-            if (child.material) {
-              if (Array.isArray(child.material)) {
-                child.material.forEach(m => m.dispose());
-              } else {
-                child.material.dispose();
-              }
-            }
-          });
-        }
-
-        gltf.scene.traverse((child) => {
-          if (child.isMesh) {
-            let mat = child.material;
-            mat.metalness = 0.5;
-            mat.transparent = true;
-            mat.side = THREE.FrontSide;
-          }
-        });
-
-        currentModel = gltf.scene;
-        world.add(currentModel);
-
-        if (!preserveCamera) {
-          // Frame and optionally restore camera
-          frameModel(currentModel, camera, controls);
-          defaultCamPos.copy(camera.position);
-          defaultCamTarget.copy(controls.target);
-
-          const savedCamPos = localStorage.getItem('cameraPosition');
-          const savedCamTarget = localStorage.getItem('cameraTarget');
-
-          if (savedCamPos) {
-            const pos = JSON.parse(savedCamPos);
-            camera.position.set(pos.x, pos.y, pos.z);
-          } else {
-            camera.position.copy(defaultCamPos);
-          }
-
-          if (savedCamTarget) {
-            const target = JSON.parse(savedCamTarget);
-            controls.target.set(target.x, target.y, target.z);
-          } else {
-            controls.target.copy(defaultCamTarget);
-          }
-
-          controls.update();
-        };
-      }, undefined, console.error);
-    }
-
-    loadModel(); // initial load
-
-    let lastModified = null;
-
-    // Function to check if the GLB file has changed
-    async function checkGLBUpdate() {
-      try {
-        const response = await fetch('./component.glb', { method: 'HEAD', cache: 'no-store' });
-        const newModified = response.headers.get('Last-Modified');
-        if (lastModified && newModified && newModified !== lastModified) {
-          lastModified = newModified;
-          loadModel(true); // Reload model, preserve camera
-        }
-      } catch (e) {
-        // Optionally handle errors
-      }
-    }
-
-    // Set initial lastModified value
-    fetch('./component.glb', { method: 'HEAD', cache: 'no-store' })
-      .then(response => {
-        lastModified = response.headers.get('Last-Modified');
-      });
-
-    // Poll every 2 seconds
-    setInterval(checkGLBUpdate, 1000);
-
-    // Save position & target on every control change
     controls.addEventListener('change', () => {
       localStorage.setItem('cameraPosition', JSON.stringify(camera.position));
       localStorage.setItem('cameraTarget', JSON.stringify(controls.target));
@@ -181,7 +487,6 @@
       controls.update();
       renderer.render(scene, camera);
     }
-
     animate();
 
     window.addEventListener('resize', () => {
@@ -191,22 +496,18 @@
     });
 
     document.getElementById('resetCameraBtn').addEventListener('click', () => {
-      // Clear stored camera data
       localStorage.removeItem('cameraPosition');
       localStorage.removeItem('cameraTarget');
-
-      // Reset camera position & controls target to default
       camera.position.copy(defaultCamPos);
       controls.target.copy(defaultCamTarget);
       controls.update();
     });
-
     document.getElementById('reloadModelBtn').addEventListener('click', () => {
-      loadModel(true);
+      loadAllModels(true);
     });
   </script>
   <button id="resetCameraBtn">Reset Camera</button>
-  <button id="reloadModelBtn">Reload Model</button>
+  <button id="reloadModelBtn">Reload Models</button>
   <style>
     #resetCameraBtn,
     #reloadModelBtn {

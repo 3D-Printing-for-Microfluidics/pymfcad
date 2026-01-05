@@ -1,5 +1,5 @@
 import inspect
-from .. import Component, Port, Color
+from .. import Component, Port, Color, Cube
 
 
 class TestCube(Component):
@@ -18,9 +18,7 @@ class TestCube(Component):
         )  # px_size=1.0, layer_size=1.0)
 
         self.add_label("cube", Color.from_name("aqua", 255))
-        self.add_bulk_shape(
-            "cubeshape", self.make_cube((30, 30, 15), center=False), "cube"
-        )
+        self.add_bulk_shape("cubeshape", Cube((30, 30, 15), center=False), "cube")
 
         self.add_port(
             "NEG_X_IN",

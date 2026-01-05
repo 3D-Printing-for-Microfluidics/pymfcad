@@ -1,40 +1,12 @@
 import inspect
+import tracemalloc
+
+tracemalloc.start()
 from pymfd.component_library import Pinhole
 
-from pymfd import (
-    Router,
-    set_fn,
-    Visitech_LRS10_Device,
-    Component,
-    VariableLayerThicknessComponent,
-    Color,
-    Port,
-    Polychannel,
-    PolychannelShape,
-    BezierCurveShape,
-)
-from pymfd.slicer import (
-    Slicer,
-    Settings,
-    ResinType,
-    Printer,
-    LightEngine,
-    PositionSettings,
-    ExposureSettings,
-    MembraneSettings,
-    SecondaryDoseSettings,
-)
+from pymfd import *
 
 set_fn(50)
-
-# Device with
-# 2 Inlets each with pumps
-# T mixer
-# Viewing chamber
-# HAR channel
-# Serpentine channel
-# Viewing chamber
-# 1 Outlet
 
 
 class Valve20px(VariableLayerThicknessComponent):
@@ -56,7 +28,8 @@ class Valve20px(VariableLayerThicknessComponent):
         self.add_label("pneumatic", Color.from_name("red", 255))
         self.add_label("fluidic", Color.from_name("blue", 255))
         self.add_label("membrane", Color.from_name("green", 128))
-        self.add_label("slow", Color.from_name("aqua", 128))
+        self.add_label("slow", Color.from_name("pink", 128))
+        self.add_label("extra", Color.from_name("gray", 128))
 
         # Add ports
         self.add_port(
@@ -77,27 +50,22 @@ class Valve20px(VariableLayerThicknessComponent):
         )
 
         # Build void shapes
-        fluidics = self.make_cylinder(h=4, r=10, center_z=False).translate((18, 18, 8))
-        fluidics += self.make_cube((4, 4, 8), center=False).translate((16, 16, 0))
-        fluidics += self.make_cube((10, 8, 12), center=False).translate((26, 14, 0))
-        self.add_shape("FluidicShapes", fluidics, label="fluidic")
+        fluidics = Cylinder(height=4, radius=10, center_z=False).translate((18, 18, 8))
+        fluidics += Cube((4, 4, 8), center=False).translate((16, 16, 0))
+        fluidics += Cube((10, 8, 12), center=False).translate((26, 14, 0))
+        self.add_void("FluidicShapes", fluidics, label="fluidic")
 
-        pneumatics = self.make_cylinder(h=22, r=10, center_z=False).translate(
+        pneumatics = Cylinder(height=22, radius=10, center_z=False).translate(
             (18, 18, 14)
         )
-        pneumatics += self.make_cube((8, 10, 12), center=False).translate((14, 0, 24))
-        pneumatics += self.make_cube((8, 10, 12), center=False).translate((14, 26, 24))
-        self.add_shape("PneumaticShapes", pneumatics, label="pneumatic")
-
-        # Build bulk shape
-        self.add_bulk_shape(
-            "BulkShape", self.make_cube((36, 36, 48), center=False), label="device"
-        )
+        pneumatics += Cube((8, 10, 12), center=False).translate((14, 0, 24))
+        pneumatics += Cube((8, 10, 12), center=False).translate((14, 26, 24))
+        self.add_void("PneumaticShapes", pneumatics, label="pneumatic")
 
         # Add regional settings
         self.add_regional_settings(
             "MembraneExposure",
-            self.make_cylinder(h=2, r=10, center_z=False).translate((18, 18, 12)),
+            Cylinder(height=2, radius=10, center_z=False).translate((18, 18, 12)),
             MembraneSettings(
                 max_membrane_thickness_um=20,
                 exposure_time=500,
@@ -109,22 +77,25 @@ class Valve20px(VariableLayerThicknessComponent):
 
         self.add_regional_settings(
             "SlowRegion",
-            self.make_cylinder(h=20, r=10, center_z=False).translate((18, 18, 12)),
+            Cylinder(height=20, radius=10, center_z=False).translate((18, 18, 12)),
             PositionSettings(
                 up_speed=5.0, up_acceleration=5.0, down_speed=5.0, down_acceleration=5.0
             ),
             label="slow",
         )
 
-        # self.add_regional_settings(
-        #     "SecondaryDose",
-        #     self.make_cube((8, 8, 8), center=False).translate((14, 14, 0)),
-        #     SecondaryDoseSettings(
-        #         edge_exposure_time=250.0,
-        #         edge_erosion_px=2,
-        #     ),
-        #     label="membrane",
-        # )
+        self.add_regional_settings(
+            "SecondaryDose",
+            Cube((8, 8, 8), center=False).translate((14, 14, 0)),
+            SecondaryDoseSettings(
+                edge_exposure_time=250.0,
+                edge_erosion_px=2,
+            ),
+            label="extra",
+        )
+
+        # Build bulk shape
+        self.add_bulk_shape("BulkShape", Cube((36, 36, 48), center=False), label="device")
 
 
 # Valve20px().preview()
@@ -170,27 +141,22 @@ class DC(VariableLayerThicknessComponent):
         )
 
         # Build void shapes
-        fluidics = self.make_cylinder(h=4, r=10, center_z=False).translate((18, 18, 8))
-        fluidics += self.make_cube((10, 8, 12), center=False).translate((0, 14, 0))
-        fluidics += self.make_cube((10, 8, 12), center=False).translate((26, 14, 0))
-        self.add_shape("FluidicShapes", fluidics, label="fluidic")
+        fluidics = Cylinder(height=4, radius=10, center_z=False).translate((18, 18, 8))
+        fluidics += Cube((10, 8, 12), center=False).translate((0, 14, 0))
+        fluidics += Cube((10, 8, 12), center=False).translate((26, 14, 0))
+        self.add_void("FluidicShapes", fluidics, label="fluidic")
 
-        pneumatics = self.make_cylinder(h=22, r=10, center_z=False).translate(
+        pneumatics = Cylinder(height=22, radius=10, center_z=False).translate(
             (18, 18, 14)
         )
-        pneumatics += self.make_cube((8, 10, 12), center=False).translate((14, 0, 24))
-        pneumatics += self.make_cube((8, 10, 12), center=False).translate((14, 26, 24))
-        self.add_shape("PneumaticShapes", pneumatics, label="pneumatic")
-
-        # Build bulk shape
-        self.add_bulk_shape(
-            "BulkShape", self.make_cube((36, 36, 48), center=False), label="device"
-        )
+        pneumatics += Cube((8, 10, 12), center=False).translate((14, 0, 24))
+        pneumatics += Cube((8, 10, 12), center=False).translate((14, 26, 24))
+        self.add_void("PneumaticShapes", pneumatics, label="pneumatic")
 
         # Add regional settings
         self.add_regional_settings(
             "MembraneExposure",
-            self.make_cylinder(h=2, r=10, center_z=False).translate((18, 18, 12)),
+            Cylinder(height=2, radius=10, center_z=False).translate((18, 18, 12)),
             MembraneSettings(
                 max_membrane_thickness_um=20,
                 exposure_time=500,
@@ -202,12 +168,15 @@ class DC(VariableLayerThicknessComponent):
 
         self.add_regional_settings(
             "SlowRegion",
-            self.make_cylinder(h=20, r=10, center_z=False).translate((18, 18, 12)),
+            Cylinder(height=20, radius=10, center_z=False).translate((18, 18, 12)),
             PositionSettings(
                 up_speed=5.0, up_acceleration=5.0, down_speed=5.0, down_acceleration=5.0
             ),
             label="slow",
         )
+
+        # Build bulk shape
+        self.add_bulk_shape("BulkShape", Cube((36, 36, 48), center=False), label="device")
 
 
 # DC().preview()
@@ -295,7 +264,7 @@ class Pump(Component):
 
         # Build bulk shape
         self.add_bulk_shape(
-            "BulkShape", self.make_cube((125, 36, 36), center=False), label="device"
+            "BulkShape", Cube((125, 36, 36), center=False), label="device"
         )
 
 
@@ -344,9 +313,7 @@ class TJunction(Component):
         r.route()
 
         # Build bulk shape
-        self.add_bulk_shape(
-            "BulkShape", self.make_cube((24, 24, 18), center=False), label="device"
-        )
+        self.add_bulk_shape("BulkShape", Cube((24, 24, 18), center=False), label="device")
 
 
 # TJunction().preview()
@@ -391,9 +358,7 @@ class ViewingRegion(Component):
         r.route()
 
         # Build bulk shape
-        self.add_bulk_shape(
-            "BulkShape", self.make_cube((48, 48, 18), center=False), label="device"
-        )
+        self.add_bulk_shape("BulkShape", Cube((48, 48, 18), center=False), label="device")
 
 
 # ViewingRegion().preview()
@@ -438,9 +403,7 @@ class HARChannel(Component):
         r.route()
 
         # Build bulk shape
-        self.add_bulk_shape(
-            "BulkShape", self.make_cube((72, 24, 36), center=False), label="device"
-        )
+        self.add_bulk_shape("BulkShape", Cube((72, 24, 36), center=False), label="device")
 
 
 # HARChannel().preview()
@@ -504,7 +467,7 @@ class SerpentineChannel(Component):
                 shape_type="cube",
                 size=channel_size,
                 position=(2 * channel_size[0], 0, 0),
-                corner_radius=channel_size[0] / 2,
+                corner_radius=channel_size[0],
             ),
         ]
         for i in range(layers):
@@ -543,7 +506,7 @@ class SerpentineChannel(Component):
         # Build bulk shape
         self.add_bulk_shape(
             "BulkShape",
-            self.make_cube(
+            Cube(
                 (
                     (2 * turns + 4) * channel_size[0],
                     width,
@@ -565,6 +528,7 @@ dev = Visitech_LRS10_Device(
 )
 
 dev.add_label("device", Color.from_name("aqua", 100))
+dev.add_label("edge", Color.from_name("red", 100))
 dev.add_label("control", Color.from_name("fuchsia", 255))
 dev.add_label("fluidic", Color.from_name("aqua", 255))
 
@@ -655,8 +619,6 @@ r.autoroute_channel(pump2.F_OUT, mixer.F_IN1, label="fluidic")
 r.autoroute_channel(mixer.F_OUT, view1.F_IN, label="fluidic")
 r.autoroute_channel(view1.F_OUT, harc.F_IN, label="fluidic")
 r.autoroute_channel(harc.F_OUT, serp.F_IN, label="fluidic")
-# r.autoroute_channel(serp.F_OUT, view2.F_IN, label="fluidic")
-# r.autoroute_channel(view2.F_OUT, f_out.port, label="fluidic")
 r.route_with_polychannel(
     serp.F_OUT,
     view2.F_IN,
@@ -688,15 +650,27 @@ r.route_with_polychannel(
 )
 
 # Control and flush lines
-r.autoroute_channel(v1_control.port, pump1.P1_IN, label="control")
+r.autoroute_channel(
+    v1_control.port, pump1.P1_IN, label="control", direction_preference=("Z", "Y", "X")
+)
 r.autoroute_channel(pump1.P1_OUT, pump2.P1_IN, label="control")
-r.autoroute_channel(pump2.P1_OUT, v1_flush.port, label="control")
-r.autoroute_channel(dc_control.port, pump1.P2_IN, label="control")
+r.autoroute_channel(
+    pump2.P1_OUT, v1_flush.port, label="control", direction_preference=("X", "Y", "Z")
+)
+r.autoroute_channel(
+    dc_control.port, pump1.P2_IN, label="control", direction_preference=("Z", "Y", "X")
+)
 r.autoroute_channel(pump1.P2_OUT, pump2.P2_IN, label="control")
-r.autoroute_channel(pump2.P2_OUT, dc_flush.port, label="control")
-r.autoroute_channel(v2_control.port, pump1.P3_IN, label="control")
+r.autoroute_channel(
+    pump2.P2_OUT, dc_flush.port, label="control", direction_preference=("X", "Y", "Z")
+)
+r.autoroute_channel(
+    v2_control.port, pump1.P3_IN, label="control", direction_preference=("Z", "Y", "X")
+)
 r.autoroute_channel(pump1.P3_OUT, pump2.P3_IN, label="control")
-r.autoroute_channel(pump2.P3_OUT, v2_flush.port, label="control")
+r.autoroute_channel(
+    pump2.P3_OUT, v2_flush.port, label="control", direction_preference=("X", "Y", "Z")
+)
 
 # Finalize routing
 r.route()
@@ -704,21 +678,63 @@ r.route()
 # Color channels
 dev.relabel_labels(["pneumatic"], "control")
 dev.relabel_labels(["fluidic"], "fluidic")
-dev.relabel_subcomponents(
-    [v1_control, v1_flush, dc_control, dc_flush, v2_control, v2_flush], "control"
+dev.relabel_labels(["bulk"], "device")
+dev.relabel_labels(
+    [
+        "V1_CONT.void",
+        "V1_FLUSH.void",
+        "DC_CONT.void",
+        "DC_FLUSH.void",
+        "V2_CONT.void",
+        "V2_FLUSH.void",
+    ],
+    "control",
 )
-dev.relabel_subcomponents(
-    [f_in1, f_in2, mixer, view1, harc, serp, view2, f_out], "fluidic"
+dev.relabel_labels(
+    [
+        "F_IN1.void",
+        "F_IN2.void",
+        "F_OUT.void",
+    ],
+    "fluidic",
 )
+# dev.relabel_subcomponents(
+#     [v1_control, v1_flush, dc_control, dc_flush, v2_control, v2_flush], "control"
+# )
+# dev.relabel_subcomponents(
+#     [f_in1, f_in2, mixer, view1, harc, serp, view2, f_out], "fluidic"
+# )
+
+# Add regional settings
+dev.add_regional_settings(
+    "EdgeExposure",
+    Cube((2560, 1600, 250), center=False).translate((0, 0, 0))
+    - Cube((2460, 1500, 250), center=False).translate((50, 50, 0)),
+    ExposureSettings(exposure_time=1000),
+    label="edge",
+)
+
+dev.set_burn_in_exposure([10000, 5000, 2500])
 
 dev.add_bulk_shape(
     "BulkShape",
-    dev.make_cube((2560, 1600, 250), center=False).translate((0, 0, 0)),
+    Cube((2560, 1600, 250), center=False).translate((0, 0, 0)),
     label="device",
 )
 
-# dev.preview(render_bulk=True, do_bulk_difference=True)
+snapshot = tracemalloc.take_snapshot()
+top_stats = snapshot.statistics("lineno")
+print("[ Top 10 ]")
+for stat in top_stats[:10]:
+    print(stat)
+
 dev.preview()
+
+snapshot = tracemalloc.take_snapshot()
+top_stats = snapshot.statistics("lineno")
+print("[ Top 10 ]")
+for stat in top_stats[:10]:
+    print(stat)
 
 settings = Settings(
     # user="Test User",
@@ -727,11 +743,17 @@ settings = Settings(
     printer=Printer(
         name="HR3v3",
         light_engines=[
-            LightEngine(px_size=0.0076, px_count=(2560, 1600), wavelengths=[365])
+            LightEngine(
+                px_size=0.0076,
+                px_count=(2560, 1600),
+                wavelengths=[365],
+                grayscale_available=[False],
+            )
         ],
+        vaccum_available=False,
     ),
     resin=ResinType(),
-    print_under_vacuum=False,
+    print_under_vacuum=True,
     default_position_settings=PositionSettings(
         # distance_up=1.0,
         # initial_wait=0.0,
@@ -747,7 +769,7 @@ settings = Settings(
         # final_wait=0.0,
     ),
     default_exposure_settings=ExposureSettings(
-        # grayscale_correction=False,
+        grayscale_correction=True,
         # exposure_time=300.0,
         # power_setting=100,
         # relative_focus_position=0.0,

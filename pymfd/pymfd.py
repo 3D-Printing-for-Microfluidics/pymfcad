@@ -3,26 +3,18 @@ from __future__ import annotations
 import sys
 import inspect
 import importlib
+from math import gcd
 from enum import Enum
 from pathlib import Path
 from typing import Union
-from collections.abc import Callable
+from functools import reduce
+from fractions import Fraction
 
 from .backend import (
     Shape,
-    Cube,
-    Cylinder,
-    Sphere,
-    RoundedCube,
-    TextExtrusion,
-    ImportModel,
-    TPMS,
-    Polychannel,
-    PolychannelShape,
-    BezierCurveShape,
-    render_component,
-    # slice_component,
     Color,
+    Cube,
+    render_component,
 )
 
 from .slicer import (
@@ -310,6 +302,7 @@ class Component(_InstantiationTrackerMixin):
         position: tuple[int, int, int],
         px_size: float = 0.0076,
         layer_size: float = 0.01,
+        hide_in_render: bool = False,
     ):
         """
         ###### Parameters:
@@ -317,14 +310,17 @@ class Component(_InstantiationTrackerMixin):
         - position (tuple[int, int, int]): The position of the component in 3D space (x, y, z).
         - px_size (float): The size of a pixel in mm. Default is 0.0076 m.
         - layer_size (float): The size of a layer in mm. Default is 0.01 m.
+        - hide_in_render (bool): Whether to hide the component in renders (nessiary for complex components like TPMS). Default is False.
         """
         super().__init__()
+        print(f"Creating {type(self).__name__} component...")
         self._parent = None
         self._name = None
         self._position = position
         self._size = size
         self._px_size = px_size
         self._layer_size = layer_size
+        self.hide_in_render = hide_in_render
         self._translations = [0, 0, 0]
         self._rotation = 0
         self._mirroring = [False, False]
@@ -405,23 +401,6 @@ class Component(_InstantiationTrackerMixin):
         _px_size = self._px_size if px_size is None else px_size
         _layer_size = self._layer_size if layer_size is None else layer_size
 
-        # if self._rotation % 180 != 0:
-        #     min_x = self._position[0] * self._px_size / _px_size
-        #     max_x = (
-        #         self._position[0] * self._px_size / _px_size
-        #         + self._size[1] * self._px_size / _px_size
-        #     )
-        #     min_y = self._position[1] * self._px_size / _px_size
-        #     max_y = (
-        #         self._position[1] * self._px_size / _px_size
-        #         + self._size[0] * self._px_size / _px_size
-        #     )
-        #     min_z = self._position[2] * self._layer_size / _layer_size
-        #     max_z = (
-        #         self._position[2] * self._layer_size / _layer_size
-        #         + self._size[2] * self._layer_size / _layer_size
-        #     )
-        # else:
         min_x = self._position[0] * self._px_size / _px_size
         max_x = (
             self._position[0] * self._px_size / _px_size
@@ -509,7 +488,7 @@ class Component(_InstantiationTrackerMixin):
         self._validate_name(name)
         self.labels[name] = color
 
-    def add_shape(self, name: str, shape: Shape, label: str):
+    def add_void(self, name: str, shape: Shape, label: str):
         """
         ###### Add a shape to the component.
         ###### Parameters:
@@ -521,6 +500,7 @@ class Component(_InstantiationTrackerMixin):
         shape._name = name
         shape._parent = self
         shape._color = self.labels[label]
+        shape._label = label
         self.shapes[name] = shape
 
     def add_bulk_shape(self, name: str, shape: Shape, label: str):
@@ -535,6 +515,7 @@ class Component(_InstantiationTrackerMixin):
         shape._name = name
         shape._parent = self
         shape._color = self.labels[label]
+        shape._label = label
         self.bulk_shapes[name] = shape
 
     def add_port(self, name: str, port: Port):
@@ -549,7 +530,9 @@ class Component(_InstantiationTrackerMixin):
         port._parent = self
         self.ports[name] = port
 
-    def add_subcomponent(self, name: str, component: Component):
+    def add_subcomponent(
+        self, name: str, component: Component, hide_in_render: bool = False
+    ):
         """
         ###### Add a subcomponent to the component.
         ###### Parameters:
@@ -564,6 +547,9 @@ class Component(_InstantiationTrackerMixin):
 
         for label, color in component.labels.items():
             self.labels[f"{name}.{label}"] = color
+
+        if hide_in_render:
+            component.hide_in_render = True
 
     def add_default_exposure_settings(
         self,
@@ -611,6 +597,7 @@ class Component(_InstantiationTrackerMixin):
         shape._name = name
         shape._parent = self
         shape._color = self.labels[label]
+        shape._label = label
 
         # check for collisions with other settings
         for existing_name, (
@@ -643,23 +630,60 @@ class Component(_InstantiationTrackerMixin):
         - label (str): The new label to apply to the subcomponents.
         """
         for c in subcomponents:
-            c.relabel_labels(c.labels.keys(), label, self.labels[label])
+            c.relabel_labels(
+                c.labels.keys(), label, recursive=True, _color=self.labels[label]
+            )
+            # c.relabel_labels(
+            #     c.labels.keys(), label, recursive=False, _color=self.labels[label]
+            # )
+            # c.relabel_subcomponents(c.subcomponents.values(), label)
 
-    def relabel_labels(self, labels: list[str], label: str, _color: Color = None):
+    def relabel_labels(
+        self, labels: list[str], label: str, recursive: bool = True, _color: Color = None
+    ):
         """
         ###### Relabel subcomponent labels with a new label and color.
         ###### Parameters:
         - labels (list[str]): List of labels to relabel.
         - label (str): The new label to apply.
+        - recursive (bool): Whether to apply the relabeling recursively to subcomponents. Default is True.
         - _color (Color, optional): The color to apply to the labels. If None, uses the color of the specified label. (internal use only)
         """
         if _color is None:
+            # print("Using color from label", label)
             _color = self.labels[label]
         for l, c in self.labels.items():
             if l in labels:
+                # print(f"Relabeling {l} to {label}")
                 c._change_to_color(_color)
-        for c in self.subcomponents.values():
-            c.relabel_labels(labels, label, _color)
+
+        split_name = self.get_fully_qualified_name().split(".")
+        name = ""
+        for i, n in enumerate(split_name):
+            if i > 1:
+                name += f".{n}"
+            elif i == 1:
+                name += n
+
+        for s in self.shapes.values():
+            if s._label in labels or name + "." + s._label in labels:
+                # print(f"Relabeling shape {s._name} label from {s._label} to {label}")
+                s._label = label
+        for s in self.bulk_shapes.values():
+            if s._label in labels or name + "." + s._label in labels:
+                # print(f"Relabeling bulk shape {s._name} label from {s._label} to {label}")
+                s._label = label
+        for s in self.regional_settings.values():
+            if s[0]._label in labels or name + "." + s[0]._label in labels:
+                # print(
+                #     f"Relabeling regional setting shape {s[0]._name} label from {s[0]._label} to {label}"
+                # )
+                s[0]._label = label
+
+        if recursive:
+            for c in self.subcomponents.values():
+                # print(f"Recursing {c.get_fully_qualified_name()}")
+                c.relabel_labels(labels, label, recursive, _color)
 
     def relabel_shapes(self, shapes: list[Shape], label: str):
         """
@@ -670,6 +694,7 @@ class Component(_InstantiationTrackerMixin):
         """
         for s in shapes:
             s._color = self.labels[label]
+            s._label = label
 
     def connect_port(self, port: Port):
         """
@@ -679,159 +704,6 @@ class Component(_InstantiationTrackerMixin):
         """
         if port not in self.connected_ports:
             self.connected_ports.append(port)
-
-    def make_cube(self, size: tuple[int, int, int], center: bool = False) -> Cube:
-        """
-        ###### Create a cube shape.
-        ###### Parameters:
-        - size (tuple[int, int, int]): The size of the cube in pixels/layers (width, height, depth).
-        - center (bool): If True, the cube is centered at the origin. Default is False.
-        ###### Returns:
-        - Cube: An instance of the Cube class representing the created cube shape.
-        """
-        return Cube(size, self._px_size, self._layer_size, center=center)
-
-    def make_cylinder(
-        self,
-        h: int,
-        r: float = None,
-        r1: float = None,
-        r2: float = None,
-        center_xy: bool = True,
-        center_z: bool = False,
-        fn: int = 0,
-    ) -> Cylinder:
-        """
-        ###### Create a cylinder shape.
-        ###### Parameters:
-        - h (int): The height of the cylinder in layers.
-        - r (float, optional): The radius of the cylinder. If not provided, r1 and r2 must be specified.
-        - r1 (float, optional): The radius of the bottom of the cylinder. If not provided, r must be specified.
-        - r2 (float, optional): The radius of the top of the cylinder. If not provided, r must be specified.
-        - center_xy (bool): If True, the cylinder is centered in the XY plane. Default is True.
-        - center_z (bool): If True, the cylinder is centered in the Z direction. Default is False.
-        - fn (int): The number of facets for the cylinder. Default is 0, which uses the default resolution.
-        ###### Returns:
-        - Cylinder: An instance of the Cylinder class representing the created cylinder shape.
-        """
-        return Cylinder(
-            h,
-            r,
-            r1,
-            r2,
-            self._px_size,
-            self._layer_size,
-            center_xy=center_xy,
-            center_z=center_z,
-            fn=fn,
-        )
-
-    def make_sphere(
-        self,
-        size: tuple[int, int, int],
-        center: bool = True,
-        fn: int = 0,
-    ) -> Sphere:
-        """
-        ###### Create a sphere shape.
-        ###### Parameters:
-        - size (tuple[int, int, int]): The size of the sphere in pixels/layers (width, height, depth).
-        - center (bool): If True, the sphere is centered at the origin. Default is True.
-        - fn (int): The number of facets for the sphere. Default is 0, which uses the default resolution.
-        ###### Returns:
-        - Sphere: An instance of the Sphere class representing the created sphere shape.
-        """
-        return Sphere(size, self._px_size, self._layer_size, center=center, fn=fn)
-
-    def make_rounded_cube(
-        self,
-        size: tuple[int, int, int],
-        radius: tuple[int, int, int],
-        center: bool = False,
-        fn: int = 0,
-    ) -> RoundedCube:
-        """
-        ###### Create a rounded cube shape.
-        ###### Parameters:
-        - size (tuple[int, int, int]): The size of the rounded cube in pixels (width, height, depth).
-        - radius (tuple[int, int, int]): The radius of the rounded corners in pixels/layers (rx, ry, rz).
-        - center (bool): If True, the rounded cube is centered at the origin. Default is False.
-        - fn (int): The number of facets for the rounded cube. Default is 0, which uses the default resolution.
-        ###### Returns:
-        - RoundedCube: An instance of the RoundedCube class representing the created rounded cube shape.
-        """
-        return RoundedCube(
-            size,
-            radius,
-            self._px_size,
-            self._layer_size,
-            center=center,
-            fn=fn,
-        )
-
-    def make_text(
-        self, text: str, height: int = 1, font: str = "arial", font_size: int = 10
-    ) -> TextExtrusion:
-        """
-        ###### Create a text extrusion shape.
-        ###### Parameters:
-        - text (str): The text to be extruded.
-        - height (int): The height of the text extrusion in layers. Default is 1.
-        - font (str): The font to be used for the text. Default is "arial".
-        - font_size (int): The size of the font in pixels. Default is 10.
-        ###### Returns:
-        - TextExtrusion: An instance of the TextExtrusion class representing the created text shape.
-        """
-        return TextExtrusion(
-            text, height, font, font_size, self._px_size, self._layer_size
-        )
-
-    def import_model(self, filename: str, auto_repair: bool = True) -> ImportModel:
-        """
-        ###### Import a 3D model from a file.
-        ###### Parameters:
-        - filename (str): The path to the 3D model file (e.g., STL, OBJ).
-        - auto_repair (bool): If True, attempts to repair the model if it has issues. Default is True.
-        ###### Returns:
-        - ImportModel: An instance of the ImportModel class representing the imported model.
-        """
-        return ImportModel(filename, auto_repair, self._px_size, self._layer_size)
-
-    def make_tpms_cell(
-        self,
-        size: tuple[int, int, int],
-        cells: tuple[int, int, int] = (1, 1, 1),
-        func: Callable[[int, int, int], int] = TPMS.diamond,
-        fill: int = 0,
-        refinement: int = 10,
-    ) -> TPMS:
-        """
-        ###### Create a TPMS (Triply Periodic Minimal Surface) cell.
-        ###### Parameters:
-        - size (tuple[int, int, int]): The size of the TPMS unit cell in pixels.
-        - cells (tuple[int, int, int]): The number of cells in each dimension (x, y, z).
-        - func (Callable[[int, int, int], int]): The function to generate the TPMS surface.
-        - fill (int): The fill factor for the TPMS surface ranging from -1 to 1 (isosurface at 0).
-        - refinement (int): Number of subdivisions for the TPMS grid.
-        ###### Returns:
-        - TPMS: An instance of the TPMS class representing the generated surface.
-        """
-        return TPMS(size, cells, func, fill, refinement, self._px_size, self._layer_size)
-
-    def make_polychannel(
-        self,
-        shapes: list[Union[PolychannelShape, BezierCurveShape]],
-        show_only_shapes: bool = False,
-    ) -> Shape:
-        """
-        ###### Create a polychannel shape from a list of shapes.
-        ###### Parameters:
-        - shapes (list[Union[PolychannelShape, BezierCurveShape]]): List of shapes to be included in the polychannel.
-        - show_only_shapes (bool): If True, only the shapes are shown in the polychannel, without the channel itself. Default is False.
-        ###### Returns:
-        - Polychannel: An instance of the Polychannel class representing the created polychannel shape.
-        """
-        return Polychannel(shapes, self._px_size, self._layer_size, show_only_shapes)
 
     def translate(
         self, translation: tuple[int, int, int], _internal: bool = False
@@ -851,9 +723,9 @@ class Component(_InstantiationTrackerMixin):
         else:
             if not _internal:
                 translation = (
-                    translation[0] / self._px_size * self._parent._px_size,
-                    translation[1] / self._px_size * self._parent._px_size,
-                    translation[2] / self._layer_size * self._parent._layer_size,
+                    round(translation[0] / self._px_size * self._parent._px_size),
+                    round(translation[1] / self._px_size * self._parent._px_size),
+                    round(translation[2] / self._layer_size * self._parent._layer_size),
                 )
             for component in self.subcomponents.values():
                 component.translate(translation)
@@ -1200,20 +1072,20 @@ class Component(_InstantiationTrackerMixin):
         )
         print("Exporting rendering...")
         scene.export(filename)
+        del scene
+        import gc
+
+        gc.collect()
 
     def preview(
         self,
         filename: str = "pymfd/viewer/component.glb",
-        render_bulk: bool = False,
-        do_bulk_difference: bool = False,
         wireframe: bool = False,
     ):
         """
         ###### Preview the component in a GLB file.
         ###### Parameters:
         - filename (str): The name of the output GLB file. Default is "pymfd/viewer/component.glb".
-        - render_bulk (bool): If True, renders bulk shapes. Default is False.
-        - do_bulk_difference (bool): If True, applies a difference operation for bulk shapes. Default is False.
         - wireframe (bool): If True, renders the scene in wireframe mode. Default is False.
         ###### Returns:
         - None: The rendered scene is exported to the specified file.
@@ -1221,47 +1093,18 @@ class Component(_InstantiationTrackerMixin):
         print("Rendering Component...")
         scene = render_component(
             component=self,
-            render_bulk=render_bulk,
-            do_bulk_difference=do_bulk_difference,
+            render_bulk=True,
+            do_bulk_difference=True,
             flatten_scene=False,
             wireframe_bulk=wireframe,
             show_assists=True,
         )
         print("Exporting preview rendering...")
         scene.export(filename)
-        # from trimesh.viewer.notebook import scene_to_html
-        # html_str = scene_to_html(scene)
+        del scene
+        import gc
 
-        # # Inject transparency code
-        # transparency_patch = """
-        # scene.traverse((child) => {
-        #     if (child.isMesh) {
-        #         let mat = child.material;
-        #         mat.vertexColors = THREE.VertexColors;
-        #         mat.metalness = 0.5
-        #         mat.transparent = true;
-        #         mat.side = THREE.FrontSide;
-        #         mat.opacity = 1.0;
-        #         if (child.geometry && child.geometry.attributes.color) {
-        #             const colors = child.geometry.attributes.color.array;
-        #             if (colors.length >= 4) {
-        #                 mat.opacity = colors[3];      // alpha of first vertex
-        #             }
-        #         }
-        #     }
-        # });
-        # """
-
-        # # Add it just before animation starts
-        # html_str = html_str.replace("animate();", transparency_patch + "\nanimate();")
-
-        # with open("scene.html", "w") as f:
-        #     f.write(html_str)
-
-
-from math import gcd
-from functools import reduce
-from fractions import Fraction
+        gc.collect()
 
 
 def float_gcf(numbers, max_denominator=10**6):
@@ -1317,9 +1160,11 @@ class VariableLayerThicknessComponent(Component):
                 f"Layers in layer sizes {layer_count} does not match component height {size[2]}"
             )
         layer_size = float_gcf([layer_size[1] for layer_size in layer_sizes])
-        print(f"Using common denominator of {layer_size} for layer size for modeling.")
         print(
-            "For best results, VariableLayerThicknessComponent height should align with parent component layers."
+            f"\tℹ️ Using common denominator of {layer_size} for layer size for modeling."
+        )
+        print(
+            "\t\tFor best results, component height should be an integer multiple of parent component layers."
         )
         super().__init__(size, position, px_size, layer_size)
 
@@ -1432,24 +1277,6 @@ class Visitech_LRS10_Device(Device):
             px_count=(2560, 1600),
             px_size=0.0076,
         )
-
-        # super().__init__(
-        #     name,
-        #     position,
-        #     layers,
-        #     layer_size,
-        #     px_count=(200, 200),
-        #     px_size=0.0076,
-        # )
-
-        # super().__init__(
-        #     name,
-        #     position,
-        #     layers,
-        #     layer_size,
-        #     px_count=(200, 200),
-        #     px_size=0.0076,
-        # )
 
 
 class Visitech_LRS20_Device(Device):

@@ -6,6 +6,9 @@ from pymfd import (
     VariableLayerThicknessComponent,
     Port,
     Color,
+    Cube,
+    Cylinder,
+    Polychannel,
     PolychannelShape,
 )
 
@@ -56,9 +59,9 @@ class MembraneValve6px(VariableLayerThicknessComponent):
         self.add_label("pneumatic", Color.from_name("blue", 127))
         self.add_label("fluidic", Color.from_name("red", 127))
 
-        self.add_shape(
+        self.add_void(
             "fluidic_channel",
-            self.make_polychannel(
+            Polychannel(
                 [
                     PolychannelShape("cube", position=(0, 9, 12), size=(0, 6, 25)),
                     PolychannelShape(position=(9, 0, 0), size=(2, 6, 25)),
@@ -69,9 +72,9 @@ class MembraneValve6px(VariableLayerThicknessComponent):
             label="fluidic",
         )
 
-        self.add_shape(
+        self.add_void(
             "fluidic_channel2",
-            self.make_polychannel(
+            Polychannel(
                 [
                     PolychannelShape("cube", position=(9, 9, 32), size=(0, 6, 5)),
                     PolychannelShape(position=(3, 0, 0), size=(0, 6, 5)),
@@ -84,22 +87,22 @@ class MembraneValve6px(VariableLayerThicknessComponent):
             label="fluidic",
         )
 
-        self.add_shape(
+        self.add_void(
             "fluidic_chamber",
-            self.make_cylinder(h=9, r=3, center_xy=True).translate((9, 9, 30)),
+            Cylinder(height=9, radius=3, center_xy=True).translate((9, 9, 30)),
             label="fluidic",
         )
-        self.add_shape(
+        self.add_void(
             "pneumatic_chamber",
-            self.make_cylinder(h=19, r=3, center_xy=True).translate((9, 9, 41)),
+            Cylinder(height=19, radius=3, center_xy=True).translate((9, 9, 41)),
             label="pneumatic",
         )
 
         self.add_regional_settings(
             "membrane_settings",
-            self.make_cylinder(h=2, r=3, center_xy=True).translate((9, 9, 39)),
+            Cylinder(height=2, radius=3, center_xy=True).translate((9, 9, 39)),
             MembraneSettings(
-                max_membrane_thickness_um=0.004,
+                max_membrane_thickness_um=10,
                 exposure_time=350,
                 dilation_px=2,
                 defocus_um=100.0,
@@ -109,7 +112,7 @@ class MembraneValve6px(VariableLayerThicknessComponent):
 
         self.add_regional_settings(
             "secondary_settings",
-            self.make_cube((18, 18, 65), center=False),
+            Cube((18, 18, 65), center=False),
             SecondaryDoseSettings(
                 edge_exposure_time=250.0,
                 edge_erosion_px=2,
@@ -123,7 +126,7 @@ class MembraneValve6px(VariableLayerThicknessComponent):
 
         # self.add_regional_settings(
         #     "exposure_settings",
-        #     self.make_cube((18, 9, 65), center=False),
+        #     Cube((18, 9, 65), center=False),
         #     ExposureSettings(
         #         exposure_time=400.0,
         #     ),
@@ -132,14 +135,14 @@ class MembraneValve6px(VariableLayerThicknessComponent):
 
         self.add_regional_settings(
             "position_settings",
-            self.make_cylinder(h=2, r=3, center_xy=True).translate((9, 9, 39)),
+            Cylinder(height=2, radius=3, center_xy=True).translate((9, 9, 39)),
             PositionSettings(up_acceleration=2.0),
             label="pneumatic",
         )
 
         self.add_bulk_shape(
             "bulk_cube",
-            self.make_cube((18, 18, 65), center=False),
+            Cube((18, 18, 65), center=False),
             label="default",
         )
 
@@ -149,13 +152,13 @@ device.add_label("device", Color.from_rgba((0, 255, 255, 127)))
 v = MembraneValve6px().translate((50, 50, 0))
 device.add_subcomponent(f"valve", v)
 
-bulk_cube = device.make_cube(device._size, center=False)
+bulk_cube = Cube(device._size, center=False)
 bulk_cube.translate(device._position)
 device.add_bulk_shape("bulk_cube", bulk_cube, label="device")
 
 device.set_burn_in_exposure([10000, 5000, 2500])
 
-device.preview(render_bulk=False, do_bulk_difference=False, wireframe=False)
+device.preview()
 
 
 from pymfd.slicer import (

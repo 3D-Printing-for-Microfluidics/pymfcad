@@ -18,12 +18,33 @@ from .pymfd import (
     VariableLayerThicknessComponent,
     Device,
     Visitech_LRS10_Device,
+    Visitech_LRS20_Device,
+    Wintech_Device,
 )
 from .backend import (
     set_fn,
+    Shape,
+    Cube,
+    Cylinder,
+    Sphere,
+    RoundedCube,
+    TextExtrusion,
+    ImportModel,
+    TPMS,
     Color,
     Polychannel,
     PolychannelShape,
     BezierCurveShape,
 )
 from .router import Router
+from .slicer import (
+    Settings,
+    ResinType,
+    Printer,
+    LightEngine,
+    PositionSettings,
+    ExposureSettings,
+    MembraneSettings,
+    SecondaryDoseSettings,
+    Slicer,
+)

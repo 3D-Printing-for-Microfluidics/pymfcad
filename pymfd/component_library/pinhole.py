@@ -1,5 +1,5 @@
 import inspect
-from .. import Component, Port, Color, PolychannelShape, Router
+from .. import Component, Port, Color, Cube, Polychannel, PolychannelShape
 
 
 class Pinhole(Component):
@@ -32,9 +32,10 @@ class Pinhole(Component):
             layer_size=0.01,
         )  # px_size=1.0, layer_size=1.0)
 
-        self.add_label("default", Color.from_name("aqua", 255))
+        self.add_label("bulk", Color.from_name("aqua", 255))
+        self.add_label("void", Color.from_name("aqua", 255))
 
-        shape = self.make_polychannel(
+        shape = Polychannel(
             [
                 PolychannelShape(
                     "sphere",
@@ -54,12 +55,12 @@ class Pinhole(Component):
             ]
         )
 
-        self.add_shape("pinhole", shape, label="default")
+        self.add_void("pinhole", shape, label="void")
 
         self.add_bulk_shape(
             "BulkShape",
-            self.make_cube((total_length, pinhole_height, pinhole_width), center=False),
-            label="default",
+            Cube((total_length, pinhole_height, pinhole_width), center=False),
+            label="bulk",
         )
 
         self.add_port(

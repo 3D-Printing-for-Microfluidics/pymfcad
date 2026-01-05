@@ -315,12 +315,12 @@ class Slicer:
                 ]
             except Exception as e:
                 print(
-                    f"Warning: trouble pasting slice image for {fqn} at x={x},y={y}: {e}"
+                    f"⚠️Warning: trouble pasting slice image for {fqn} at x={x},y={y}: {e}"
                 )
 
         else:
             print(
-                f"Warning: slice image for {fqn} at x={x},y={y} is completely outside device bounds"
+                f"⚠️Warning: slice image for {fqn} at x={x},y={y} is completely outside device bounds"
             )
             # still save an empty image or skip; here we'll skip
 
@@ -342,22 +342,42 @@ class Slicer:
             # If its a device, just copy the images from sliced_devices_info into the folder
             if isinstance(device, Device):
                 embedded_devices.append((device, info))
-                if self.minimize_file:
-                    for image in info["slices"]:
-                        image_path = (
-                            temp_directory
-                            / device.get_fully_qualified_name()
-                            / image["image_name"]
-                        )
-                        image["image_name"] = f"{image_path.name}"
-                else:
-                    # os.mkdir(slices_folder, exist_ok=True)
-                    # Copy the all images from temp_directory/fqn to slices/fqn
-                    shutil.copytree(
-                        temp_directory / device.get_fully_qualified_name(),
-                        slices_folder,
-                        dirs_exist_ok=True,
-                    )
+
+                slice_list = []
+                slice_list.extend(info.get("slices", []))
+                # print(
+                #     f"\t\t base slices for device ({parent_device.get_fully_qualified_name()}): {len(info.get('slices', []))}"
+                # )
+                slice_list.extend(info.get("membrane_slices", []))
+                # print(
+                #     f"\t\t membrane slices for device ({parent_device.get_fully_qualified_name()}): {len(info.get('membrane_slices', []))}"
+                # )
+                slice_list.extend(info.get("secondary_slices", []))
+                # print(
+                #     f"\t\t secondary slices for device ({parent_device.get_fully_qualified_name()}): {len(info.get('secondary_slices', []))}"
+                # )
+                slice_list.extend(info.get("exposure_slices", []))
+                # print(
+                #     f"\t\t exposure slices for device ({parent_device.get_fully_qualified_name()}): {len(info.get('exposure_slices', []))}"
+                # )
+                info["slices"] = slice_list
+
+                # if self.minimize_file:
+                #     for image in info["slices"]:
+                #         image_path = (
+                #             temp_directory
+                #             / device.get_fully_qualified_name()
+                #             / image["image_name"]
+                #         )
+                #         image["image_name"] = f"{image_path.name}"
+                # else:
+                #     # os.mkdir(slices_folder, exist_ok=True)
+                #     # Copy the all images from temp_directory/fqn to slices/fqn
+                #     shutil.copytree(
+                #         temp_directory / device.get_fully_qualified_name(),
+                #         slices_folder,
+                #         dirs_exist_ok=True,
+                #     )
 
             # If its a component, we need to insert its slices into its parent components (relabeling if necessary)
             else:
@@ -378,9 +398,21 @@ class Slicer:
                     # aggregate slices from info once per parent_device
                     slice_list = []
                     slice_list.extend(info.get("slices", []))
+                    # print(
+                    #     f"\t\t base slices for device ({parent_device.get_fully_qualified_name()}): {len(info.get('slices', []))}"
+                    # )
                     slice_list.extend(info.get("membrane_slices", []))
+                    # print(
+                    #     f"\t\t membrane slices for device ({parent_device.get_fully_qualified_name()}): {len(info.get('membrane_slices', []))}"
+                    # )
                     slice_list.extend(info.get("secondary_slices", []))
+                    # print(
+                    #     f"\t\t secondary slices for device ({parent_device.get_fully_qualified_name()}): {len(info.get('secondary_slices', []))}"
+                    # )
                     slice_list.extend(info.get("exposure_slices", []))
+                    # print(
+                    #     f"\t\t exposure slices for device ({parent_device.get_fully_qualified_name()}): {len(info.get('exposure_slices', []))}"
+                    # )
 
                     # build list of positions belonging to this parent_device
                     positions_for_parent = [
@@ -420,7 +452,7 @@ class Slicer:
                             # if isinstance(parent_device, Device):
                             x = pos[1]
                             y = pos[2]
-                            z = pos[3]
+                            z = round(pos[3], 4)
                             slice_image = self._embed_image(
                                 (x, y),
                                 resolution,
@@ -757,6 +789,12 @@ class Slicer:
                 sliced_devices, sliced_devices_info, temp_directory, slices_folder
             )
 
+            # print le
+            for device, info in embedded_devices:
+                print(
+                    f"\tDevice {device.get_fully_qualified_name()} uses light engine: {device.default_exposure_settings.light_engine}"
+                )
+
             # embedded_devices = []
             # for device, info in zip(sliced_devices, sliced_devices_info):
             #     if isinstance(device, Device):
@@ -912,9 +950,15 @@ class Slicer:
 
                         # If no match add new named image settings
                         if len(match_dict) != 0:
-                            settings_name = re.sub(
-                                r"-slice\d+", "", group[0]["image_name"]
-                            ).split(".png")[0]
+                            if len(group) > 1 and not "_" in group[0]["image_name"][-14:]:
+                                settings_name = re.sub(
+                                    r"-slice\d+", "", group[1]["image_name"]
+                                ).split(".png")[0]
+                            else:
+                                settings_name = re.sub(
+                                    r"-slice\d+", "", group[0]["image_name"]
+                                ).split(".png")[0]
+
                             if group[0]["exposure_settings"].burnin:
                                 settings_name += "_burnin"
 
@@ -1048,14 +1092,14 @@ class Slicer:
                 json.dump(pretty_json(print_settings), fileOut, indent=2)
 
             # Delete device and mask folders
-            # print("Cleaning up temporary directories...")
-            # for device in sliced_devices:
-            #     device_subdirectory = temp_directory / device.get_fully_qualified_name()
-            #     if device_subdirectory.exists():
-            #         shutil.rmtree(device_subdirectory)
-            # masks_directory = temp_directory / "masks"
-            # if masks_directory.exists():
-            #     shutil.rmtree(masks_directory)
+            print("Cleaning up temporary directories...")
+            for device in sliced_devices:
+                device_subdirectory = temp_directory / device.get_fully_qualified_name()
+                if device_subdirectory.exists():
+                    shutil.rmtree(device_subdirectory)
+            masks_directory = temp_directory / "masks"
+            if masks_directory.exists():
+                shutil.rmtree(masks_directory)
 
             # Zip if requested
             if self.zip_output:
@@ -1074,7 +1118,15 @@ class Slicer:
         except Exception as e:
             import traceback
 
-            print(f"An error occurred during slicing: {e}. Removing temorary directory.")
+            print(
+                f"❌ An error occurred during slicing: {e}. Removing temorary directory."
+            )
             print(traceback.format_exc())
+
+        finally:
             # Clean up the temporary directory
-            # shutil.rmtree(temp_directory)
+            # try:
+            #     shutil.rmtree(temp_directory)
+            # except Exception:
+            #     pass
+            pass

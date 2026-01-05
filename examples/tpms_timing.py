@@ -1,3 +1,5 @@
+from pymfd import Component, Color, ImportModel
+
 # ############### 1 Test all basic components ##################
 component = Component(
     size=(2560, 1600, 10), position=(0, 0, 0), px_size=0.0076, layer_size=0.01
@@ -8,49 +10,93 @@ component.add_label("default", Color.from_rgba((0, 255, 0, 127)))
 # Add a shape
 # TIME DIFFERENT TPMS LOADING METHODS
 import time
-from pymfd.backend import TPMS
+from pymfd import TPMS
 
-start_time = time.time()
-for i in range(0, 2):
-    for j in range(0, 2):
-        for k in range(25):
-            component.add_shape(
-                f"import_model_{i}{j}{k}",
-                component.import_model("examples/Diamond_51.stl")
-                .resize((10, 10, 8))
-                .translate((10 * i, 10 * j, 8 * k)),
-                label="default",
-            )
-end_time = time.time()
-print(f"Import: {end_time - start_time:.2f} seconds")
-start_time = time.time()
-for i in range(0, 2):
-    for j in range(3, 5):
-        for k in range(25):
-            component.add_shape(
-                f"tpms_njit_{i}{j}{k}",
-                component.make_tpms_cell(
-                    func=TPMS.diamond, size=(10, 10, 8), fill=0.0, refinement=25
-                ).translate((10 * i, 10 * j, 8 * k)),
-                label="default",
-            )
-end_time = time.time()
-print(f"NJIT Many TPMS: {end_time - start_time:.2f} seconds")
-start_time = time.time()
+# start_time = time.time()
+# for i in range(0, 2):
+#     for j in range(0, 2):
+#         for k in range(25):
+#             component.add_void(
+#                 f"import_model_{i}{j}{k}",
+#                 ImportModel("examples/Diamond_51.stl")
+#                 .resize((10, 10, 8))
+#                 .translate((10 * i, 10 * j, 8 * k)),
+#                 label="default",
+#             )
+# end_time = time.time()
+# print(f"Import: {end_time - start_time:.2f} seconds")
+# start_time = time.time()
+# for i in range(0, 2):
+#     for j in range(3, 5):
+#         for k in range(25):
+#             component.add_void(
+#                 f"tpms_njit_{i}{j}{k}",
+#                 TPMS(
+#                     func=TPMS.diamond, size=(10, 10, 8), fill=0.0, refinement=25
+#                 ).translate((10 * i, 10 * j, 8 * k)),
+#                 label="default",
+#             )
+# end_time = time.time()
+# print(f"NJIT Many TPMS: {end_time - start_time:.2f} seconds")
+# start_time = time.time()
 
-component.add_shape(
-    f"tpms_njit_large_eval",
-    component.make_tpms_cell(
-        func=TPMS.diamond,
-        size=(10, 10, 8),
-        cells=(2, 2, 25),
-        fill=0.0,
-        refinement=25,
-    ).translate((30, 30, 0)),
-    label="default",
-)
-end_time = time.time()
-print(f"NJIT Large TPMS: {end_time - start_time:.2f} seconds")
+# component.add_void(
+#     f"tpms_njit_large_eval",
+#     TPMS(
+#         func=TPMS.diamond,
+#         size=(10, 10, 8),
+#         cells=(2, 2, 25),
+#         fill=0.0,
+#         refinement=25,
+#     ).translate((30, 30, 0)),
+#     label="default",
+# )
+# end_time = time.time()
+# print(f"NJIT Large TPMS: {end_time - start_time:.2f} seconds")
+
+
+import inspect
+
+
+class TPMSComponent(Component):
+    def __init__(self):
+        # Setup initial args/kwargs
+        frame = inspect.currentframe()
+        args, _, _, values = inspect.getargvalues(frame)
+        self.init_args = [values[arg] for arg in args if arg != "self"]
+        self.init_kwargs = {arg: values[arg] for arg in args if arg != "self"}
+        super().__init__(
+            size=(10, 10, 8),
+            position=(0, 0, 0),
+            px_size=0.0076,
+            layer_size=0.01,
+        )
+
+        # Setup labels
+        self.add_label("device", Color.from_name("cyan", 255))
+
+        # Build bulk shape
+        self.add_void(
+            "BulkShape",
+            TPMS(
+                func=TPMS.diamond,
+                size=(10, 10, 8),
+                # cells=(2, 2, 25),
+                fill=0.0,
+                refinement=25,
+            ).translate((30, 30, 0)),
+            label="device",
+        )
+
+
+for i in range(2):
+    for j in range(2):
+        for k in range(25):
+            component.add_subcomponent(
+                f"tpms_subcomponent_{i}{j}{k}",
+                TPMSComponent().translate((10 * i, 10 * j, 8 * k)),
+                hide_in_render=True,
+            )
 
 # Mesh the component
 component.preview()

@@ -259,7 +259,7 @@ class Printer:
     def __init__(
         self,
         name: str,
-        light_engines: list[LightEngine] = LightEngine(),
+        light_engines: list[LightEngine],
         xy_stage_available: bool = False,
         vaccum_available: bool = False,
     ):

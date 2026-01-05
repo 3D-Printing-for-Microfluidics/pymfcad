@@ -162,16 +162,6 @@ class Router:
 
         self._keepout_index = idx
 
-        # tmp_lst = []
-        # for values in self.nonrouted_keepouts.values():
-        #     tmp_lst.append(values[1])
-        # print(tmp_lst)
-        # print()
-        # tmp_lst = []
-        # for values in self.routed_keepouts.values():
-        #     tmp_lst.append(values[1])
-        # print(tmp_lst)
-
     def _add_margin(self, bbox, margin):
         """
         ###### Adds a margin to a bounding box.
@@ -193,6 +183,7 @@ class Router:
         timeout: int = 120,
         heuristic_weight: int = 10,
         turn_weight: int = 2,
+        direction_preference: tuple[str] = ("X", "Y", "Z"),
     ):
         """
         ###### Automatically routes a channel between two ports using A* algorithm.
@@ -221,6 +212,7 @@ class Router:
             "timeout": timeout,
             "heuristic_weight": heuristic_weight,
             "turn_weight": turn_weight,
+            "direction_preference": direction_preference,
         }
 
     def route_with_polychannel(
@@ -475,12 +467,12 @@ class Router:
         This method checks for cached routes, loads them if valid, and reroutes if necessary.
         It handles both manual routing with polychannels and autorouting using the A* algorithm.
         """
-        print(f"Routing {type(self._component).__name__}...")
+        print(f"\tRouting {type(self._component).__name__}...")
         keepouts, self.cached_routes = self._load_cached_route()
         self._generate_keepout_index(keepouts)
         new_routes = []
         loaded_routes = []
-        print("\r\tLoading cached routes...", end="", flush=True)
+        print("\r\t\t📦 Loading cached routes...", end="", flush=True)
         for i, (name, route_info) in enumerate(
             self._routes.items()
         ):  # Route cached paths if valid
@@ -488,7 +480,7 @@ class Router:
             output_port = route_info["output"]
             if self.cached_routes is not None:
                 print(
-                    f"\r\tLoading cached routes ({(i+1)/len(self._routes)*100:.2f}%)...",
+                    f"\r\t\tLoading cached routes ({(i+1)/len(self._routes)*100:.2f}%)...",
                     end="",
                     flush=True,
                 )
@@ -499,27 +491,27 @@ class Router:
                     loaded_routes.append(name)
                     continue
                 else:
-                    print(f"\r\n\t\tRerouting {name}...")
+                    print(f"\r\n\t\t\tRerouting {name}...")
             self._add_port_keepouts(removed_keepouts)
             new_routes.append((name, route_info))  # Cache is stale/missing → reroute
 
         # Add keepouts for cached routes
-        print("\r\n\tGenerating keepouts...", end="", flush=True)
+        print("\r\n\t\tGenerating keepouts...", end="", flush=True)
         self._generate_keepout_index()
         for i, name in enumerate(loaded_routes):
             print(
-                f"\r\tGenerating keepouts ({(i+1)/len(loaded_routes)*100:.2f}%)...",
+                f"\r\t\tGenerating keepouts ({(i+1)/len(loaded_routes)*100:.2f}%)...",
                 end="",
                 flush=True,
             )
             self._add_keepouts_from_polychannel(name, self._component.shapes[name])
 
-        print(f"\r\n\tManual Routing...", end="", flush=True)
+        print(f"\r\n\t\tManual Routing...", end="", flush=True)
         for i, (name, route_info) in enumerate(new_routes):
             input_port = route_info["input"]
             output_port = route_info["output"]
             print(
-                f"\r\tManual Routing ({(i+1)/len(new_routes)*100:.2f}%)...",
+                f"\r\t\tManual Routing ({(i+1)/len(new_routes)*100:.2f}%)...",
                 end="",
                 flush=True,
             )
@@ -528,12 +520,12 @@ class Router:
                 self._route(name, route_info)
                 self._add_port_keepouts(removed_keepouts)
 
-        print(f"\r\n\tAutorouting...", end="", flush=True)
+        print(f"\r\n\t\tAutorouting...", end="", flush=True)
         for i, (name, route_info) in enumerate(new_routes):  # Autoroute paths
             input_port = route_info["input"]
             output_port = route_info["output"]
             print(
-                f"\r\tAutorouting ({(i+1)/len(new_routes)*100:.2f}%)...",
+                f"\r\t\tAutorouting ({(i+1)/len(new_routes)*100:.2f}%)...",
                 end="",
                 flush=True,
             )
@@ -543,6 +535,14 @@ class Router:
                 self._add_port_keepouts(removed_keepouts)
         print()
         self._cache_routes()
+
+        # release memory
+        del keepouts, self.cached_routes
+        del self._keepout_index
+        del self._routes
+        self.nonrouted_keepouts = {}
+        self.routed_keepouts = {}
+        self.keepouts_by_port = {}
 
     def _load_cached_route(self):
         """
@@ -648,21 +648,21 @@ class Router:
         """
         # create polychannel
         polychannel_shapes = deepcopy(route_info["_path"])
-        polychannel = self._component.make_polychannel(polychannel_shapes)
+        polychannel = Polychannel(polychannel_shapes)
 
         # validate keepouts if autoroute
         if not self._validate_keepouts(polychannel):
             if route_info["route_type"] == "autoroute":
                 return False
             else:
-                print(f"\r\n\t\t⚠️ {name} violates keepouts!")
+                print(f"\r\n\t\t\t⚠️ {name} violates keepouts!")
 
         # add polychannel keepout
         if not loaded:
             self._add_keepouts_from_polychannel(name, polychannel)
 
         # add path to component
-        self._component.add_shape(name, polychannel, label=route_info["label"])
+        self._component.add_void(name, polychannel, label=route_info["label"])
         if not route_info["input"].get_name().startswith("None_"):
             route_info["input"]._parent.connect_port(route_info["input"].get_name())
         if not route_info["output"].get_name().startswith("None_"):
@@ -811,6 +811,7 @@ class Router:
             timeout=route_info["timeout"],
             heuristic_weight=route_info["heuristic_weight"],
             turn_weight=route_info["turn_weight"],
+            direction_preference=route_info["direction_preference"],
         )
         if path is None:
             violation = True
@@ -818,7 +819,7 @@ class Router:
             violation = True
 
         if violation:
-            print(f"\r\n\t\tError: failed to route {name}")
+            print(f"\r\n\t\t\t⚠️ Error: failed to route {name}")
             return
 
         # path to constant cross-section polychannel shapes
@@ -831,7 +832,13 @@ class Router:
         self._route(name, route_info)
 
     def _a_star_3d(
-        self, input_port, output_port, timeout=120, heuristic_weight=10, turn_weight=2
+        self,
+        input_port,
+        output_port,
+        timeout=120,
+        heuristic_weight=10,
+        turn_weight=2,
+        direction_preference=("X", "Y", "Z"),
     ):
         """
         ###### Implements the A* algorithm for 3D routing between two ports.
@@ -859,7 +866,7 @@ class Router:
             ),
             exclude_axis=input_port.to_vector(),
         ):
-            print("\r\n\t\tInput port cannot be routed with given router.")
+            print("\r\n\t\t\t⚠️ Input port cannot be routed with given router.")
             return None
 
         pos = list(
@@ -876,7 +883,7 @@ class Router:
             ),
             exclude_axis=input_port.to_vector(),
         ):
-            print("\r\n\t\tInput port cannot be routed with given router.")
+            print("\r\n\t\t\t⚠️ Input port cannot be routed with given router.")
             return None
 
         # Get start and goal positions
@@ -886,13 +893,20 @@ class Router:
         # Validate start and goal positions
         start_valid, goal_valid = self._is_valid_points([start, goal])
         if not start_valid:
-            print("\r\n\t\tInput port is blocked or invalid")
+            print("\r\n\t\t\t⚠️ Input port is blocked or invalid")
             return None
         if not goal_valid:
-            print("\r\n\t\tOutput port is blocked or invalid")
+            print("\r\n\t\t\t⚠️ Output port is blocked or invalid")
             return None
 
-        directions = [(1, 0, 0), (-1, 0, 0), (0, 1, 0), (0, -1, 0), (0, 0, 1), (0, 0, -1)]
+        directions = []
+        for axis in direction_preference:
+            if axis == "X":
+                directions.extend([(1, 0, 0), (-1, 0, 0)])
+            elif axis == "Y":
+                directions.extend([(0, 1, 0), (0, -1, 0)])
+            elif axis == "Z":
+                directions.extend([(0, 0, 1), (0, 0, -1)])
 
         open_heap = []
         start_node = _AutorouterNode(
@@ -909,9 +923,33 @@ class Router:
 
         while open_heap:
             if time.time() - start_time > timeout:
-                print("\r\n\t\tChannel routing timed out")
+                print("\r\n\t\t\t⚠️ Channel routing timed out")
                 return None
             current = heapq.heappop(open_heap)
+
+            # Create dynamic directions ordering based on distance to goal
+            st = start
+            ep = goal
+
+            sorted_directions = []
+            if abs(st[0] - ep[0]) >= abs(st[1] - ep[1]):
+                sorted_directions.extend([(1, 0, 0), (-1, 0, 0)])
+                sorted_directions.extend([(0, 1, 0), (0, -1, 0)])
+            else:
+                sorted_directions.extend([(0, 1, 0), (0, -1, 0)])
+                sorted_directions.extend([(1, 0, 0), (-1, 0, 0)])
+            if abs(st[2] - ep[2]) >= abs(st[0] - ep[0]) and abs(st[2] - ep[2]) >= abs(
+                st[1] - ep[1]
+            ):
+                sorted_directions.insert(0, (0, 0, 1))
+                sorted_directions.insert(1, (0, 0, -1))
+            elif abs(st[0] - ep[0]) >= abs(st[2] - ep[2]) and abs(st[1] - ep[1]) >= abs(
+                st[2] - ep[2]
+            ):
+                sorted_directions.extend([(0, 0, 1), (0, 0, -1)])
+            else:
+                sorted_directions.insert(2, (0, 0, 1))
+                sorted_directions.insert(3, (0, 0, -1))
 
             if current._pos == goal:
                 path = self._reconstruct_path(current)
@@ -973,10 +1011,6 @@ class Router:
         )
         pos = [round(x) for x in pos]
 
-        # print()
-        # print("Move outside port:")
-        # print(f"\t{port.get_name()}, {tuple(pos)}")
-
         if port.get_name().startswith("None_"):
             # flip vector if port belong to component
             direction = port.to_vector()
@@ -987,21 +1021,15 @@ class Router:
         pos_box = self._get_box_from_pos_and_size(pos, self._channel_size)
 
         if port.get_name().startswith("None_"):
-            # print("Start")
             while not self._is_bbox_inside(
                 self._add_margin(pos_box, self._channel_margin),
                 self._component.get_bounding_box(
                     self._component._px_size, self._component._layer_size
                 ),
             ):
-                # print(f"\t{self._is_valid_points([tuple(pos)])[0]}")
-                # print(
-                #     f"\t{self._is_bbox_inside(self._add_margin(pos_box, self._channel_margin),self._component.get_bounding_box(self._component._px_size, self._component._layer_size))}"
-                # )
                 pos = list(pos[i] + direction[i] for i in range(3))
                 pos_box = self._get_box_from_pos_and_size(pos, self._channel_size)
                 time.sleep(0.1)
-            # print("Done")
         else:
             while self._intersects_with_bbox(
                 pos_box,
@@ -1011,7 +1039,6 @@ class Router:
             ):
                 pos = list(pos[i] + direction[i] for i in range(3))
                 pos_box = self._get_box_from_pos_and_size(pos, self._channel_size)
-        # print(f"\t{port.get_name()}, {tuple(pos)}")
         return tuple(pos)
 
     def _get_box_from_pos_and_size(self, pos, size):
@@ -1134,11 +1161,6 @@ class Router:
             self._add_margin(b, margin) for b, valid in zip(boxes, inside_mask) if valid
         ]
 
-        # print(boxes)
-        # print(margin_boxes)
-        # print(inside_mask)
-        # print(shrunk_boxes)
-
         if len(shrunk_boxes) > 0:
             mins = np.array([box[:3] for box in shrunk_boxes], dtype=np.float64)
             maxs = np.array([box[3:] for box in shrunk_boxes], dtype=np.float64)
@@ -1175,7 +1197,6 @@ class Router:
         """
         x0i, y0i, z0i, x1i, y1i, z1i = bbox_inner
         x0o, y0o, z0o, x1o, y1o, z1o = bbox_outer
-        # print(f"Inner: {bbox_inner}, Outer: {bbox_outer}")
         if exclude_axis is not None:
             # find axis which is not 0
             axis = exclude_axis.index(next(filter(lambda v: v != 0, exclude_axis)))

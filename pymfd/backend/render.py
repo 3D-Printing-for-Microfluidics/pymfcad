@@ -26,6 +26,7 @@ def _draw_bounding_box(
     )
     bbox.colors = [color._to_rgba()]
     scene.add_geometry(bbox)
+    del bbox
 
 
 def _draw_arrow(
@@ -67,6 +68,7 @@ def _draw_arrow(
     arrow.apply_translation(position - center_offset)
     arrow.visual.vertex_colors = port.get_color()._to_rgba()
     scene.add_geometry(arrow)
+    del arrow
 
 
 def _draw_port(scene: Scene, port: "Port", component: "Component") -> None:
@@ -150,23 +152,6 @@ def _manifold3d_shape_to_trimesh(shape: "Shape") -> trimesh.Trimesh:
     return tm
 
 
-# def _manifold3d_shape_to_wireframe(shape: "Shape") -> trimesh.Trimesh:
-#     """
-#     ###### Convert a Manifold3D shape to a wireframe representation using trimesh.
-
-#     ###### Parameters:
-#     - shape (Shape): The Manifold3D shape to convert.
-
-#     ###### Returns:
-#     - tm (trimesh.Trimesh): The wireframe trimesh object.
-#     """
-#     mesh = _manifold3d_shape_to_trimesh(shape)
-#     edges = mesh.edges_unique
-#     vertices = mesh.vertices
-#     entities = [trimesh.path.entities.Line([e[0], e[1]]) for e in edges]
-#     return trimesh.path.Path3D(entities=entities, vertices=vertices)
-
-
 def _manifold3d_shape_to_wireframe(
     shape: "Shape", coplanar_tol=1e-5
 ) -> trimesh.path.Path3D:
@@ -219,93 +204,8 @@ def _manifold3d_shape_to_wireframe(
 
     # Create Path3D
     entities = [trimesh.path.entities.Line([e[0], e[1]]) for e in retained_edges]
+    del retained_edges, face_normals, edge_face_map
     return trimesh.path.Path3D(entities=entities, vertices=vertices)
-
-
-# def _component_to_manifold(
-#     component: "Component",
-#     render_bulk: bool = True,
-#     do_bulk_difference: bool = True,
-# ) -> tuple[dict[str, "Shape"], dict[str, "Shape"], list[tuple["Port", "Component"]]]:
-#     """
-#     ###### Convert a Component to manifolds and bulk shapes for rendering.
-
-#     ###### Parameters:
-#     - component (Component): The Component to convert.
-#     - render_bulk (bool): Whether to render bulk shapes.
-#     - do_bulk_difference (bool): Whether to perform a difference operation on bulk shapes.
-
-#     ###### Returns:
-#     - manifolds (dict): Dictionary of manifolds keyed by color.
-#     - bulk_manifolds (dict): Dictionary of bulk shapes keyed by color.
-#     - ports (list): List of ports to draw.
-#     """
-#     bulk_manifolds = {}
-#     manifolds = {}
-#     ports = []
-
-#     def recurse(comp: "Component", parent_name: str = ""):
-#         """
-#         Recursive function to traverse the component tree and collect shapes and ports.
-#         """
-#         name = f"{parent_name}/{comp._name}" if parent_name else comp._name
-
-#         # itterate subcomponents
-#         for sub in comp.subcomponents.values():
-#             recurse(sub, name)
-
-#         # itterate bulk shapes (if device and not inverted)
-#         for bulk in comp.bulk_shapes.values():
-#             key = str(bulk._color)
-#             if key in bulk_manifolds.keys():
-#                 bulk_manifolds[key] += bulk.copy(_internal=True)
-#             else:
-#                 bulk_manifolds[key] = bulk.copy(_internal=True)
-
-#         # itterate shapes (will also draw an inverted device)
-#         for shape in comp.shapes.values():
-#             key = str(shape._color)
-#             if key in manifolds.keys():
-#                 manifolds[key] += shape.copy(_internal=True)
-#             else:
-#                 manifolds[key] = shape.copy(_internal=True)
-
-#         # get list of routes
-#         route_names = []
-#         if comp._parent is not None:
-#             for s in comp._parent.shapes.keys():
-#                 if "__to__" in s:
-#                     route_names.append(s)
-#         # append ports not in a route
-#         for port in comp.ports.values():
-#             port_name = port.get_name()
-#             draw_port = True
-#             for n in route_names:
-#                 if port_name in n:
-#                     draw_port = False
-#             if draw_port:
-#                 ports.append((port, comp))
-
-#     recurse(component)
-
-#     if do_bulk_difference:
-#         if not render_bulk:
-#             raise ValueError(
-#                 "Cannot render do bulk difference without rendering bulk device"
-#             )
-
-#         diff = None
-#         for m in bulk_manifolds.values():
-#             if diff is None:
-#                 diff = m
-#             else:
-#                 diff += m
-#         for m in manifolds.values():
-#             diff -= m
-#         manifolds = {}
-#         bulk_manifolds = {"device": diff}
-
-#     return manifolds, bulk_manifolds, ports
 
 
 def _component_to_manifold(
@@ -328,20 +228,27 @@ def _component_to_manifold(
     """
     bulk_manifolds = {}
     manifolds = {}
+    regional_manifolds = {}
     ports = []
 
     def accumulate_shape(comp: "Component"):
         # itterate shapes (will also draw an inverted device)
         for shape in comp.shapes.values():
-            key = str(shape._color)
+            # key = str(shape._color)
+            key = str(shape._label)
+            tmp_shape = shape.copy(_internal=True)
+            tmp_shape._object = tmp_shape._object.scale(
+                [comp._px_size, comp._px_size, comp._layer_size]
+            )
             if key in manifolds.keys():
-                manifolds[key] += shape.copy(_internal=True)
+                manifolds[key] += tmp_shape
             else:
-                manifolds[key] = shape.copy(_internal=True)
+                manifolds[key] = tmp_shape
 
         # itterate subcomponents
         for sub in comp.subcomponents.values():
-            accumulate_shape(sub)
+            if not sub.hide_in_render:
+                accumulate_shape(sub)
 
     def accumulate_bulk_shape(comp: "Component"):
         # itterate bulk shapes (if device and not inverted)
@@ -349,11 +256,16 @@ def _component_to_manifold(
         comp_cubes = None
         comp_bulks = {}
         for bulk in comp.bulk_shapes.values():
-            key = str(bulk._color)
+            # key = str(bulk._color)
+            key = str(bulk._label)
+            temp_bulk = bulk.copy(_internal=True)
+            temp_bulk._object = temp_bulk._object.scale(
+                [comp._px_size, comp._px_size, comp._layer_size]
+            )
             if key in bulks.keys():
-                bulks[key] += bulk.copy(_internal=True)
+                bulks[key] += temp_bulk
             else:
-                bulks[key] = bulk.copy(_internal=True)
+                bulks[key] = temp_bulk
 
         # itterate subcomponents
         for sub in comp.subcomponents.values():
@@ -366,8 +278,6 @@ def _component_to_manifold(
                     (bbox[4] - bbox[1]) - comp._px_size * 0.1,
                     (bbox[5] - bbox[2]) - comp._layer_size * 0.1,
                 ),
-                px_size=comp._px_size,
-                layer_size=comp._layer_size,
                 center=False,
             ).translate(
                 (
@@ -376,17 +286,21 @@ def _component_to_manifold(
                     bbox[2] + comp._layer_size * 0.05,
                 )
             )
+            bbox_cube._object = bbox_cube._object.scale(
+                [comp._px_size, comp._px_size, comp._layer_size]
+            )
             if comp_cubes is None:
                 comp_cubes = bbox_cube
             else:
                 comp_cubes += bbox_cube
 
-            _bulks = accumulate_bulk_shape(sub)
-            for key, item in _bulks.items():
-                if key in comp_bulks.keys():
-                    comp_bulks[key] += item
-                else:
-                    comp_bulks[key] = item
+            if not sub.hide_in_render:
+                _bulks = accumulate_bulk_shape(sub)
+                for key, item in _bulks.items():
+                    if key in comp_bulks.keys():
+                        comp_bulks[key] += item
+                    else:
+                        comp_bulks[key] = item
         if comp_cubes is not None:
             for key, bulk in bulks.items():
                 bulks[key] -= comp_cubes
@@ -396,6 +310,35 @@ def _component_to_manifold(
             else:
                 bulks[key] = item
         return bulks
+
+    def accumulate_regional_settings(comp: "Component"):
+        # itterate shapes (will also draw an inverted device)
+        for shape, setting in comp.regional_settings.values():
+            if type(setting).__name__ == "MembraneSettings":
+                prefix = "membrane_settings_"
+            elif type(setting).__name__ == "PositionSettings":
+                prefix = "position_settings_"
+            elif type(setting).__name__ == "ExposureSettings":
+                prefix = "exposure_settings_"
+            elif type(setting).__name__ == "SecondaryDoseSettings":
+                prefix = "secondary_dose_settings_"
+            else:
+                prefix = ""
+            # key = str(shape._color)
+            key = prefix + str(shape._label)
+            tmp_shape = shape.copy(_internal=True)
+            tmp_shape._object = tmp_shape._object.scale(
+                [comp._px_size, comp._px_size, comp._layer_size]
+            )
+            if key in regional_manifolds.keys():
+                regional_manifolds[key] += tmp_shape
+            else:
+                regional_manifolds[key] = tmp_shape
+
+        # itterate subcomponents
+        for sub in comp.subcomponents.values():
+            if not sub.hide_in_render:
+                accumulate_regional_settings(sub)
 
     def get_unconnected_ports(comp: "Component"):
         """
@@ -413,27 +356,28 @@ def _component_to_manifold(
     accumulate_shape(component)
     if render_bulk:
         bulk_manifolds = accumulate_bulk_shape(component)
+    accumulate_regional_settings(component)
     if _draw_port:
         get_unconnected_ports(component)
 
+    diff = None
     if do_bulk_difference:
         if not render_bulk:
             raise ValueError(
                 "Cannot render do bulk difference without rendering bulk device"
             )
 
-        diff = None
         for m in bulk_manifolds.values():
             if diff is None:
-                diff = m
+                diff = m.copy(_internal=True)
             else:
                 diff += m
         for m in manifolds.values():
             diff -= m
-        manifolds = {}
-        bulk_manifolds = {"device": diff}
+        # manifolds = {}
+        # bulk_manifolds = {"device": diff}
 
-    return manifolds, bulk_manifolds, ports
+    return manifolds, bulk_manifolds, regional_manifolds, diff, ports
 
 
 def render_component(
@@ -458,54 +402,130 @@ def render_component(
     ###### Returns:
     - scene (Scene or trimesh.Trimesh): The rendered scene or flattened mesh.
     """
-    scene = Scene()
 
-    manifolds, bulk_manifolds, ports = _component_to_manifold(
+    manifolds, bulk_manifolds, regional_manifolds, diff, ports = _component_to_manifold(
         component, render_bulk=render_bulk, do_bulk_difference=do_bulk_difference
     )
 
-    for m in manifolds.values():
-        mesh = _manifold3d_shape_to_trimesh(m)
-        scene.add_geometry(mesh)
+    from pathlib import Path
 
-    if render_bulk:
-        for m in bulk_manifolds.values():
-            if not wireframe_bulk:
-                mesh = _manifold3d_shape_to_trimesh(m)
-                scene.add_geometry(mesh)
+    p = Path("pymfd/viewer/device")
+    try:
+        p.mkdir(parents=True, exist_ok=False)
+    except FileExistsError:
+        # delete old files
+        for f in p.iterdir():
+            if f.is_file():
+                f.unlink()
 
-    if flatten_scene:
-        return scene.to_mesh()
-    scene2 = Scene()
-    scene2.add_geometry(scene.to_mesh())
-    scene = scene2
-
-    # Add wireframe bulk shapes if requested
-    if render_bulk:
-        for m in bulk_manifolds.values():
-            if wireframe_bulk:
-                mesh = _manifold3d_shape_to_wireframe(m)
-            scene.add_geometry(mesh)
-
-    # draw ports
-    if show_assists:
-        for port in ports:
-            p, c = port
-            _draw_port(scene, p, c)
-
-    # draw component bounding box
+    bbox_scene = Scene()
     _draw_bounding_box(
-        scene,
+        bbox_scene,
         size=component.get_size(),
         origin=component.get_position(),
         color=Color.from_name("black", 255),
         px_size=component._px_size,
         layer_size=component._layer_size,
     )
+    bbox_scene.export("pymfd/viewer/device/bounding_box.glb")
+    diff_scene = Scene()
+    if diff is not None:
+        mesh = _manifold3d_shape_to_trimesh(diff)
+        diff_scene.add_geometry(mesh)
+        del mesh
+        diff_scene.export("pymfd/viewer/device/device.glb")
+        del diff_scene
+    if len(manifolds) > 0:
+        for k, v in manifolds.items():
+            void_scene = Scene()
+            mesh = _manifold3d_shape_to_trimesh(v)
+            void_scene.add_geometry(mesh)
+            del mesh
+            void_scene.export(f"pymfd/viewer/device/void_{k}.glb")
+            del void_scene
+    if len(bulk_manifolds) > 0:
+        for k, v in bulk_manifolds.items():
+            bulk_scene = Scene()
+            mesh = _manifold3d_shape_to_trimesh(v)
+            bulk_scene.add_geometry(mesh)
+            del mesh
+            bulk_scene.export(f"pymfd/viewer/device/bulk_{k}.glb")
+            del bulk_scene
+    if len(regional_manifolds) > 0:
+        for k, v in regional_manifolds.items():
+            regional_scene = Scene()
+            mesh = _manifold3d_shape_to_trimesh(v)
+            regional_scene.add_geometry(mesh)
+            del mesh
+            regional_scene.export(f"pymfd/viewer/device/regional_{k}.glb")
+            del regional_scene
+    del regional_manifolds
+    if len(ports) > 0:
+        port_scene = Scene()
+        for port in ports:
+            p, c = port
+            _draw_port(port_scene, p, c)
+        port_scene.export("pymfd/viewer/device/ports.glb")
+        del port_scene
 
-    # scene = scene.to_geometry()
+    if diff is not None:
+        del manifolds
+        manifolds = {}
+        del bulk_manifolds
+        bulk_manifolds = {"device": diff}
+
+    scene = Scene()
+    for m in manifolds.values():
+        mesh = _manifold3d_shape_to_trimesh(m)
+        scene.add_geometry(mesh)
+        del mesh
+    del manifolds
+
+    if render_bulk:
+        for m in bulk_manifolds.values():
+            if not wireframe_bulk:
+                mesh = _manifold3d_shape_to_trimesh(m)
+                scene.add_geometry(mesh)
+                del mesh
+        del bulk_manifolds
+    del diff
+
     if flatten_scene:
-        return scene.to_mesh()  # for flattening (trimesh only)
-        # return scene.to_geometry() # for flattening (also allows Path3D and Path2D)
+        mesh = scene.to_mesh()
+        del scene
+        return mesh
     else:
         return scene
+    # scene2 = Scene()
+    # scene2.add_geometry(scene.to_mesh())
+    # scene = scene2
+
+    # # Add wireframe bulk shapes if requested
+    # if render_bulk:
+    #     for m in bulk_manifolds.values():
+    #         if wireframe_bulk:
+    #             mesh = _manifold3d_shape_to_wireframe(m)
+    #         scene.add_geometry(mesh)
+
+    # # draw ports
+    # if show_assists:
+    #     for port in ports:
+    #         p, c = port
+    #         _draw_port(scene, p, c)
+
+    # # draw component bounding box
+    # _draw_bounding_box(
+    #     scene,
+    #     size=component.get_size(),
+    #     origin=component.get_position(),
+    #     color=Color.from_name("black", 255),
+    #     px_size=component._px_size,
+    #     layer_size=component._layer_size,
+    # )
+
+    # scene = scene.to_geometry()
+    # if flatten_scene:
+    #     return scene.to_mesh()  # for flattening (trimesh only)
+    #     # return scene.to_geometry() # for flattening (also allows Path3D and Path2D)
+    # else:
+    #     return scene

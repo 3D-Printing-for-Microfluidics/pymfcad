@@ -35,12 +35,11 @@ class Shape:
     ###### Manifold3D generic shape class.
     """
 
-    def __init__(self, px_size: float, layer_size: float):
+    def __init__(self):
         self._name = None
         self._parent = None
         self._color = None
-        self._px_size = px_size
-        self._layer_size = layer_size
+        self._label = None
         self._object = None
         self._keepouts = []
 
@@ -152,9 +151,9 @@ class Shape:
         self._translate_keepouts(translation)
         self._object = self._object.translate(
             (
-                translation[0] * self._px_size,
-                translation[1] * self._px_size,
-                translation[2] * self._layer_size,
+                translation[0],
+                translation[1],
+                translation[2],
             )
         )
         return self
@@ -193,12 +192,12 @@ class Shape:
         bounds = self._object.bounding_box()
         # convert bounds to px/layer
         bounds = [
-            bounds[0] / self._px_size,
-            bounds[1] / self._px_size,
-            bounds[2] / self._layer_size,
-            bounds[3] / self._px_size,
-            bounds[4] / self._px_size,
-            bounds[5] / self._layer_size,
+            bounds[0],
+            bounds[1],
+            bounds[2],
+            bounds[3],
+            bounds[4],
+            bounds[5],
         ]
         # calculate scale factors in px/layer space
         sx = size[0] / (bounds[3] - bounds[0])
@@ -308,21 +307,21 @@ class Shape:
         # Get both bounding boxes
         b1 = self._object.bounding_box()
         b1 = (
-            b1[0] / self._px_size,
-            b1[1] / self._px_size,
-            b1[2] / self._layer_size,
-            b1[3] / self._px_size,
-            b1[4] / self._px_size,
-            b1[5] / self._layer_size,
+            b1[0],
+            b1[1],
+            b1[2],
+            b1[3],
+            b1[4],
+            b1[5],
         )
         b2 = other._object.bounding_box()
         b2 = (
-            b2[0] / self._px_size,
-            b2[1] / self._px_size,
-            b2[2] / self._layer_size,
-            b2[3] / self._px_size,
-            b2[4] / self._px_size,
-            b2[5] / self._layer_size,
+            b2[0],
+            b2[1],
+            b2[2],
+            b2[3],
+            b2[4],
+            b2[5],
         )
 
         center1 = [(b1[0] + b1[3]) / 2, (b1[1] + b1[4]) / 2, (b1[2] + b1[5]) / 2]
@@ -368,11 +367,12 @@ class Shape:
         ###### Returns:
         - Shape: A new Shape instance with the same properties.
         """
-        new_shape = Shape(self._px_size, self._layer_size)
+        new_shape = Shape()
         if _internal:
             new_shape._name = self._name
             new_shape._parent = self._parent
             new_shape._color = self._color
+            new_shape._label = self._label
         mesh = self._object.to_mesh()
         new_shape._object = Manifold(mesh)
         new_shape._keepouts = self._keepouts.copy()
@@ -381,12 +381,12 @@ class Shape:
     def _add_bbox_to_keepout(self, bbox: tuple[float]) -> None:
         # add keepout
         bbox = (
-            bbox[0] / self._px_size,
-            bbox[1] / self._px_size,
-            bbox[2] / self._layer_size,
-            bbox[3] / self._px_size,
-            bbox[4] / self._px_size,
-            bbox[5] / self._layer_size,
+            bbox[0],
+            bbox[1],
+            bbox[2],
+            bbox[3],
+            bbox[4],
+            bbox[5],
         )
         self._keepouts.append(bbox)
 
@@ -399,20 +399,16 @@ class Cube(Shape):
     def __init__(
         self,
         size: tuple[int, int, int],
-        px_size: float,
-        layer_size: float,
         center: bool = False,
         _no_validation: bool = False,
     ):
         """
         ###### Parameters:
         - size (tuple[int, int, int]): Size of the cube in px/layer space.
-        - px_size (float): Pixel size in mm.
-        - layer_size (float): Layer height in mm.
         - center (bool): Whether to center the cube at the origin.
         - _no_validation (bool): If True, skip validation checks for odd dimensions (internal use).
         """
-        super().__init__(px_size, layer_size)
+        super().__init__()
 
         # shift half a pixel if odd and centered
         x = 0
@@ -421,17 +417,17 @@ class Cube(Shape):
         if center and not _no_validation:
             if size[0] % 2 != 0:
                 print(
-                    f"⚠️ Centered cube x dimension is odd. Shifting 0.5 px to align with px grid"
+                    f"\t⚠️ Centered cube x dimension is odd. Shifting 0.5 px to align with px grid"
                 )
                 x = 0.5
             if size[1] % 2 != 0:
                 print(
-                    f"⚠️ Centered cube y dimension is odd. Shifting 0.5 px to align with px grid"
+                    f"\t⚠️ Centered cube y dimension is odd. Shifting 0.5 px to align with px grid"
                 )
                 y = 0.5
             if size[2] % 2 != 0:
                 print(
-                    f"⚠️ Centered cube z dimension is odd. Shifting 0.5 px to align with px grid"
+                    f"\t⚠️ Centered cube z dimension is odd. Shifting 0.5 px to align with px grid"
                 )
                 z = 0.5
 
@@ -443,9 +439,9 @@ class Cube(Shape):
             size = (size[0], size[1], 0.0001)
 
         self._object = Manifold.cube(
-            (size[0] * px_size, size[1] * px_size, size[2] * layer_size),
+            (size[0], size[1], size[2]),
             center=center,
-        ).translate((x * px_size, y * px_size, z * layer_size))
+        ).translate((x, y, z))
         self._add_bbox_to_keepout(self._object.bounding_box())
 
 
@@ -460,8 +456,6 @@ class Cylinder(Shape):
         radius: float = None,
         bottom_r: float = None,
         top_r: float = None,
-        px_size: float = None,
-        layer_size: float = None,
         center_xy: bool = True,
         center_z: bool = False,
         fn: int = 0,
@@ -472,13 +466,11 @@ class Cylinder(Shape):
         - radius (float): Radius of the cylinder in px space.
         - bottom_r (float): Bottom radius of the cylinder in px space.
         - top_r (float): Top radius of the cylinder in px space.
-        - px_size (float): Pixel size in mm.
-        - layer_size (float): Layer height in mm.
         - center_xy (bool): Whether to center the cylinder in XY plane.
         - center_z (bool): Whether to center the cylinder in Z plane.
         - fn (int): Number of facets for the circular segments.
         """
-        super().__init__(px_size, layer_size)
+        super().__init__()
 
         # only allow radiuses to be multiples of 0.5
         if radius is not None:
@@ -509,7 +501,7 @@ class Cylinder(Shape):
         z = 0
         if center_z and height % 2 != 0:
             print(
-                f"⚠️ Centered cylinder z dimension is odd. Shifting 0.5 px to align with px grid"
+                f"\t⚠️ Centered cylinder z dimension is odd. Shifting 0.5 px to align with px grid"
             )
             z = 0.5
         if height == 0:
@@ -517,25 +509,25 @@ class Cylinder(Shape):
         if center_xy:
             if top * 2 % 2 != 0:  # can check either to or bottom
                 print(
-                    f"⚠️ Centered cylinder radius is odd. Shifting 0.5 px to align with px grid"
+                    f"\t⚠️ Centered cylinder radius is odd. Shifting 0.5 px to align with px grid"
                 )
                 xy = 0.5
             self._object = Manifold.cylinder(
-                height=height * layer_size,
-                radius_low=bottom * px_size,
-                radius_high=top * px_size,
+                height=height,
+                radius_low=bottom,
+                radius_high=top,
                 circular_segments=fn,
                 center=center_z,
-            ).translate((xy * px_size, xy * px_size, z * layer_size))
+            ).translate((xy, xy, z))
         else:
             radius = max(bottom, top)
             self._object = Manifold.cylinder(
-                height=height * layer_size,
-                radius_low=bottom * px_size,
-                radius_high=top * px_size,
+                height=height,
+                radius_low=bottom,
+                radius_high=top,
                 circular_segments=fn,
                 center=center_z,
-            ).translate((radius * px_size, radius * px_size, z * layer_size))
+            ).translate((radius, radius, z))
         self._add_bbox_to_keepout(self._object.bounding_box())
 
 
@@ -547,8 +539,6 @@ class Sphere(Shape):
     def __init__(
         self,
         size: tuple[int, int, int],
-        px_size: float = None,
-        layer_size: float = None,
         center: bool = True,
         fn: int = 0,
         _no_validation: bool = False,
@@ -556,13 +546,11 @@ class Sphere(Shape):
         """
         ###### Parameters:
         - size (tuple[int, int, int]): Size of the sphere in px/layer space.
-        - px_size (float): Pixel size in mm.
-        - layer_size (float): Layer height in mm.
         - center (bool): Whether to center the sphere at the origin.
         - fn (int): Number of facets for the circular segments.
         - _no_validation (bool): If True, skip validation checks for odd dimensions (internal use).
         """
-        super().__init__(px_size, layer_size)
+        super().__init__()
         if center:
             x = 0
             y = 0
@@ -570,17 +558,17 @@ class Sphere(Shape):
             if not _no_validation:
                 if size[0] % 2 != 0:
                     print(
-                        f"⚠️ Centered sphere x dimension is odd. Shifting 0.5 px to align with px grid"
+                        f"\t⚠️ Centered sphere x dimension is odd. Shifting 0.5 px to align with px grid"
                     )
                     x = 0.5
                 if size[1] % 2 != 0:
                     print(
-                        f"⚠️ Centered sphere y dimension is odd. Shifting 0.5 px to align with px grid"
+                        f"\t⚠️ Centered sphere y dimension is odd. Shifting 0.5 px to align with px grid"
                     )
                     y = 0.5
                 if size[2] % 2 != 0:
                     print(
-                        f"⚠️ Centered sphere z dimension is odd. Shifting 0.5 px to align with px grid"
+                        f"\t⚠️ Centered sphere z dimension is odd. Shifting 0.5 px to align with px grid"
                     )
                     z = 0.5
 
@@ -598,15 +586,13 @@ class Sphere(Shape):
         self.resize(size)
 
         if center:
-            self._object = self._object.translate(
-                (x * px_size, y * px_size, z * layer_size)
-            )
+            self._object = self._object.translate((x, y, z))
         else:
             self._object = self._object.translate(
                 (
-                    size[0] / 2 * px_size,
-                    size[1] / 2 * px_size,
-                    size[2] / 2 * layer_size,
+                    size[0] / 2,
+                    size[1] / 2,
+                    size[2] / 2,
                 )
             )
         self._add_bbox_to_keepout(self._object.bounding_box())
@@ -621,8 +607,6 @@ class RoundedCube(Shape):
         self,
         size: tuple[int, int, int],
         radius: tuple[float, float, float],
-        px_size: float,
-        layer_size: float,
         center: bool = False,
         fn: int = 0,
         _no_validation: bool = False,
@@ -631,13 +615,11 @@ class RoundedCube(Shape):
         ###### Parameters:
         - size (tuple[int, int, int]): Size of the rounded cube in px/layer space.
         - radius (tuple[float, float, float]): Radius of the rounded corners in px/layer space.
-        - px_size (float): Pixel size in mm.
-        - layer_size (float): Layer height in mm.
         - center (bool): Whether to center the rounded cube at the origin.
         - fn (int): Number of facets for the circular segments.
         - _no_validation (bool): If True, skip validation checks for odd dimensions (internal use).
         """
-        super().__init__(px_size, layer_size)
+        super().__init__()
 
         # shift half a pixel if odd and centered
         x = 0
@@ -646,17 +628,17 @@ class RoundedCube(Shape):
         if center and not _no_validation:
             if size[0] % 2 != 0:
                 print(
-                    f"⚠️ Centered rounded cube x dimension is odd. Shifting 0.5 px to align with px grid"
+                    f"\t⚠️ Centered rounded cube x dimension is odd. Shifting 0.5 px to align with px grid"
                 )
                 x = 0.5
             if size[1] % 2 != 0:
                 print(
-                    f"⚠️ Centered rounded cube y dimension is odd. Shifting 0.5 px to align with px grid"
+                    f"\t⚠️ Centered rounded cube y dimension is odd. Shifting 0.5 px to align with px grid"
                 )
                 y = 0.5
             if size[2] % 2 != 0:
                 print(
-                    f"⚠️ Centered rounded cube z dimension is odd. Shifting 0.5 px to align with px grid"
+                    f"\t⚠️ Centered rounded cube z dimension is odd. Shifting 0.5 px to align with px grid"
                 )
                 z = 0.5
 
@@ -685,9 +667,9 @@ class RoundedCube(Shape):
                         s = Manifold.sphere(radius=1, circular_segments=fn)
                     s = s.scale(
                         (
-                            radius[0] * px_size,
-                            radius[1] * px_size,
-                            radius[2] * layer_size,
+                            radius[0],
+                            radius[1],
+                            radius[2],
                         )
                     )
                     _x = (size[0] / 2 - radius[0]) if i else -(size[0] / 2 - radius[0])
@@ -695,17 +677,17 @@ class RoundedCube(Shape):
                     _z = (size[2] / 2 - radius[2]) if k else -(size[2] / 2 - radius[2])
                     s = s.translate(
                         (
-                            (x + _x) * px_size,
-                            (y + _y) * px_size,
-                            (z + _z) * layer_size,
+                            (x + _x),
+                            (y + _y),
+                            (z + _z),
                         )
                     )
                     if not center:
                         s = s.translate(
                             (
-                                size[0] / 2 * px_size,
-                                size[1] / 2 * px_size,
-                                size[2] / 2 * layer_size,
+                                size[0] / 2,
+                                size[1] / 2,
+                                size[2] / 2,
                             )
                         )
                     spheres.append(s)
@@ -722,11 +704,9 @@ class TextExtrusion(Shape):
     def __init__(
         self,
         text: str,
-        height: int,
+        height: int = 1,
         font: str = "arial",
         font_size: int = 10,
-        px_size: float = None,
-        layer_size: float = None,
     ):
         """
         ###### Parameters:
@@ -734,10 +714,8 @@ class TextExtrusion(Shape):
         - height (int): Height of the extrusion in layer space.
         - font (str): Font name to use for the text.
         - font_size (int): Font size in px.
-        - px_size (float): Pixel size in mm.
-        - layer_size (float): Layer height in mm.
         """
-        super().__init__(px_size, layer_size)
+        super().__init__()
 
         def glyph_to_polygons(face, char, scale=1.0, curve_steps=10):
             face.load_char(char, freetype.FT_LOAD_NO_BITMAP)
@@ -815,8 +793,8 @@ class TextExtrusion(Shape):
                         reversed(
                             [
                                 [
-                                    float(p[0] + offset_x) * px_size,
-                                    float(p[1]) * px_size,
+                                    float(p[0] + offset_x),
+                                    float(p[1]),
                                 ]
                                 for p in poly
                             ]
@@ -827,12 +805,12 @@ class TextExtrusion(Shape):
                 # Create cross section with outer + holes
                 xsec = CrossSection(all_loops)
                 if xsec.is_empty():
-                    print(f"Invalid CrossSection for character '{char}'")
+                    print(f"\t⚠️ Invalid CrossSection for character '{char}'")
                     continue
 
-                extruded = xsec.extrude(height * layer_size)
+                extruded = xsec.extrude(height)
                 if extruded.num_vert() == 0:
-                    print(f"Extrusion failed for character '{char}'")
+                    print(f"\t⚠️ Extrusion failed for character '{char}'")
                     continue
                 result += extruded
                 offset_x += (face.glyph.advance.x / 64.0) * spacing
@@ -857,22 +835,18 @@ class ImportModel(Shape):
         self,
         filename: str,
         auto_repair: bool = True,
-        px_size: float = None,
-        layer_size: float = None,
     ):
         """
         ###### Parameters:
         - filename (str): Path to the 3D model file.
         - auto_repair (bool): Whether to automatically repair the mesh if it has issues.
-        - px_size (float): Pixel size in mm.
-        - layer_size (float): Layer height in mm.
 
         This class loads a 3D model file and converts it to a Manifold3D object.
         It checks for common mesh issues such as watertightness, winding consistency, and emptiness.
         If the mesh has issues, it attempts to repair them if `auto_repair` is set to True.
         If the mesh cannot be repaired or is still not watertight, it raises an error.
         """
-        super().__init__(px_size, layer_size)
+        super().__init__()
 
         def load_3d_file_to_manifold(path, auto_repair=True) -> Manifold:
             """
@@ -887,13 +861,13 @@ class ImportModel(Shape):
             """
 
             ext = os.path.splitext(filename)[1].lower()
-            print(f"📦 Loading: {filename} (.{ext[1:]})")
+            print(f"\t📦 Loading: {filename} (.{ext[1:]})")
 
             # try:
             mesh = trimesh.load(filename, force="mesh")
 
             if isinstance(mesh, trimesh.Scene):
-                print("🔁 Flattening scene...")
+                print("\t🔁 Flattening scene...")
                 mesh = mesh.to_mesh()
 
             issues = []
@@ -907,14 +881,14 @@ class ImportModel(Shape):
                 issues.append("⚠️ Mesh may not define a solid volume.")
 
             if issues:
-                print("\n".join(issues))
+                print("\n\t".join(issues))
                 if not auto_repair:
                     raise ValueError(
                         "Mesh has critical issues. Aborting due to `auto_repair=False`."
                     )
 
             if auto_repair:
-                print("🛠 Attempting repair steps...")
+                print("\t🛠️ Attempting repair steps...")
                 mesh = mesh.copy()
                 trimesh.repair.fill_holes(mesh)
                 trimesh.repair.fix_normals(mesh)
@@ -934,7 +908,7 @@ class ImportModel(Shape):
             mesh_obj = Mesh(verts, faces)
 
             manifold = Manifold(mesh_obj)
-            print("✅ Successfully converted mesh to Manifold.")
+            print("\t✅ Successfully converted mesh to Manifold.")
             return manifold
 
         self._object = load_3d_file_to_manifold(filename, auto_repair)
@@ -942,7 +916,7 @@ class ImportModel(Shape):
 
         # except Exception as e:
         #     raise ValueError(f"❌ Error loading mesh: {e}")
-        #     print(f"🔥 Error loading mesh: {e}")
+        #     print(f"\t🔥 Error loading mesh: {e}")
         #     return None
 
 
@@ -978,8 +952,6 @@ class TPMS(Shape):
         func: Callable[[int, int, int], int] = diamond,
         fill: float = 0.0,
         refinement: int = 10,
-        px_size: float = None,
-        layer_size: float = None,
     ):
         """
         ###### Parameters:
@@ -988,12 +960,10 @@ class TPMS(Shape):
         - func (Callable[[float, float, float], bool]): Function defining the TPMS shape.
         - fill (float): Level set value for the TPMS shape ranges from -1 to 1 (isosurface at 0)
         - refinement (int): Number of subdivisions for the level set grid.
-        - px_size (float): Pixel size in mm.
-        - layer_size (float): Layer height in mm.
 
         This class generates a TPMS shape using a level set method.
         """
-        super().__init__(px_size, layer_size)
+        super().__init__()
 
         bounds = [
             0.0,

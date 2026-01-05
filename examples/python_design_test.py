@@ -1,9 +1,17 @@
 from pymfd.router import Router
 from pymfd.component_library import Valve20px, TestCube, Pinhole
 from pymfd import (
+    Visitech_LRS10_Device,
+    Cube,
+    RoundedCube,
+    Sphere,
+    Cylinder,
+    TextExtrusion,
+    ImportModel,
+    TPMS,
+    Polychannel,
     PolychannelShape,
     BezierCurveShape,
-    Visitech_LRS10_Device,
     Component,
     Color,
     set_fn,
@@ -18,44 +26,37 @@ set_fn(50)
 # chan_size = (8, 8, 6)
 # # Add label
 # component.add_label("default", Color.from_rgba((0, 255, 0, 127)))
-# Add a shape
-# component.add_shape(
-#     "simple_cube",
-#     component.make_cube((2, 2, 2), center=False).translate((1, 1, 1)),
-#     label="default",
-# )
-# # component.add_shape(
+# # Add a shape
+# # component.add_void(
+# #     "simple_cube",
+# #     Cube((2, 2, 2), center=False).translate((1, 1, 1)),
+# #     label="default",
+# # )
+# # component.add_void(
 # #     "simple_round_cube",
-# #     component.make_rounded_cube((10, 10, 10), (2.5, 2.5, 2.5), center=True),
+# #     RoundedCube((10, 10, 10), (2.5, 2.5, 2.5), center=True),
 # #     label="default",
 # # )
-# # component.add_shape(
-# #     "simple_sphere", component.make_sphere((2, 2, 2), center=False), label="default"
-# # )
-# # component.add_shape(
+# # component.add_void("simple_sphere", Sphere((2, 2, 2), center=False), label="default")
+# # component.add_void(
 # #     "simple_cylinder",
-# #     component.make_cylinder(r=1, h=2, center_xy=False, center_z=False),
+# #     Cylinder(radius=1, height=2, center_xy=False, center_z=False),
 # #     label="default",
 # # )
-# # component.add_shape("text", component.make_text("Hello!!"), label="default")
-# # component.add_shape(
+# # component.add_void("text", TextExtrusion("Hello!!"), label="default")
+# # component.add_void(
 # #     "import",
-# #     component.import_model("examples/Diamond_51.stl")
-# #     .resize((10, 10, 8))
-# #     .translate((-10, 0, 0)),
+# #     ImportModel("examples/Diamond_51.stl").resize((10, 10, 8)).translate((-10, 0, 0)),
 # #     label="default",
 # # )
-# # from pymfd.backend import TPMS
-# # component.add_shape(
+# # component.add_void(
 # #     f"tpms",
-# #     component.make_tpms_cell(
-# #         func=TPMS.diamond, size=(10, 10, 8), fill=0.0, refinement=50
-# #     ),
+# #     TPMS(func=TPMS.diamond, size=(10, 10, 8), fill=0.0, refinement=50),
 # #     label="default",
 # # )
-# # component.add_shape(
+# # component.add_void(
 # #     "polychannel",
-# #     component.make_polychannel(
+# #     Polychannel(
 # #         [
 # #             PolychannelShape("cube", position=(0, 20, 0), size=chan_size),
 # #             PolychannelShape(
@@ -73,9 +74,9 @@ set_fn(50)
 # #     ),
 # #     label="default",
 # # )
-# # component.add_shape(
+# # component.add_void(
 # #     "beziercurve",
-# #     component.make_polychannel(
+# #     Polychannel(
 # #         [
 # #             PolychannelShape("sphere", position=(0, 0, 0), size=chan_size),
 # #             BezierCurveShape(
@@ -102,7 +103,7 @@ set_fn(50)
 
 # # IMPORTANT: If you want to see inside the inverted device, you need to create you bulk shape last
 # device.add_label("device", Color.from_rgba((0, 255, 255, 63)))
-# bulk_cube = device.make_cube(device_size, center=False).translate(device_position)
+# bulk_cube = Cube(device_size, center=False).translate(device_position)
 # device.add_bulk_shape("cube", bulk_cube, label="device")
 
 # # Mesh the component
@@ -116,10 +117,10 @@ set_fn(50)
 # )
 
 # # # Rotation then translation
-# # c1 = TestCube().translate((10, 10, 0))
-# # c2 = TestCube().rotate(90).translate((10, 10, 0))
-# # c3 = TestCube().rotate(180).translate((10, 10, 0))
-# # c4 = TestCube().rotate(270).translate((10, 10, 0))
+# c1 = TestCube().translate((10, 10, 0))
+# c2 = TestCube().rotate(90).translate((10, 10, 0))
+# c3 = TestCube().rotate(180).translate((10, 10, 0))
+# c4 = TestCube().rotate(270).translate((10, 10, 0))
 
 # # Translation then rotation
 # # c1 = TestCube().translate((10, 10, 0))
@@ -200,7 +201,7 @@ set_fn(50)
 # r.route()
 
 # # IMPORTANT: If you want to see inside the inverted device, you need to create you bulk shape last
-# bulk_cube = device.make_cube(device_size, center=False)
+# bulk_cube = Cube(device_size, center=False)
 # bulk_cube.translate(device_position)
 # device.add_bulk_shape("bulk1", bulk_cube, label="device")
 
@@ -208,34 +209,34 @@ set_fn(50)
 # device.preview()
 # # device.render()
 
-############## 6 Create serpentine channel ##################
-component = Component(
-    size=(2560, 1600, 20), position=(0, 0, 0), px_size=0.0076, layer_size=0.01
-)
-chan_size = (8, 8, 6)
-# Add label
-component.add_label("default", Color.from_rgba((0, 255, 0, 127)))
-# Add a shape
-component.add_shape(
-    "polychannel",
-    component.make_polychannel(
-        [
-            PolychannelShape("cube", position=(0, 0, 0), size=(8, 8, 6)),
-            PolychannelShape(position=(0, 0, 16), corner_radius=8),
-            PolychannelShape(position=(100, 0, 0)),
-            PolychannelShape(position=(0, 16, 0)),
-            PolychannelShape(position=(-100, 0, 0)),
-            PolychannelShape(position=(0, 16, 0)),
-            PolychannelShape(position=(100, 0, 0)),
-            PolychannelShape(position=(0, 16, 0)),
-            PolychannelShape(position=(-100, 0, 0)),
-            PolychannelShape(position=(0, 16, 0)),
-            PolychannelShape(position=(100, 0, 0)),
-            PolychannelShape(position=(0, 0, -16), corner_radius=0),
-        ]
-    ),
-    label="default",
-)
+# ############## 6 Create serpentine channel ##################
+# component = Component(
+#     size=(2560, 1600, 20), position=(0, 0, 0), px_size=0.0076, layer_size=0.01
+# )
+# chan_size = (8, 8, 6)
+# # Add label
+# component.add_label("default", Color.from_rgba((0, 255, 0, 127)))
+# # Add a shape
+# component.add_void(
+#     "polychannel",
+#     Polychannel(
+#         [
+#             PolychannelShape("cube", position=(0, 0, 0), size=(8, 8, 6)),
+#             PolychannelShape(position=(0, 0, 16), corner_radius=8),
+#             PolychannelShape(position=(100, 0, 0)),
+#             PolychannelShape(position=(0, 16, 0)),
+#             PolychannelShape(position=(-100, 0, 0)),
+#             PolychannelShape(position=(0, 16, 0)),
+#             PolychannelShape(position=(100, 0, 0)),
+#             PolychannelShape(position=(0, 16, 0)),
+#             PolychannelShape(position=(-100, 0, 0)),
+#             PolychannelShape(position=(0, 16, 0)),
+#             PolychannelShape(position=(100, 0, 0)),
+#             PolychannelShape(position=(0, 0, -16), corner_radius=0),
+#         ]
+#     ),
+#     label="default",
+# )
 
-# Mesh the component
-component.preview()
+# # Mesh the component
+# component.preview()

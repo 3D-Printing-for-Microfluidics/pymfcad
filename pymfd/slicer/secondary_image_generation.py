@@ -87,7 +87,7 @@ def generate_secondary_images_from_folders(
         # Add membrane images back before doing morphological operations
         membrane_images = [
             info
-            for info in slice_metadata["membrane_slices"]
+            for info in slice_metadata.get("membrane_slices", [])
             if re.search(
                 rf"^{re.escape(Path(name).stem)}_membrane.*\.png$", info["image_name"]
             )
@@ -184,12 +184,14 @@ def generate_secondary_images_from_folders(
             slice_metadata["secondary_slices"] = []
         stem = Path(name).stem
         if bulk_image is not None and cv2.bitwise_xor(bulk_image, image).any():
+            meta["image_data"] = np.array(bulk_image)
             cv2.imwrite(str(image_path), bulk_image)
         if edge_image is not None:
             edge_path = get_unique_path(image_dir, stem, postfix="edge")
             slice_metadata["secondary_slices"].append(
                 {
                     "image_name": edge_path.name,
+                    "image_data": np.array(edge_image),
                     "layer_position": meta["layer_position"],
                     "exposure_settings": settings.edge_exposure_settings,
                     "position_settings": meta["position_settings"],

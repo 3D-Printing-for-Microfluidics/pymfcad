@@ -244,37 +244,29 @@ class Polychannel(Shape):
     def __init__(
         self,
         shapes: list[Union["PolychannelShape", "BezierCurveShape"]],
-        px_size: float = 0.0076,
-        layer_size: float = 0.01,
         show_only_shapes: bool = False,
     ):
         """
         ###### Initialize a Polychannel object.
         ###### Parameters:
         - shapes: List of PolychannelShape or BezierCurveShape objects defining the polychannel.
-        - px_size: Pixel size in mm (default: 0.0076).
-        - layer_size: Layer size in mm (default: 0.01).
         - show_only_shapes: If True, only show the shapes without hulls (default: False).
         """
-        super().__init__(px_size, layer_size)
+        super().__init__()
         shape_list = []
         shapes = self._validate_polychannel_shapes(shapes)
-        shapes = self._round_polychannel_corners(shapes, px_size, layer_size)
+        shapes = self._round_polychannel_corners(shapes)
         shapes = self._expand_bezier_shapes(shapes)
         for shape in shapes:
             if shape._shape_type == "cube":
                 s = Cube(
                     shape._size,
-                    px_size,
-                    layer_size,
                     center=True,
                     _no_validation=shape._no_validation,
                 )
             elif shape._shape_type == "sphere":
                 s = Sphere(
                     shape._size,
-                    px_size,
-                    layer_size,
                     center=True,
                     fn=shape._fn,
                     _no_validation=shape._no_validation,
@@ -283,8 +275,6 @@ class Polychannel(Shape):
                 s = RoundedCube(
                     shape._size,
                     shape._rounded_cube_radius,
-                    px_size,
-                    layer_size,
                     center=True,
                     fn=shape._fn,
                     _no_validation=shape._no_validation,
@@ -408,8 +398,6 @@ class Polychannel(Shape):
     def _round_polychannel_corners(
         self,
         shapes: list[Union[PolychannelShape, BezierCurveShape]],
-        px_size: float,
-        layer_size: float,
     ) -> list[Union[PolychannelShape, BezierCurveShape]]:
         """
         Use arc function to create non-manhattan corners for polychannel shapes.
@@ -443,9 +431,6 @@ class Polychannel(Shape):
 
                 # Blend the start and end sizes in real space
                 start_size = list(shape._size)
-                start_size[0] = start_size[0] * px_size
-                start_size[1] = start_size[1] * px_size
-                start_size[2] = start_size[2] * layer_size
                 end_size = start_size.copy()
                 start_size[start_dir] = 0
                 end_size[end_dir] = end_size[start_dir]
@@ -456,9 +441,6 @@ class Polychannel(Shape):
                 for point, rotation, t in zip(arc_points, rotations, ts):
                     # Interpolate the size based on the parameter t and convert back to px/layer
                     size = list(_lerp(start_size, end_size, t))
-                    size[0] = size[0] / px_size
-                    size[1] = size[1] / px_size
-                    size[2] = size[2] / layer_size
 
                     _no_validation = True
                     if t == 0:
@@ -521,12 +503,12 @@ class Polychannel(Shape):
 
         # r must be less than BA and BC length
         if r > round(np.linalg.norm(BA)) or r > round(np.linalg.norm(BC)):
-            print(f"Radius r: {r}")
+            print(f"\tℹ️ Radius r: {r}")
             print(
-                f"Incoming and outgoing channel lengths: {np.linalg.norm(BA)}, {np.linalg.norm(BC)}"
+                f"\tℹ️ Incoming and outgoing channel lengths: {np.linalg.norm(BA)}, {np.linalg.norm(BC)}"
             )
             raise ValueError(
-                "Radius r is larger than incoming and outgoing channel lengths"
+                "❌ Radius r is larger than incoming and outgoing channel lengths"
             )
 
         # Angle and bisector
@@ -539,11 +521,11 @@ class Polychannel(Shape):
         if round(offset) > round(np.linalg.norm(BA)) or round(offset) > round(
             np.linalg.norm(BC)
         ):
-            print(f"Offset: {offset}")
+            print(f"\tℹ️ Offset: {offset}")
             print(
-                f"Incoming and outgoing channel lengths: {np.linalg.norm(BA)}, {np.linalg.norm(BC)}"
+                f"\tℹ️ Incoming and outgoing channel lengths: {np.linalg.norm(BA)}, {np.linalg.norm(BC)}"
             )
-            raise ValueError("Arc radius is too large geometry")
+            raise ValueError("❌ Arc radius is too large geometry")
         P1 = B + uBA * offset  # start of arc
         P2 = B + uBC * offset  # end of arc
 

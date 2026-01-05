@@ -1,6 +1,10 @@
+import tracemalloc
+
+tracemalloc.start()
+
 from pymfd.component_library import Valve20px
 from pymfd.router import Router
-from pymfd import set_fn, Visitech_LRS10_Device, Component, Color
+from pymfd import set_fn, Visitech_LRS10_Device, Component, Color, Cube
 from pymfd.slicer import Slicer
 
 from pymfd.slicer import (
@@ -63,17 +67,17 @@ device.add_label("white", Color.from_rgba((255, 255, 255, 127)))
 
 chan_size = (8, 8, 6)
 
-x = 2
-y = 2
-z = 2
+# x = 2
+# y = 2
+# z = 2
 
 # x = 2
 # y = 2
 # z = 7
 
-# x = 50
-# y = 32
-# z = 7
+x = 50
+y = 32
+z = 7
 
 valve_grid = []
 for l in range(z):
@@ -102,10 +106,6 @@ for l in range(z):
         else:
             valve_col.append(valve_row)
     valve_grid.append(valve_col)
-
-from pymfd.component_library.pinhole import Pinhole
-
-device.add_subcomponent("TestPinhole", Pinhole(channel_size=(6, 6, 4)))
 
 device.relabel_labels([f"device"], "device")
 device.relabel_labels([f"pneumatic"], "pneumatic")
@@ -138,21 +138,36 @@ for l in range(z):
                 rtr.autoroute_channel(v1.P_OUT, v2.P_IN, label="pneumatic")
             except TypeError:
                 pass
+
+snapshot = tracemalloc.take_snapshot()
+top_stats = snapshot.statistics("lineno")
+print("[ Top 10 ]")
+for stat in top_stats[:10]:
+    print(stat)
+
 rtr.route()
 
 # IMPORTANT: If you want to see inside the inverted device, you need to create you bulk shape last
-bulk_cube = device.make_cube(device._size, center=False)
+bulk_cube = Cube(device._size, center=False)
 bulk_cube.translate(device._position)
 device.add_bulk_shape("bulk_cube", bulk_cube, label="device")
+
+snapshot = tracemalloc.take_snapshot()
+top_stats = snapshot.statistics("lineno")
+print("[ Top 10 ]")
+for stat in top_stats[:10]:
+    print(stat)
 
 # Mesh the component
 # device.render("component.glb", do_bulk_difference=False)
 # device.render("component.glb")
 device.preview()
-# device.preview(render_bulk=True)
-# device.preview(render_bulk=True, wireframe=True)
-# device.preview(render_bulk=True, do_bulk_difference=True)
-# device.preview(render_bulk=True, do_bulk_difference=True, wireframe=True)
+
+snapshot = tracemalloc.take_snapshot()
+top_stats = snapshot.statistics("lineno")
+print("[ Top 10 ]")
+for stat in top_stats[:10]:
+    print(stat)
 
 slicer = Slicer(
     device=device,

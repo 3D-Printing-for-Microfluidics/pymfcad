@@ -37,23 +37,13 @@ def _slice(
     # Slice at layer size
     slice_num = 0
     slice_position = 0
-    actual_slice_position = (
-        expanded_layer_sizes[0] / 2
-        if isinstance(device, VariableLayerThicknessComponent)
-        else device._layer_size / 2
-    )
-    device_height = (
-        device._get_device_height()
-        if isinstance(device, VariableLayerThicknessComponent)
-        else device.get_size()[2] * device._layer_size
-    )
+    actual_slice_position = 0.5
+    device_height = device.get_size()[2]
     if _type != "":
-        _type += " "
-    print(f"\tSlicing {type(device).__name__} {_type}...")
+        _type = " " + _type
+    print(f"\tSlicing {type(device).__name__}{_type}...")
     while actual_slice_position < device_height:
-        slice_height = (
-            device.get_position()[2] * device._layer_size + actual_slice_position
-        )
+        slice_height = device.get_position()[2] + actual_slice_position
         polygons = composite_shape._object.slice(slice_height).to_polygons()
         print(
             f"\r\t\tLayer {slice_num} at z={actual_slice_position:.4f}/{slice_position:.4f}/{slice_height:.4f} ({len(polygons)} polygons)",
@@ -64,10 +54,7 @@ def _slice(
         # Translate polygons from device position to pixel space
         # subtract device position (x&y only, convert to pixel space) from polygons
         # This assumes polygons are in mm, so we need to convert to pixel space
-        polygons = [
-            poly - np.array(device.get_position()[:2]) * device._px_size
-            for poly in polygons
-        ]
+        polygons = [poly - np.array(device.get_position()[:2]) for poly in polygons]
 
         # Create a new blank grayscale image
         img = Image.new("L", resolution, 0)
@@ -76,7 +63,7 @@ def _slice(
         # Step 3: Draw each polygon
         for poly in polygons:
             # snap to pixel grid
-            transformed = np.round(poly / device._px_size).astype(int)
+            transformed = np.round(poly).astype(int)
             transformed[:, 1] = img.height - transformed[:, 1]
             points = [tuple(p) for p in transformed]
 
@@ -110,15 +97,17 @@ def _slice(
             slice_position += expanded_layer_sizes[slice_num]
             if slice_num < len(expanded_layer_sizes) - 1:
                 actual_slice_position += (
-                    expanded_layer_sizes[slice_num] / 2
-                    + expanded_layer_sizes[slice_num + 1] / 2
+                    expanded_layer_sizes[slice_num] / device._layer_size / 2
+                    + expanded_layer_sizes[slice_num + 1] / device._layer_size / 2
                 )
             else:
-                # If this is the last slice, just use the layer size
-                actual_slice_position += expanded_layer_sizes[slice_num]
+                #     # If this is the last slice, just use the layer size
+                actual_slice_position += (
+                    expanded_layer_sizes[slice_num] / device._layer_size
+                )
         else:
             slice_position += device._layer_size
-            actual_slice_position += device._layer_size
+            actual_slice_position += 1.0
 
         if len(sliced_devices) > 0:
             device_index = sliced_devices.index(device)
@@ -165,10 +154,7 @@ def slice_component(
             device.get_position()[2] * device._layer_size
             - device._parent.get_position()[2] * device._parent._layer_size
         )
-        # print(
-        #     device.get_position()[2] * device._layer_size,
-        #     device._parent.get_position()[2] * device._parent._layer_size,
-        # )
+
     ############## Only slice components when nessicary ##############
     # Check if component with same instantiation parameters has already been sliced
     if device in sliced_devices:
@@ -218,8 +204,6 @@ def slice_component(
                 (bbox[4] - bbox[1]) - device._px_size * 0.1,
                 (bbox[5] - bbox[2]) - device._layer_size * 0.1,
             ),
-            px_size=device._px_size,
-            layer_size=device._layer_size,
             center=False,
         ).translate(
             (
