@@ -1,7 +1,3 @@
-import tracemalloc
-
-tracemalloc.start()
-
 from pymfd.component_library import Valve20px
 from pymfd.router import Router
 from pymfd import set_fn, Visitech_LRS10_Device, Component, Color, Cube
@@ -139,12 +135,6 @@ for l in range(z):
             except TypeError:
                 pass
 
-snapshot = tracemalloc.take_snapshot()
-top_stats = snapshot.statistics("lineno")
-print("[ Top 10 ]")
-for stat in top_stats[:10]:
-    print(stat)
-
 rtr.route()
 
 # IMPORTANT: If you want to see inside the inverted device, you need to create you bulk shape last
@@ -152,22 +142,10 @@ bulk_cube = Cube(device._size, center=False)
 bulk_cube.translate(device._position)
 device.add_bulk_shape("bulk_cube", bulk_cube, label="device")
 
-snapshot = tracemalloc.take_snapshot()
-top_stats = snapshot.statistics("lineno")
-print("[ Top 10 ]")
-for stat in top_stats[:10]:
-    print(stat)
-
 # Mesh the component
 # device.render("component.glb", do_bulk_difference=False)
 # device.render("component.glb")
 device.preview()
-
-snapshot = tracemalloc.take_snapshot()
-top_stats = snapshot.statistics("lineno")
-print("[ Top 10 ]")
-for stat in top_stats[:10]:
-    print(stat)
 
 slicer = Slicer(
     device=device,

@@ -1,7 +1,4 @@
 import inspect
-import tracemalloc
-
-tracemalloc.start()
 from pymfd.component_library import Pinhole
 
 from pymfd import *
@@ -722,19 +719,7 @@ dev.add_bulk_shape(
     label="device",
 )
 
-snapshot = tracemalloc.take_snapshot()
-top_stats = snapshot.statistics("lineno")
-print("[ Top 10 ]")
-for stat in top_stats[:10]:
-    print(stat)
-
 dev.preview()
-
-snapshot = tracemalloc.take_snapshot()
-top_stats = snapshot.statistics("lineno")
-print("[ Top 10 ]")
-for stat in top_stats[:10]:
-    print(stat)
 
 settings = Settings(
     # user="Test User",
