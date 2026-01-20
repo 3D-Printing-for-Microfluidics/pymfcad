@@ -4,6 +4,7 @@ Prev: [Extra 3: Stitching Devices](e3-stitching.md)
 Embedding lets you place a **complete device** (its own labels, shapes, and layers) **inside another device**. This is useful for printing a high‑resolution section inside a larger low‑resolution device.
 
 Key ideas:
+
 - Embedded devices are sliced separately, then injected into the parent device’s print layers.
 - Offsets are computed **relative to the parent device’s center**.
 - Z translations are preserved (child layers are shifted up/down in microns).
@@ -70,6 +71,7 @@ parent.add_subcomponent("inset", child.translate((100,100,100)))
 ```
 
 When slicing:
+
 - The child’s **center** is aligned relative to the parent’s **center**.
 - Any child translation (x/y/z) compounds through the hierarchy.
 - Z offsets are applied in microns to the child’s layers.

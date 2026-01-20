@@ -52,6 +52,7 @@ In the lower left corner, there are two buttons: one to reset the camera and ano
 ## Step 4 — Camera controls
 
 You can control the camera using your mouse:
+
 - **Right mouse button:** Orbit the camera around a fixed point.
 - **Left mouse button:** Reposition the camera.
 - **Scroll wheel:** Zoom in and out.

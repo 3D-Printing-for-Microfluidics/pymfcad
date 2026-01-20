@@ -36,6 +36,7 @@ component = openmfd.Component(
 Labels are **named color groups**. Every shape you add must reference a label. Labels are used for visualization and for grouping features.
 
 Rules:
+
 - Label names must be valid Python identifiers (no spaces, must start with a letter).
 - Each label has a `Color`.
 
@@ -45,6 +46,7 @@ component.add_label("bulk", openmfd.Color.from_name("aqua", 127))
 ```
 
 Common color constructors:
+
 - `Color.from_rgba((r, g, b, a))`
 - `Color.from_rgba_percent((r, g, b, a))`
 - `Color.from_hex("FFFFFF", a)`

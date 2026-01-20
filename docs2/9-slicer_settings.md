@@ -106,6 +106,7 @@ Think of `Settings` as the **print recipe** for the entire device. It contains p
 ### `Settings`
 
 Container that bundles everything needed by the slicer.
+
 - **You set it once per print** (or per device family).
 - It stores **printer**, **resin**, and **default layer behavior**.
 - It can be saved/loaded from JSON for repeatability.
@@ -113,6 +114,7 @@ Container that bundles everything needed by the slicer.
 ### `Printer`
 
 Describes the hardware platform (name + available light engines).
+
 - The slicer uses this to validate geometry and pick the right light engine.
 - If your printer has multiple light engines, list them all here.
 - It can be saved/loaded from JSON for repeatability.
@@ -120,6 +122,7 @@ Describes the hardware platform (name + available light engines).
 ### `LightEngine`
 
 Describes the optics that define pixel resolution.
+
 - `name` links the link engine to the actual printer. It must be the same as the light engine name in the printer hardware config.
 - `px_size` and `px_count` set the **physical resolution**.
 - `wavelengths` is used to match the resin exposure wavelength.
@@ -128,18 +131,21 @@ Describes the optics that define pixel resolution.
 ### `ResinType`
 
 Metadata used for **traceability** and consistent settings across experiments.
+
 - Tracks monomers, absorbers, initiators, and additives as percentages.
 - These values are saved into the settings JSON and exported with the print file.
 
 ### `PositionSettings`
 
 Controls **motion behavior** between layers (lift, speeds, waits, squeeze).
+
 - Think of this as the mechanical side of the print.
 - Use defaults unless you have a known motion profile to apply.
 
 ### `ExposureSettings`
 
 Controls **light exposure behavior** per layer (time, power, wavelength).
+
 - This is where you tune curing behavior.
 - Use defaults first; adjust only after test prints.
 
@@ -171,6 +177,7 @@ device.set_burn_in_exposure([600.0, 600.0, 450.0])
 ## Step 4 — Preview your device before slicing
 
 Always preview the device to confirm:
+
 - The channel is inside the bulk
 - Labels are correct
 - Nothing is missing or inverted

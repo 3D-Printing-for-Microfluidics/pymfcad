@@ -18,9 +18,9 @@ OpenMFD is available on PyPI. The recommended installation method uses [uv](http
 ## Recommended: Install with uv
 
 1. (Optional) Create a new project directory:
-    ```bash
-    mkdir my-mfd-project && cd my-mfd-project
-    ```
+```bash
+mkdir my-mfd-project && cd my-mfd-project
+```
 2. Install [uv](https://github.com/astral-sh/uv) if you don't have it:
     ```bash
     pip install uv
@@ -52,10 +52,16 @@ uv run python -m examples.full_test
       source env/bin/activate
       ```
     - Windows:
-      ```cmd
-      python -m venv env
-      CALL env\Scripts\activate
-      ```
+        - Command Prompt:
+            ```cmd
+            python -m venv env
+            CALL env\Scripts\activate
+            ```
+        - Windows PowerShell:
+            ```
+            python -m venv env
+            .\env\Scripts\Activate.ps1
+            ```
 2. Install OpenMFD from PyPI:
     ```bash
     pip install openmfd

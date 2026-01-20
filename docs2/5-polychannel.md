@@ -4,6 +4,7 @@ Prev: [Part 4: Creating Your First Component](4-building_first_component.md)
 A **polychannel** is a high-level channel shape built from a sequence of simple shapes that are automatically hulled together. It is the easiest way to make smooth, variable-width channels.
 
 Polychannels are powerful because they let you:
+
 - Blend shapes (cube → rounded cube → sphere)
 - Change cross‑section along the path
 - Add rounded bends or smooth Bézier curves

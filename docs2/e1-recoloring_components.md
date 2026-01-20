@@ -38,6 +38,7 @@ device.relabel_labels(["pneumatic"], "control")
 ```
 
 Notes:
+
 - This can be applied recursively across subcomponents.
 - It preserves structure but updates colors and label names.
 

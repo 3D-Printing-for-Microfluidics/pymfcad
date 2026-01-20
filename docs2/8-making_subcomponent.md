@@ -12,6 +12,7 @@ Use the template here: [Custom Component Template](r3-component_template.md).
 Subcomponents should subclass `Component` (or `VariableLayerThicknessComponent` when needed).
 
 Key requirements:
+
 - Implement `__init__` with parameters you want to expose.
 - Save constructor arguments in `self.init_args` and `self.init_kwargs`.
 - Call `super().__init__()` with size, position, and resolution.

@@ -27,6 +27,7 @@ Think of it as a recipe: defaults at the top, exceptions at the layer level.
 Global file info and where to find the slice images.
 
 **Key fields**
+
 - `Schema version`: version of the schema used to validate this file
 - `Image directory`: relative folder containing the slices (usually `slices`)
 - `Comment` (optional)
@@ -36,6 +37,7 @@ Global file info and where to find the slice images.
 Human-facing metadata. This is not required for printing, but it is essential for traceability.
 
 **Common fields**
+
 - `User`, `Purpose`, `Description`
 - `Resin`, `3D printer`, `Slicer`, `Date`
 - `Design file`, `STL file` (optional)
@@ -45,6 +47,7 @@ Human-facing metadata. This is not required for printing, but it is essential fo
 The global defaults applied to every layer unless overridden later.
 
 **Contains**
+
 - `Position settings`: motion profile (lift, wait, speed)
 - `Image settings`: exposure profile (exposure time, power, wavelength)
 - `Number of duplications`: how many times to repeat the layer
@@ -59,6 +62,7 @@ If a layer entry includes overrides, it can replace **position settings**, **ima
 Layers can also reference a **named layer group** using `Using named layer group`.
 
 Use overrides for:
+
 - burn-in (longer early exposures)
 - membrane steps
 - selective dose changes above features

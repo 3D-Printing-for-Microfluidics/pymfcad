@@ -35,6 +35,8 @@ nav:
 theme: readthedocs
 
 markdown_extensions:
+    - pymdownx.superfences
+    - pymdownx.highlight
     - pymdownx.arithmatex:
             generic: true
 
