@@ -3,6 +3,15 @@ from __future__ import annotations
 import json
 import datetime
 
+class SpecialPrintTechniques:
+    def __init__(self):
+        pass
+
+class PrintUnderVacuum(SpecialPrintTechniques):
+    def __init__(self, enabled: bool = False, target_vacuum_level_torr: float = 10.0, vacuum_wait_time: float = 0.0):
+        self.enabled = enabled
+        self.target_vacuum_level_torr = target_vacuum_level_torr
+        self.vacuum_wait_time = vacuum_wait_time    
 
 class Settings:
     def __init__(
@@ -11,7 +20,7 @@ class Settings:
         resin: ResinType,
         default_position_settings: PositionSettings,
         default_exposure_settings: ExposureSettings,
-        print_under_vacuum: bool = False,
+        special_print_techniques: list[SpecialPrintTechniques] = [],
         user: str = "",
         purpose: str = "",
         description: str = "",
@@ -34,14 +43,6 @@ class Settings:
             default_position_settings.down_speed = 20.0
         if default_position_settings.down_acceleration is None:
             default_position_settings.down_acceleration = 50.0
-        if default_position_settings.force_squeeze is None:
-            default_position_settings.force_squeeze = False
-        if default_position_settings.squeeze_count is None:
-            default_position_settings.squeeze_count = 0
-        if default_position_settings.squeeze_force is None:
-            default_position_settings.squeeze_force = 0.0
-        if default_position_settings.squeeze_wait is None:
-            default_position_settings.squeeze_wait = 0.0
         if default_position_settings.final_wait is None:
             default_position_settings.final_wait = 0.0
 
@@ -65,7 +66,6 @@ class Settings:
 
         self.settings = {
             "Schema version": "5.0.0",
-            "Print under vacuum": print_under_vacuum,
             "User": user,
             "Purpose": purpose,
             "Description": description,
@@ -77,8 +77,18 @@ class Settings:
                 "Number of duplications": 1,
                 "Position settings": default_position_settings.to_dict(),
                 "Image settings": default_exposure_settings.to_dict(),
-            },
+            }
         }
+
+        self.settings["Special print techniques"] = {}
+
+        for sps in special_print_techniques:
+            if isinstance(sps, PrintUnderVacuum):
+                self.settings["Special print techniques"]["Print under vacuum"] = {
+                    "Enable vacuum": sps.enabled,
+                    "Target vacuum level (Torr)": sps.target_vacuum_level_torr,
+                    "Vacuum wait time (sec)": sps.vacuum_wait_time,
+                }
 
     def save(self, filename: str = "settings.json"):
         """Save the settings to a JSON file."""
@@ -86,7 +96,6 @@ class Settings:
         save_settings["Resin"] = vars(self.resin)
         save_settings["Printer name"] = self.printer.name
         save_settings["Printer xy stage available"] = self.printer.xy_stage_available
-        save_settings["Printer vacuum available"] = self.printer.vaccum_available
         save_settings["Printer light engines"] = [
             vars(le) for le in self.printer.light_engines
         ]
@@ -121,8 +130,20 @@ class Settings:
         )
         default_position = PositionSettings(**settings_data["Default position settings"])
         default_exposure = ExposureSettings(**settings_data["Default exposure settings"])
+
+        special_print_techniques: list[SpecialPrintTechniques] = []
+        for key, value in settings_data.get("Special print techniques", {}).items():
+            if key == "Print under vacuum":
+                special_print_techniques.append(
+                    PrintUnderVacuum(
+                        enabled=value.get("Enable vacuum", False),
+                        target_vacuum_level_torr=value.get(
+                            "Target vacuum level (Torr)", 10.0
+                        ),
+                        vacuum_wait_time=value.get("Vacuum wait time (sec)", 0.0),
+                    )
+                )
         return cls(
-            print_under_vacuum=settings_data["Print under vacuum"],
             user=settings_data["User"],
             purpose=settings_data["Purpose"],
             description=settings_data["Description"],
@@ -130,6 +151,7 @@ class Settings:
             printer=printer,
             default_position_settings=default_position,
             default_exposure_settings=default_exposure,
+            special_print_techniques=special_print_techniques,
         )
 
 
@@ -261,14 +283,14 @@ class Printer:
         name: str,
         light_engines: list[LightEngine],
         xy_stage_available: bool = False,
-        vaccum_available: bool = False,
+        vacuum_available: bool = False,
     ):
         self.name = name
         self.light_engines = (
             [light_engines] if isinstance(light_engines, LightEngine) else light_engines
         )
         self.xy_stage_available = xy_stage_available
-        self.vaccum_available = vaccum_available
+        self.vacuum_available = vacuum_available
 
     def save(self, filename: str):
         """Save the printer settings to a JSON file."""
@@ -276,7 +298,7 @@ class Printer:
             "name": self.name,
             "light_engines": [vars(le) for le in self.light_engines],
             "xy_stage_available": self.xy_stage_available,
-            "vaccum_available": self.vaccum_available,
+            "vacuum_available": self.vacuum_available,
         }
         with open(filename, "w") as f:
             json.dump(printer_data, f, indent=4)
@@ -290,7 +312,7 @@ class Printer:
             printer_data["name"],
             light_engines,
             printer_data["xy_stage_available"],
-            printer_data["vaccum_available"],
+            printer_data["vacuum_available"],
         )
 
     def get_light_engine(self, px_size, px_count, wavelength):
@@ -307,6 +329,16 @@ class Printer:
             f"No matching light engine found (px_size={px_size}, px_count={px_count}, wavelength={wavelength})"
         )
 
+class SpecialLayerTechniques:
+    def __init__(self):
+        pass
+
+class SqueezeOutResin(SpecialLayerTechniques):
+    def __init__(self, enabled: bool = False, count: int = 0, squeeze_force: float = 0.0, squeeze_time: float = 0.0):
+        self.enabled = enabled
+        self.count = count
+        self.squeeze_force = squeeze_force
+        self.squeeze_time = squeeze_time
 
 class PositionSettings:
     def __init__(
@@ -319,11 +351,8 @@ class PositionSettings:
         up_wait: float = None,
         down_speed: float = None,
         down_acceleration: float = None,
-        force_squeeze: bool = None,
-        squeeze_count: int = None,
-        squeeze_force: float = None,
-        squeeze_wait: float = None,
         final_wait: float = None,
+        special_layer_techniques: list[SpecialLayerTechniques] = [],
     ):
         # DEFAULT VALUES
         # # layer_thickness: float = 10.0,
@@ -334,10 +363,6 @@ class PositionSettings:
         # up_wait: float = 0.0,
         # down_speed: float = 20.0,
         # down_acceleration: float = 50.0,
-        # force_squeeze: bool = False,
-        # squeeze_count: int = 0,
-        # squeeze_force: float = 0.0,
-        # squeeze_wait: float = 0.0,
         # final_wait: float = 0.0,
 
         self.layer_thickness = None
@@ -348,15 +373,12 @@ class PositionSettings:
         self.up_wait = up_wait
         self.down_speed = down_speed
         self.down_acceleration = down_acceleration
-        self.force_squeeze = force_squeeze
-        self.squeeze_count = squeeze_count
-        self.squeeze_force = squeeze_force
-        self.squeeze_wait = squeeze_wait
         self.final_wait = final_wait
+        self.special_layer_techniques = special_layer_techniques
 
     def to_dict(self):
         """Convert position settings to a dictionary."""
-        return {
+        temp_dict = {
             "Layer thickness (um)": self.layer_thickness,
             "Distance up (mm)": self.distance_up,
             "Initial wait (ms)": self.initial_wait,
@@ -365,12 +387,19 @@ class PositionSettings:
             "Up wait (ms)": self.up_wait,
             "BP down speed (mm/sec)": self.down_speed,
             "BP down acceleration (mm/sec^2)": self.down_acceleration,
-            "Enable force squeeze": self.force_squeeze,
-            "Squeeze count": self.squeeze_count,
-            "Squeeze force (N)": self.squeeze_force,
-            "Squeeze wait (ms)": self.squeeze_wait,
             "Final wait (ms)": self.final_wait,
         }
+        if len(self.special_layer_techniques) > 0:
+            temp_dict["Special layer techniques"] = {}
+            for slt in self.special_layer_techniques:
+                if isinstance(slt, SqueezeOutResin):
+                    temp_dict["Special layer techniques"]["Squeeze out resin"] = {
+                        "Enable squeeze": slt.enabled,
+                        "Squeeze count": slt.count,
+                        "Squeeze force (N)": slt.squeeze_force,
+                        "Squeeze time (ms)": slt.squeeze_time,
+                    }
+        return temp_dict
 
     def __eq__(self, other):
         if not isinstance(other, PositionSettings):
@@ -388,11 +417,8 @@ class PositionSettings:
             up_wait=self.up_wait,
             down_speed=self.down_speed,
             down_acceleration=self.down_acceleration,
-            force_squeeze=self.force_squeeze,
-            squeeze_count=self.squeeze_count,
-            squeeze_force=self.squeeze_force,
-            squeeze_wait=self.squeeze_wait,
             final_wait=self.final_wait,
+            special_layer_techniques=self.special_layer_techniques.copy(),
         )
 
     def fill_with_defaults(
@@ -404,6 +430,19 @@ class PositionSettings:
             if getattr(self, var) is None:
                 setattr(self, var, getattr(defaults, var))
 
+class SpecialImageTechniques:
+    def __init__(self):
+        pass
+
+class ZeroMicronLayer(SpecialImageTechniques):
+    def __init__(self, enabled: bool = False, count: int = 0):
+        self.enabled = enabled
+        self.count = count
+
+class PrintOnFilm(SpecialImageTechniques):
+    def __init__(self, enabled: bool = False, distance_up_mm: float = 0.3):
+        self.enabled = enabled
+        self.distance_up = distance_up_mm
 
 class ExposureSettings:
     def __init__(
@@ -419,7 +458,7 @@ class ExposureSettings:
         relative_focus_position: float = None,
         wait_before_exposure: float = None,
         wait_after_exposure: float = None,
-        on_film: bool = False,
+        special_image_techniques: list[SpecialImageTechniques] = [],
         **kwargs,
     ):
         # DEFAULT VALUES
@@ -446,12 +485,12 @@ class ExposureSettings:
         self.relative_focus_position = relative_focus_position
         self.wait_before_exposure = wait_before_exposure
         self.wait_after_exposure = wait_after_exposure
-        self.on_film = on_film
+        self.special_image_techniques = special_image_techniques
         self.burnin = False
 
     def to_dict(self):
         """Convert exposure settings to a dictionary."""
-        return {
+        temp_dict = {
             "Image file": self.image_file,
             "Do light grayscale correction": self.grayscale_correction,
             "Image x offset (um)": self.image_x_offset,
@@ -464,6 +503,20 @@ class ExposureSettings:
             "Wait before exposure (ms)": self.wait_before_exposure,
             "Wait after exposure (ms)": self.wait_after_exposure,
         }
+        if len(self.special_image_techniques) > 0:
+            temp_dict["Special image techniques"] = {}
+            for sit in self.special_image_techniques:
+                if isinstance(sit, ZeroMicronLayer):
+                    temp_dict["Special image techniques"]["Zero micron layer"] = {
+                        "Enable zero micron": sit.enabled,
+                        "Zero micron count": sit.count,
+                    }
+                if isinstance(sit, PrintOnFilm):
+                    temp_dict["Special image techniques"]["Print on film"] = {
+                        "Enable print on film": sit.enabled,
+                        "Distance up (mm)": sit.distance_up,
+                    }
+        return temp_dict
 
     def __eq__(self, other):
         if not isinstance(other, ExposureSettings):
@@ -484,7 +537,7 @@ class ExposureSettings:
             relative_focus_position=self.relative_focus_position,
             wait_before_exposure=self.wait_before_exposure,
             wait_after_exposure=self.wait_after_exposure,
-            on_film=self.on_film,
+            special_image_techniques=self.special_image_techniques.copy(),
         )
 
     def fill_with_defaults(
@@ -504,14 +557,14 @@ class MembraneSettings:
         exposure_time: float = 0.0,
         dilation_px: int = 0,
         defocus_um: float = 0.0,
-        on_film: bool = False,
+        special_image_techniques: list[SpecialImageTechniques] = [],
     ):
         self.max_membrane_thickness_um = max_membrane_thickness_um
         self.dilation_px = dilation_px
         self.exposure_settings = ExposureSettings(
             exposure_time=exposure_time,
             relative_focus_position=defocus_um,
-            on_film=on_film,
+            special_image_techniques=special_image_techniques,
         )
 
     def __eq__(self, other):
@@ -530,7 +583,7 @@ class MembraneSettings:
             exposure_time=self.exposure_settings.exposure_time,
             dilation_px=self.dilation_px,
             defocus_um=self.exposure_settings.relative_focus_position,
-            on_film=self.exposure_settings.on_film,
+            special_image_techniques=self.exposure_settings.special_image_techniques.copy(),
         )
 
 
@@ -543,7 +596,6 @@ class SecondaryDoseSettings:
         roof_exposure_time: float = None,
         roof_erosion_px: int = 0,
         roof_layers_above: int = 0,
-        roof_on_film: bool = False,
     ):
         if edge_exposure_time is None:
             if edge_erosion_px > 0 or edge_dilation_px > 0:
@@ -561,7 +613,7 @@ class SecondaryDoseSettings:
         self.roof_layers_above = roof_layers_above
         self.edge_exposure_settings = ExposureSettings(exposure_time=edge_exposure_time)
         self.roof_exposure_settings = ExposureSettings(
-            exposure_time=roof_exposure_time, on_film=roof_on_film
+            exposure_time=roof_exposure_time
         )
 
     def __eq__(self, other):
@@ -585,5 +637,4 @@ class SecondaryDoseSettings:
             roof_exposure_time=self.roof_exposure_settings.exposure_time,
             roof_erosion_px=self.roof_erosion_px,
             roof_layers_above=self.roof_layers_above,
-            roof_on_film=self.roof_exposure_settings.on_film,
         )

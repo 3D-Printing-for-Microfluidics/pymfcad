@@ -1,0 +1,543 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "id": "v5.0.0",
+    "description": "Custom printer print job file schema for varying optical dose.",
+    "type": "object",
+    "required": [
+        "Header",
+        "Default layer settings"
+    ],
+    "additionalProperties": false,
+    "properties": {
+        "Header": {
+            "type": "object",
+            "required": [
+                "Schema version",
+                "Image directory"
+            ],
+            "additionalProperties": false,
+            "properties": {
+                "Schema version": {
+                    "type": "string",
+                    "default": "5.0.0",
+                    "pattern": "^5\\.\\d\\.\\d$",
+                    "description": "What version of the json schema to use to parse the file"
+                },
+                "Image directory": {
+                    "type": "string",
+                    "default": "slices",
+                    "description": "Directory relative to the json print job file where the images are saved."
+                },
+                "Comment": {
+                    "$ref": "#/$defs/COMMON_PROPS/Comment"
+                }
+            }
+        },
+        "Design": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "Comment": {
+                    "$ref": "#/$defs/COMMON_PROPS/Comment"
+                },
+                "User": {
+                    "type": "string",
+                    "default": "",
+                    "description": "Name of person who designed this device."
+                },
+                "Purpose": {
+                    "type": "string",
+                    "default": "",
+                    "description": "Information about what purpose the device is intended for."
+                },
+                "Description": {
+                    "type": "string",
+                    "default": "",
+                    "description": "More detailed explanation of the structure of the device."
+                },
+                "Resin": {
+                    "type": "string",
+                    "default": "",
+                    "description": "Resin intended for creating the device"
+                },
+                "3D printer": {
+                    "type": "string",
+                    "default": "",
+                    "description": "3D printer that the design what created for"
+                },
+                "Design file": {
+                    "type": "string",
+                    "default": "",
+                    "description": "Name of the scad file and/or the path to where the file is saved."
+                },
+                "STL file": {
+                    "type": "string",
+                    "default": "",
+                    "description": "Name of the stl file and/or the path to where the file is saved."
+                },
+                "Slicer": {
+                    "type": "string",
+                    "default": "",
+                    "description": "Name of the slicer used to make the image stack."
+                },
+                "Date": {
+                    "type": "string"
+                }
+            }
+        },
+        "Default layer settings": {
+            "type": "object",
+            "required": [
+                "Number of duplications",
+                "Position settings",
+                "Image settings"
+            ],
+            "additionalProperties": false,
+            "properties": {
+                "Comment": {
+                    "$ref": "#/$defs/COMMON_PROPS/Comment"
+                },
+                "Number of duplications": {
+                    "$ref": "#/$defs/COMMON_PROPS/Number_of_duplications"
+                },
+                "Position settings": {
+                    "allOf": [
+                        {
+                            "$ref": "#/$defs/POSITION_SETTINGS"
+                        },
+                        {
+                            "required": [
+                                "Layer thickness (um)",
+                                "Distance up (mm)",
+                                "Initial wait (ms)",
+                                "BP up speed (mm/sec)",
+                                "BP up acceleration (mm/sec^2)",
+                                "Up wait (ms)",
+                                "BP down speed (mm/sec)",
+                                "BP down acceleration (mm/sec^2)",
+                                "Final wait (ms)"
+                            ]
+                        }
+                    ]
+                },
+                "Image settings": {
+                    "allOf": [
+                        {
+                            "$ref": "#/$defs/IMAGE_SETTINGS"
+                        },
+                        {
+                            "required": [
+                                "Image file",
+                                "Layer exposure time (ms)",
+                                "Light engine",
+                                "Light engine power setting",
+                                "Light engine wavelength (nm)",
+                                "Relative focus position (um)",
+                                "Wait before exposure (ms)",
+                                "Wait after exposure (ms)"
+                            ]
+                        }
+                    ]
+                }
+            }
+        },
+        "Variables": {
+            "allOf": [
+                {
+                    "$ref": "#/$defs/COMMON_PROPS/Variables"
+                }
+            ]
+        },
+        "Named position settings": {
+            "type": "object",
+            "properties": {
+                "Comment": {
+                    "$ref": "#/$defs/COMMON_PROPS/Comment"
+                }
+            },
+            "additionalProperties": {
+                "$ref": "#/$defs/POSITION_SETTINGS"
+            }
+        },
+        "Named image settings": {
+            "type": "object",
+            "properties": {
+                "Comment": {
+                    "$ref": "#/$defs/COMMON_PROPS/Comment"
+                }
+            },
+            "additionalProperties": {
+                "$ref": "#/$defs/IMAGE_SETTINGS"
+            }
+        },
+        "Named layer groups": {
+            "type": "object",
+            "properties": {
+                "Comment": {
+                    "$ref": "#/$defs/COMMON_PROPS/Comment"
+                }
+            },
+            "additionalProperties": {
+                "type": "array",
+                "items": {
+                    "$ref": "#/$defs/LAYER_BASE"
+                }
+            }
+        },
+        "Special print techniques": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "Comment": {
+                    "$ref": "#/$defs/COMMON_PROPS/Comment"
+                },
+                "Print under vacuum": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "default": {},
+                    "description": "Settings for printing under vacuum.",
+                    "properties": {
+                        "Enable vacuum": {
+                            "type": "boolean",
+                            "default": false,
+                            "description": "Should the printer print under vacuum?"
+                        },
+                        "Target vacuum level (Torr)": {
+                            "type": "number",
+                            "minimum": 0,
+                            "default": 10,
+                            "description": "Target vacuum level to reach before starting the print."
+                        },
+                        "Vacuum wait time (sec)": {
+                            "type": "number",
+                            "minimum": 0,
+                            "default": 0,
+                            "description": "Time to wait at target vacuum level before starting the print."
+                        }
+                    }
+                }
+            }
+        },
+        "Layers": {
+            "type": "array",
+            "default": [],
+            "items": {
+                "oneOf": [
+                    {
+                        "$ref": "#/$defs/LAYER_BASE"
+                    },
+                    {
+                        "type": "object",
+                        "description": "Calls a pre-defined sequence of layers.",
+                        "required": [
+                            "Using named layer group"
+                        ],
+                        "additionalProperties": false,
+                        "properties": {
+                            "Comment": {
+                                "$ref": "#/$defs/COMMON_PROPS/Comment"
+                            },
+                            "Using named layer group": {
+                                "type": "string"
+                            },
+                            "Number of duplications": {
+                                "$ref": "#/$defs/COMMON_PROPS/Number_of_duplications"
+                            },
+                            "Variables": {
+                                "allOf": [
+                                    {
+                                        "$ref": "#/$defs/COMMON_PROPS/Variables"
+                                    }
+                                ],
+                                "description": "Override global variables for variable in this specific named layer group instance."
+                            }
+                        }
+                    }
+                ]
+            }
+        }
+    },
+    "$defs": {
+        "COMMON_PROPS": {
+            "Comment": {
+                "type": "string",
+                "default": ""
+            },
+            "Number_of_duplications": {
+                "type": "integer",
+                "minimum": 1,
+                "default": 1,
+                "description": "Custom number of times to duplicate a layer"
+            },
+            "Variables": {
+                "type": "object",
+                "properties": {
+                    "Comment": {
+                        "$ref": "#/$defs/COMMON_PROPS/Comment"
+                    }
+                },
+                "additionalProperties": {
+                    "type": [
+                        "string",
+                        "number",
+                        "boolean"
+                    ]
+                },
+                "description": "Dictionary of variable names and their values to be used in variable substitution."
+            }
+        },
+        "LAYER_BASE": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "Comment": {
+                    "$ref": "#/$defs/COMMON_PROPS/Comment"
+                },
+                "Number of duplications": {
+                    "$ref": "#/$defs/COMMON_PROPS/Number_of_duplications"
+                },
+                "Position settings": {
+                    "$ref": "#/$defs/POSITION_SETTINGS"
+                },
+                "Using named default image settings": {
+                    "type": "string",
+                    "default": "",
+                    "description": "If set, use named image settings as default image settings for all exposures in this layer."
+                },
+                "Image settings list": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/$defs/IMAGE_SETTINGS"
+                    }
+                },
+                "Distance up (mm)": {
+                    "type": "number",
+                    "exclusiveMinimum": 0
+                }
+            }
+        },
+        "POSITION_SETTINGS": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "Comment": {
+                    "$ref": "#/$defs/COMMON_PROPS/Comment"
+                },
+                "Using named position settings": {
+                    "type": "string",
+                    "default": "",
+                    "description": "If set, use named position settings as default position settings for this layer."
+                },
+                "Layer thickness (um)": {
+                    "type": "number",
+                    "minimum": 0,
+                    "default": 10,
+                    "description": "Custom layer thickness"
+                },
+                "Distance up (mm)": {
+                    "allOf": [
+                        {
+                            "$ref": "#/$defs/COMMON_PROPS/Distance_up"
+                        }
+                    ],
+                    "description": "Distance to move the build up after completing a layer."
+                },
+                "Initial wait (ms)": {
+                    "type": "number",
+                    "minimum": 0,
+                    "default": 0,
+                    "description": "Time to wait between exposures."
+                },
+                "BP up speed (mm/sec)": {
+                    "type": "number",
+                    "minimum": 0,
+                    "default": 20,
+                    "description": "Specify the velocity of the build platform when moving up"
+                },
+                "BP up acceleration (mm/sec^2)": {
+                    "type": "number",
+                    "minimum": 0,
+                    "default": 20,
+                    "description": "Specify the acceleration of the build platform when moving up"
+                },
+                "Up wait (ms)": {
+                    "type": "number",
+                    "minimum": 0,
+                    "default": 0,
+                    "description": "How long to wait after the build platform has been moved up to start moving back down."
+                },
+                "BP down speed (mm/sec)": {
+                    "type": "number",
+                    "minimum": 0,
+                    "default": 20,
+                    "description": "Specify the velocity of the build platform when moving down"
+                },
+                "BP down acceleration (mm/sec^2)": {
+                    "type": "number",
+                    "minimum": 0,
+                    "default": 20,
+                    "description": "Specify the acceleration of the build platform when moving down"
+                },
+                "Final wait (ms)": {
+                    "type": "number",
+                    "minimum": 0,
+                    "default": 0,
+                    "description": "Time to wait after final exposure on a layer"
+                },
+                "Special layer techniques": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "description": "Any special techniques to use for this layer.",
+                    "properties": {
+                        "Squeeze out resin": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "description": "Settings for squeezing out resin before this layer.",
+                            "properties": {
+                                "Enable squeeze": {
+                                    "type": "boolean",
+                                    "default": false,
+                                    "description": "Should the printer squeeze out resin before a layer"
+                                },
+                                "Squeeze count": {
+                                    "type": "integer",
+                                    "minimum": 0,
+                                    "default": 0,
+                                    "description": "How many times is the printer squeezing out resin."
+                                },
+                                "Squeeze force (N)": {
+                                    "type": "number",
+                                    "minimum": 0,
+                                    "default": 40,
+                                    "description": "Force to squeeze with"
+                                },
+                                "Squeeze time (ms)": {
+                                    "type": "number",
+                                    "minimum": 0,
+                                    "default": 100,
+                                    "description": "Time to squeeze"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "IMAGE_SETTINGS": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "Comment": {
+                    "$ref": "#/$defs/COMMON_PROPS/Comment"
+                },
+                "Using named image settings": {
+                    "type": "string",
+                    "default": "",
+                    "description": "If set, use named image settings as default image settings for this exposure."
+                },
+                "Image file": {
+                    "type": "string",
+                    "description": "Image file (png)"
+                },
+                "Do grayscale correction": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "Should the printer apply a grayscale irradiance correction to the white values of this image?"
+                },
+                "Image x offset (um)": {
+                    "type": "number",
+                    "default": 0,
+                    "description": "Default x stage position for layer."
+                },
+                "Image y offset (um)": {
+                    "type": "number",
+                    "default": 0,
+                    "description": "Default y stage position for layer."
+                },
+                "Layer exposure time (ms)": {
+                    "type": "number",
+                    "minimum": 0,
+                    "maximum": 10000,
+                    "description": "Default time to expose a single image layer for."
+                },
+                "Light engine": {
+                    "type": "string",
+                    "default": "visitech",
+                    "description": "Default light engine for exposure."
+                },
+                "Light engine power setting": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "default": 100,
+                    "maximum": 1000,
+                    "description": "Default power to expose an image at."
+                },
+                "Light engine wavelength (nm)": {
+                    "type": "integer",
+                    "default": 365,
+                    "description": "Wavelength to use for exposure."
+                },
+                "Relative focus position (um)": {
+                    "type": "number",
+                    "default": 0,
+                    "description": "Default relative focus position for this layer."
+                },
+                "Wait before exposure (ms)": {
+                    "type": "number",
+                    "minimum": 0,
+                    "default": 0,
+                    "description": "Wait time before exposure"
+                },
+                "Wait after exposure (ms)": {
+                    "type": "number",
+                    "minimum": 0,
+                    "default": 0,
+                    "description": "Wait time after exposure"
+                },
+                "Special image techniques": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "description": "Any special techniques to use for this exposure.",
+                    "properties": {
+                        "0 um layer": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "description": "Settings for duplicating this image with 0 um layer thickness.",
+                            "properties": {
+                                "Enable 0 um layer": {
+                                    "type": "boolean",
+                                    "default": false,
+                                    "description": "If true, duplicate this image with 0 um layer thickness."
+                                },
+                                "Number of duplications": {
+                                    "$ref": "#/$defs/COMMON_PROPS/Number_of_duplications"
+                                }
+                            }
+                        },
+                        "Print on film": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "description": "Settings for printing exposure attached only to film and not the build platform.",
+                            "properties": {
+                                "Enable print on film": {
+                                    "type": "boolean",
+                                    "default": false,
+                                    "description": "If true, use special technique to print on film."
+                                },
+                                "Distance up (mm)": {
+                                    "allOf": [
+                                        {
+                                            "$ref": "#/$defs/COMMON_PROPS/Distance_up"
+                                        }
+                                    ],
+                                    "default": 0.3,
+                                    "description": "Distance to move the build up before exposure."
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

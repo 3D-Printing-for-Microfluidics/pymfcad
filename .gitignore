@@ -9,6 +9,7 @@ settings.json
 test_slicer/
 embedded_device_demo/
 stitched_demo/
+special_techniques_demo/
 preview/
 tmp*/
 dist/

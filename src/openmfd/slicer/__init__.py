@@ -7,6 +7,10 @@ from .settings import (
     ExposureSettings,
     MembraneSettings,
     SecondaryDoseSettings,
+    PrintUnderVacuum,
+    SqueezeOutResin,
+    ZeroMicronLayer,
+    PrintOnFilm,
 )
 from .slicer import Slicer
 from .membrane_image_generation import generate_membrane_images_from_folders

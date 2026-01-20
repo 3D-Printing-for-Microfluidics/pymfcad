@@ -1055,7 +1055,6 @@ class Slicer:
                     "Image directory": (
                         "minimized_slices" if self.minimize_file else "slices"
                     ),
-                    "Print under vacuum": self.settings.settings["Print under vacuum"],
                 },
                 "Design": {
                     "User": self.settings.settings["User"],
@@ -1073,7 +1072,18 @@ class Slicer:
                 ],
                 "Named position settings": {},
                 "Named image settings": {},
+                "Named layer groups": {},
             }
+
+            if self.settings.settings.get("Special print techniques") and "Print under vacuum" in self.settings.settings["Special print techniques"].keys():
+                vacuum_settings = self.settings.settings["Special print techniques"]["Print under vacuum"]
+                print_settings["Special print techniques"] = {
+                    "Print under vacuum": {
+                        "Enable vacuum": vacuum_settings["Enable vacuum"],
+                        "Target vacuum level (Torr)": vacuum_settings["Target vacuum level (Torr)"],
+                        "Vacuum wait time (sec)": vacuum_settings["Vacuum wait time (sec)"]
+                    }
+                }
 
             # Update default layer settings based on the first embedded device
             print_settings["Default layer settings"]["Position settings"][
@@ -1250,24 +1260,47 @@ class Slicer:
                             position_settings = new_position_settings
                             position_settings["Layer thickness (um)"] = layer_thickness
                         else:
-                            if (
-                                "Enable force squeeze" in new_position_settings
-                                and new_position_settings["Enable force squeeze"] == True
-                            ):
-                                position_settings["Enable force squeeze"] = True
                             for key in [
                                 "Distance up (mm)",
                                 "Initial wait (ms)",
                                 "Up wait (ms)",
                                 "Final wait (ms)",
-                                "Squeeze count",
-                                "Squeeze force (N)",
-                                "Squeeze wait (ms)",
                             ]:
                                 if new_position_settings.get(
                                     key, 1e10
                                 ) > position_settings.get(key, 0):
                                     position_settings[key] = new_position_settings[key]
+                            if "Special layer techniques" in new_position_settings:
+                                if "Special layer techniques" not in position_settings:
+                                    position_settings["Special layer techniques"] = {}
+                                new_special = new_position_settings[
+                                    "Special layer techniques"
+                                ]
+                                if "Squeeze out resin" in new_special:
+                                    current = position_settings[
+                                        "Special layer techniques"
+                                    ].get("Squeeze out resin", {})
+                                    incoming = new_special["Squeeze out resin"]
+                                    position_settings["Special layer techniques"][
+                                        "Squeeze out resin"
+                                    ] = {
+                                        "Enable squeeze": current.get(
+                                            "Enable squeeze", False
+                                        )
+                                        or incoming.get("Enable squeeze", False),
+                                        "Squeeze count": max(
+                                            current.get("Squeeze count", 0),
+                                            incoming.get("Squeeze count", 0),
+                                        ),
+                                        "Squeeze force (N)": max(
+                                            current.get("Squeeze force (N)", 0.0),
+                                            incoming.get("Squeeze force (N)", 0.0),
+                                        ),
+                                        "Squeeze time (ms)": max(
+                                            current.get("Squeeze time (ms)", 0.0),
+                                            incoming.get("Squeeze time (ms)", 0.0),
+                                        ),
+                                    }
                             for key in [
                                 "BP up speed (mm/sec)",
                                 "BP up acceleration (mm/sec^2)",

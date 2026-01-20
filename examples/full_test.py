@@ -733,10 +733,9 @@ settings = Settings(
                 grayscale_available=[False],
             )
         ],
-        vaccum_available=False,
+        vacuum_available=False,
     ),
     resin=ResinType(),
-    print_under_vacuum=True,
     default_position_settings=PositionSettings(
         # distance_up=1.0,
         # initial_wait=0.0,
@@ -745,10 +744,6 @@ settings = Settings(
         # up_wait=0.0,
         # down_speed=20.0,
         # down_acceleration=50.0,
-        # force_squeeze=False,
-        # squeeze_count=0,
-        # squeeze_force=0.0,
-        # squeeze_wait=0.0,
         # final_wait=0.0,
     ),
     default_exposure_settings=ExposureSettings(

@@ -94,12 +94,21 @@ Rules:
 ## Slicing
 
 Settings objects (key parameters):
-- `Settings(printer, resin, default_position_settings, default_exposure_settings, print_under_vacuum=False, user="", purpose="", description="")`
-- `Printer(name, light_engines, xy_stage_available=False, vaccum_available=False)`
-- `LightEngine(px_size, px_count, wavelengths, grayscale_available=[False], origin=(0,0))`
+- `Settings(printer, resin, default_position_settings, default_exposure_settings, special_print_techniques=[...], user="", purpose="", description="")`
+- `Printer(name, light_engines, xy_stage_available=False, vacuum_available=False)`
+- `LightEngine(px_size, px_count, wavelengths, grayscale_available=[False])`
 - `ResinType(monomer=[...], uv_absorbers=[...], initiators=[...], additives=[...])`
-- `PositionSettings(distance_up, initial_wait, up_speed, up_acceleration, up_wait, down_speed, down_acceleration, force_squeeze, squeeze_count, squeeze_force, squeeze_wait, final_wait)`
-- `ExposureSettings(grayscale_correction, exposure_time, power_setting, wavelength, relative_focus_position, wait_before_exposure, wait_after_exposure, on_film=False)`
+- `PositionSettings(distance_up, initial_wait, up_speed, up_acceleration, up_wait, down_speed, down_acceleration, final_wait, special_layer_techniques=[...])`
+- `ExposureSettings(grayscale_correction, exposure_time, power_setting, wavelength, relative_focus_position, wait_before_exposure, wait_after_exposure, special_image_techniques=[...])`
+
+Special techniques:
+- Print:
+	- `PrintUnderVacuum(enabled=False, target_vacuum_level_torr=10.0, vacuum_wait_time=0.0)`
+- Position/Layer:
+	- `SqueezeOutResin(enabled=False, count=0, squeeze_force=0.0, squeeze_time=0.0)`
+- Image/Exposure:
+	- `ZeroMicronLayer(enabled=False, count=0)`
+	- `PrintOnFilm(enabled=False, distance_up_mm=0.3)`
 
 Device‑level defaults:
 - `device.add_default_position_settings(PositionSettings(...))`

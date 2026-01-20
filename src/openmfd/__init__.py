@@ -48,5 +48,9 @@ from .slicer import (
     ExposureSettings,
     MembraneSettings,
     SecondaryDoseSettings,
+    PrintUnderVacuum,
+    SqueezeOutResin,
+    ZeroMicronLayer,
+    PrintOnFilm,
     Slicer,
 )

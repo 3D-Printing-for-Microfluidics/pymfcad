@@ -76,4 +76,4 @@ This also makes slice previews and debugging much easier.
 
 ---
 
-Next: [Extra 2: Variable Layer Thickness Conponents](e2-variable_layer_thickness_components.md)
+Next: [Extra 2: Variable Layer Thickness Components](e2-variable_layer_thickness_components.md)

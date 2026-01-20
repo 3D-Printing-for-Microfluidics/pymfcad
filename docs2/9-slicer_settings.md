@@ -87,7 +87,6 @@ settings = Settings(
 		],
 	),
 	resin=ResinType(),
-	print_under_vacuum=False,
 	default_position_settings=PositionSettings(),
 	default_exposure_settings=ExposureSettings(),
 )

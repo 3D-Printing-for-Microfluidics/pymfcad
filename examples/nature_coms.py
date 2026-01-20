@@ -184,7 +184,6 @@ settings = Settings(
         initiators=[("IRG", 1.0)],
         additives=[],
     ),
-    print_under_vacuum=False,
     default_position_settings=PositionSettings(
         distance_up=1.0,
         initial_wait=0.0,
@@ -193,10 +192,6 @@ settings = Settings(
         up_wait=0.0,
         down_speed=20.0,
         down_acceleration=50.0,
-        force_squeeze=False,
-        squeeze_count=0,
-        squeeze_force=0.0,
-        squeeze_wait=0.0,
         final_wait=0.0,
     ),
     default_exposure_settings=ExposureSettings(
