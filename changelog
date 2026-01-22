@@ -1,0 +1,23 @@
+v0.1.0 — 2026-01-21
+
+## Overview
+First private beta for OpenMFD.
+
+## Known issues
+- Some incorrect images in documentation.
+- Uses v5 of custom 3D printer JSON schema (not yet implemented)
+- Slicer is yet to be fully optimized.
+- Images are packed for memory optimization, but are done so poorly. Results in slower slicing.
+- No support for external component libraries.
+- Some parameters like grayscale or vacuum are not validated.
+- Sometimes routing caches saves in incorrect locations.
+- Relabeling devices poorly implemented.
+
+## Documentation
+- Compiled documentation can be found in the Github gh-pages branch, but it not yet served.
+- Building to testing documentation requires `dev` dependencies. Can be installed with `pip install ".[dev]"` in an editable install.
+- Documentation can be tested using mkdocs serve
+- Documentation can be build using mkdocs gh-deploy (for github pages) or mkdocs build (other).
+
+## Links
+- Documentation (yet to be published).
