@@ -1,4 +1,3 @@
-"""
 This Python package provides a set of tools for designing 3D-printed microfluidic devices.
 
 It adopts a component-based design approach, enabling easy reuse and composition of parts. The package
@@ -10,4 +9,3 @@ as tools for rendering and slicing—slicing support is currently limited to our
 
 Advanced structures such as polychannels (complex hulled shapes) and Bézier curves are also supported, making it suitable for
 complex microfluidic architectures.
-"""
