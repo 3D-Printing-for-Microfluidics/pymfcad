@@ -1,0 +1,9 @@
+.doc-contents p + ul,
+.doc-contents p + ol {
+  margin-top: 0.125em;
+}
+
+.doc-contents p:has(+ ul),
+.doc-contents p:has(+ ol) {
+  margin-bottom: 0.125em;
+}

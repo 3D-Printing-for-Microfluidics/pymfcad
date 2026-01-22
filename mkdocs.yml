@@ -76,3 +76,4 @@ extra_javascript:
 
 extra_css:
     - https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css
+    - static/custom.css
