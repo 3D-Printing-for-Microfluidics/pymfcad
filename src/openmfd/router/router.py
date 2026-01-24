@@ -317,9 +317,6 @@ class Router:
             "_path": polychannel_shapes,
         }
 
-        for shape in polychannel_shapes:
-            print(f"Polychannel shape: {shape._size} at {shape._position}")
-
     def route_with_fractional_path(
         self,
         input_port: "Port",
