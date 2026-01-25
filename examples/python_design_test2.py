@@ -47,9 +47,9 @@ settings = Settings(
         # wait_after_exposure=0.0,
     ),
 )
-# settings.save("settings.json")
-# settings = Settings.from_file("settings.json")
-# settings.save("settings2.json")
+settings.save("settings.json")
+settings = Settings.from_file("settings.json")
+settings.save("settings2.json")
 
 
 device = Visitech_LRS10_Device("TestDevice", (0, 0, 0), layers=250, layer_size=0.01)

@@ -116,6 +116,12 @@ Settings objects (key parameters):
 - `PositionSettings(distance_up, initial_wait, up_speed, up_acceleration, up_wait, down_speed, down_acceleration, final_wait, special_layer_techniques=[...])`
 - `ExposureSettings(grayscale_correction, exposure_time, power_setting, wavelength, relative_focus_position, wait_before_exposure, wait_after_exposure, special_image_techniques=[...])`
 
+Settings JSON I/O:
+
+- `Settings.save(path)` / `Settings.from_file(path)`
+- `Printer.save(path)` / `Printer.from_file(path)`
+- `ResinType.save(path)` / `ResinType.from_file(path)`
+
 Special techniques:
 
 - Print:

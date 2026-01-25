@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import datetime
+from pathlib import Path
 
 class SpecialPrintTechniques:
     def __init__(self):
@@ -50,6 +51,10 @@ class Settings:
         """
         self.resin = resin
         self.printer = printer
+        self.user = user
+        self.purpose = purpose
+        self.description = description
+        self.special_print_techniques = special_print_techniques
 
         # Set default values for position and exposure settings
         if default_position_settings.distance_up is None:
@@ -113,70 +118,235 @@ class Settings:
                     "Vacuum wait time (sec)": sps.vacuum_wait_time,
                 }
 
-    def save(self, filename: str = "settings.json"):
-        """Save the settings to a JSON file."""
-        save_settings = self.settings.copy()
-        save_settings["Resin"] = vars(self.resin)
-        save_settings["Printer name"] = self.printer.name
-        save_settings["Printer xy stage available"] = self.printer.xy_stage_available
-        save_settings["Printer light engines"] = [
-            vars(le) for le in self.printer.light_engines
-        ]
-        default_position_settings = vars(self.default_position_settings).copy()
-        del default_position_settings["layer_thickness"]
-        save_settings["Default position settings"] = default_position_settings
-        default_exposure_settings = vars(self.default_exposure_settings).copy()
-        del default_exposure_settings["image_file"]
-        del default_exposure_settings["image_x_offset"]
-        del default_exposure_settings["image_y_offset"]
-        del default_exposure_settings["light_engine"]
-        save_settings["Default exposure settings"] = default_exposure_settings
-        del save_settings["3D printer"]
-        del save_settings["Default layer settings"]
-        with open(filename, "w") as f:
-            json.dump(save_settings, f, indent=4)
+    def _serialize_special_print_techniques(self) -> list[dict]:
+        techniques = []
+        for spt in self.special_print_techniques:
+            if isinstance(spt, PrintUnderVacuum):
+                techniques.append(
+                    {
+                        "type": "PrintUnderVacuum",
+                        "enabled": spt.enabled,
+                        "target_vacuum_level_torr": spt.target_vacuum_level_torr,
+                        "vacuum_wait_time": spt.vacuum_wait_time,
+                    }
+                )
+            else:
+                raise ValueError(
+                    f"Unsupported special print technique: {type(spt).__name__}"
+                )
+        return techniques
 
-    @classmethod
-    def from_file(cls, filename: str):
-        """Load settings from a JSON file."""
-        with open(filename, "r") as f:
-            settings_data = json.load(f)
-        resin = ResinType(**settings_data["Resin"])
-        light_engines = [
-            LightEngine(**le) for le in settings_data["Printer light engines"]
-        ]
-        printer = Printer(
-            settings_data["Printer name"],
-            light_engines,
-            settings_data["Printer xy stage available"],
-            settings_data["Printer vacuum available"],
-        )
-        default_position = PositionSettings(**settings_data["Default position settings"])
-        default_exposure = ExposureSettings(**settings_data["Default exposure settings"])
-
-        special_print_techniques: list[SpecialPrintTechniques] = []
-        for key, value in settings_data.get("Special print techniques", {}).items():
-            if key == "Print under vacuum":
-                special_print_techniques.append(
+    @staticmethod
+    def _deserialize_special_print_techniques(data: list[dict]) -> list[SpecialPrintTechniques]:
+        techniques: list[SpecialPrintTechniques] = []
+        for item in data:
+            technique_type = item.get("type")
+            if technique_type == "PrintUnderVacuum":
+                techniques.append(
                     PrintUnderVacuum(
-                        enabled=value.get("Enable vacuum", False),
-                        target_vacuum_level_torr=value.get(
-                            "Target vacuum level (Torr)", 10.0
-                        ),
-                        vacuum_wait_time=value.get("Vacuum wait time (sec)", 0.0),
+                        enabled=item.get("enabled", False),
+                        target_vacuum_level_torr=item.get("target_vacuum_level_torr", 10.0),
+                        vacuum_wait_time=item.get("vacuum_wait_time", 0.0),
                     )
                 )
-        return cls(
-            user=settings_data["User"],
-            purpose=settings_data["Purpose"],
-            description=settings_data["Description"],
-            resin=resin,
-            printer=printer,
-            default_position_settings=default_position,
-            default_exposure_settings=default_exposure,
-            special_print_techniques=special_print_techniques,
+            else:
+                raise ValueError(f"Unsupported special print technique type: {technique_type}")
+        return techniques
+
+    @staticmethod
+    def _serialize_special_layer_techniques(techniques: list[SpecialLayerTechniques]) -> list[dict]:
+        serialized = []
+        for slt in techniques:
+            if isinstance(slt, SqueezeOutResin):
+                serialized.append(
+                    {
+                        "type": "SqueezeOutResin",
+                        "enabled": slt.enabled,
+                        "count": slt.count,
+                        "squeeze_force": slt.squeeze_force,
+                        "squeeze_time": slt.squeeze_time,
+                    }
+                )
+            else:
+                raise ValueError(
+                    f"Unsupported special layer technique: {type(slt).__name__}"
+                )
+        return serialized
+
+    @staticmethod
+    def _deserialize_special_layer_techniques(data: list[dict]) -> list[SpecialLayerTechniques]:
+        techniques: list[SpecialLayerTechniques] = []
+        for item in data:
+            technique_type = item.get("type")
+            if technique_type == "SqueezeOutResin":
+                techniques.append(
+                    SqueezeOutResin(
+                        enabled=item.get("enabled", False),
+                        count=item.get("count", 0),
+                        squeeze_force=item.get("squeeze_force", 0.0),
+                        squeeze_time=item.get("squeeze_time", 0.0),
+                    )
+                )
+            else:
+                raise ValueError(f"Unsupported special layer technique type: {technique_type}")
+        return techniques
+
+    @staticmethod
+    def _serialize_special_image_techniques(techniques: list[SpecialImageTechniques]) -> list[dict]:
+        serialized = []
+        for sit in techniques:
+            if isinstance(sit, ZeroMicronLayer):
+                serialized.append(
+                    {
+                        "type": "ZeroMicronLayer",
+                        "enabled": sit.enabled,
+                        "count": sit.count,
+                    }
+                )
+            elif isinstance(sit, PrintOnFilm):
+                serialized.append(
+                    {
+                        "type": "PrintOnFilm",
+                        "enabled": sit.enabled,
+                        "distance_up_mm": sit.distance_up,
+                    }
+                )
+            else:
+                raise ValueError(
+                    f"Unsupported special image technique: {type(sit).__name__}"
+                )
+        return serialized
+
+    @staticmethod
+    def _deserialize_special_image_techniques(data: list[dict]) -> list[SpecialImageTechniques]:
+        techniques: list[SpecialImageTechniques] = []
+        for item in data:
+            technique_type = item.get("type")
+            if technique_type == "ZeroMicronLayer":
+                techniques.append(
+                    ZeroMicronLayer(
+                        enabled=item.get("enabled", False),
+                        count=item.get("count", 0),
+                    )
+                )
+            elif technique_type == "PrintOnFilm":
+                techniques.append(
+                    PrintOnFilm(
+                        enabled=item.get("enabled", False),
+                        distance_up_mm=item.get("distance_up_mm", 0.3),
+                    )
+                )
+            else:
+                raise ValueError(f"Unsupported special image technique type: {technique_type}")
+        return techniques
+
+    def _serialize_position_settings(self) -> dict:
+        return {
+            "distance_up": self.default_position_settings.distance_up,
+            "initial_wait": self.default_position_settings.initial_wait,
+            "up_speed": self.default_position_settings.up_speed,
+            "up_acceleration": self.default_position_settings.up_acceleration,
+            "up_wait": self.default_position_settings.up_wait,
+            "down_speed": self.default_position_settings.down_speed,
+            "down_acceleration": self.default_position_settings.down_acceleration,
+            "final_wait": self.default_position_settings.final_wait,
+            "special_layer_techniques": self._serialize_special_layer_techniques(
+                self.default_position_settings.special_layer_techniques
+            ),
+        }
+
+    def _serialize_exposure_settings(self) -> dict:
+        return {
+            "grayscale_correction": self.default_exposure_settings.grayscale_correction,
+            "exposure_time": self.default_exposure_settings.exposure_time,
+            "power_setting": self.default_exposure_settings.power_setting,
+            "wavelength": self.default_exposure_settings.wavelength,
+            "relative_focus_position": self.default_exposure_settings.relative_focus_position,
+            "wait_before_exposure": self.default_exposure_settings.wait_before_exposure,
+            "wait_after_exposure": self.default_exposure_settings.wait_after_exposure,
+            "special_image_techniques": self._serialize_special_image_techniques(
+                self.default_exposure_settings.special_image_techniques
+            ),
+        }
+
+    @staticmethod
+    def _deserialize_position_settings(data: dict) -> PositionSettings:
+        return PositionSettings(
+            distance_up=data.get("distance_up"),
+            initial_wait=data.get("initial_wait"),
+            up_speed=data.get("up_speed"),
+            up_acceleration=data.get("up_acceleration"),
+            up_wait=data.get("up_wait"),
+            down_speed=data.get("down_speed"),
+            down_acceleration=data.get("down_acceleration"),
+            final_wait=data.get("final_wait"),
+            special_layer_techniques=Settings._deserialize_special_layer_techniques(
+                data.get("special_layer_techniques", [])
+            ),
         )
 
+    @staticmethod
+    def _deserialize_exposure_settings(data: dict) -> ExposureSettings:
+        return ExposureSettings(
+            grayscale_correction=data.get("grayscale_correction"),
+            exposure_time=data.get("exposure_time"),
+            power_setting=data.get("power_setting"),
+            wavelength=data.get("wavelength"),
+            relative_focus_position=data.get("relative_focus_position"),
+            wait_before_exposure=data.get("wait_before_exposure"),
+            wait_after_exposure=data.get("wait_after_exposure"),
+            special_image_techniques=Settings._deserialize_special_image_techniques(
+                data.get("special_image_techniques", [])
+            ),
+        )
+
+    def to_dict(self) -> dict:
+        return {
+            "schema_version": "1.0",
+            "printer": self.printer.to_dict(),
+            "resin": self.resin.to_dict(),
+            "default_position_settings": self._serialize_position_settings(),
+            "default_exposure_settings": self._serialize_exposure_settings(),
+            "special_print_techniques": self._serialize_special_print_techniques(),
+            "user": self.user,
+            "purpose": self.purpose,
+            "description": self.description,
+        }
+
+    @classmethod
+    def from_dict(cls, data: dict) -> Settings:
+        printer = Printer.from_dict(data["printer"])
+        resin = ResinType.from_dict(data["resin"])
+        default_position_settings = cls._deserialize_position_settings(
+            data.get("default_position_settings", {})
+        )
+        default_exposure_settings = cls._deserialize_exposure_settings(
+            data.get("default_exposure_settings", {})
+        )
+        special_print_techniques = cls._deserialize_special_print_techniques(
+            data.get("special_print_techniques", [])
+        )
+        return cls(
+            printer=printer,
+            resin=resin,
+            default_position_settings=default_position_settings,
+            default_exposure_settings=default_exposure_settings,
+            special_print_techniques=special_print_techniques,
+            user=data.get("user", ""),
+            purpose=data.get("purpose", ""),
+            description=data.get("description", ""),
+        )
+
+    def save(self, file_path: str | Path):
+        path = Path(file_path)
+        with path.open("w", encoding="utf-8") as f:
+            json.dump(self.to_dict(), f, indent=2)
+
+    @classmethod
+    def from_file(cls, file_path: str | Path) -> Settings:
+        path = Path(file_path)
+        with path.open("r", encoding="utf-8") as f:
+            return cls.from_dict(json.load(f))
 
 class ResinType:
     def __init__(
@@ -273,6 +443,33 @@ class ResinType:
             )
             return f"{monomer_str}__{uv_absorber_str}__{initiators_str}__{additives_str}"
 
+    def to_dict(self) -> dict:
+        return {
+            "monomer": [list(x) for x in self.monomer],
+            "uv_absorbers": [list(x) for x in self.uv_absorbers],
+            "initiators": [list(x) for x in self.initiators],
+            "additives": [list(x) for x in self.additives],
+        }
+
+    @classmethod
+    def from_dict(cls, data: dict) -> ResinType:
+        return cls(
+            monomer=[tuple(x) for x in data.get("monomer", [])],
+            uv_absorbers=[tuple(x) for x in data.get("uv_absorbers", [])],
+            initiators=[tuple(x) for x in data.get("initiators", [])],
+            additives=[tuple(x) for x in data.get("additives", [])],
+        )
+
+    def save(self, file_path: str | Path):
+        path = Path(file_path)
+        with path.open("w", encoding="utf-8") as f:
+            json.dump(self.to_dict(), f, indent=2)
+
+    @classmethod
+    def from_file(cls, file_path: str | Path) -> ResinType:
+        path = Path(file_path)
+        with path.open("r", encoding="utf-8") as f:
+            return cls.from_dict(json.load(f))
 
 class LightEngine:
     def __init__(
@@ -325,6 +522,26 @@ class LightEngine:
         self.grayscale_available = grayscale_available
         self.origin = origin
 
+    def to_dict(self) -> dict:
+        return {
+            "name": self.name,
+            "px_size": self.px_size,
+            "px_count": list(self.px_count),
+            "wavelengths": list(self.wavelengths),
+            "grayscale_available": list(self.grayscale_available),
+            "origin": list(self.origin),
+        }
+
+    @classmethod
+    def from_dict(cls, data: dict) -> LightEngine:
+        return cls(
+            name=data.get("name", "visitech"),
+            px_size=data.get("px_size", 0.0076),
+            px_count=tuple(data.get("px_count", (2560, 1600))),
+            wavelengths=list(data.get("wavelengths", [365])),
+            grayscale_available=list(data.get("grayscale_available", [False])),
+            origin=tuple(data.get("origin", (0.0, 0.0))),
+        )
 
 class Printer:
     def __init__(
@@ -351,28 +568,6 @@ class Printer:
         self.xy_stage_available = xy_stage_available
         self.vacuum_available = vacuum_available
 
-    def save(self, filename: str):
-        """Save the printer settings to a JSON file."""
-        printer_data = {
-            "name": self.name,
-            "light_engines": [vars(le) for le in self.light_engines],
-            "xy_stage_available": self.xy_stage_available,
-            "vacuum_available": self.vacuum_available,
-        }
-        with open(filename, "w") as f:
-            json.dump(printer_data, f, indent=4)
-
-    @classmethod
-    def from_file(cls, filename: str):
-        with open(filename, "r") as f:
-            printer_data = json.load(f)
-        light_engines = [LightEngine(**le) for le in printer_data["light_engines"]]
-        return cls(
-            printer_data["name"],
-            light_engines,
-            printer_data["xy_stage_available"],
-            printer_data["vacuum_available"],
-        )
 
     def _get_light_engine(self, px_size, px_count, wavelength):
         """Get the light engine with the specified pixel size, pixel count, and wavelength."""
@@ -387,6 +582,37 @@ class Printer:
         raise ValueError(
             f"No matching light engine found (px_size={px_size}, px_count={px_count}, wavelength={wavelength})"
         )
+
+    def to_dict(self) -> dict:
+        return {
+            "name": self.name,
+            "light_engines": [le.to_dict() for le in self.light_engines],
+            "xy_stage_available": self.xy_stage_available,
+            "vacuum_available": self.vacuum_available,
+        }
+
+    @classmethod
+    def from_dict(cls, data: dict) -> Printer:
+        light_engines = [
+            LightEngine.from_dict(le) for le in data.get("light_engines", [])
+        ]
+        return cls(
+            name=data.get("name", ""),
+            light_engines=light_engines,
+            xy_stage_available=data.get("xy_stage_available", False),
+            vacuum_available=data.get("vacuum_available", False),
+        )
+
+    def save(self, file_path: str | Path):
+        path = Path(file_path)
+        with path.open("w", encoding="utf-8") as f:
+            json.dump(self.to_dict(), f, indent=2)
+
+    @classmethod
+    def from_file(cls, file_path: str | Path) -> Printer:
+        path = Path(file_path)
+        with path.open("r", encoding="utf-8") as f:
+            return cls.from_dict(json.load(f))
 
 class SpecialLayerTechniques:
     def __init__(self):
@@ -666,7 +892,6 @@ class ExposureSettings:
             if getattr(self, var) is None:
                 setattr(self, var, getattr(defaults, var))
 
-
 class MembraneSettings:
     def __init__(
         self,
@@ -715,7 +940,6 @@ class MembraneSettings:
             defocus_um=self.exposure_settings.relative_focus_position,
             special_image_techniques=self.exposure_settings.special_image_techniques.copy(),
         )
-
 
 class SecondaryDoseSettings:
     def __init__(
