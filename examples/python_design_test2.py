@@ -62,17 +62,18 @@ device.add_label("membrane", Color.from_rgba((255, 255, 0, 127)))
 
 chan_size = (8, 8, 6)
 
-x = 2
-y = 2
-z = 2
+# x = 2
+# y = 2
+# z = 2
 
 # x = 2
 # y = 2
 # z = 7
 
-# x = 50
-# y = 32
-# z = 7
+x = 50
+y = 32
+z = 7
+# z = 1
 
 valve_grid = []
 for l in range(z):
@@ -94,7 +95,7 @@ for l in range(z):
             else:
                 valve_row.append(v)
 
-            device.add_subcomponent(f"Valve_{l}_{c}_{r}", v)
+            device.add_subcomponent(f"Valve_{c}_{r}_{l}", v)
 
         if l % 2 == 1:
             valve_col.insert(0, valve_row)
@@ -108,7 +109,7 @@ device.relabel({
     "fluidic": "fluidic",
     "membrane": "membrane",
     valve_grid[0][0][0].shapes["FluidicChamber"]: "highlight",
-    "Valve_1_1_1.PneumaticShapes": "highlight",
+    "Valve_1_1_0.PneumaticShapes": "highlight",
 }, recursive=True)
 
 rtr = Router(component=device, channel_size=chan_size, channel_margin=chan_size)

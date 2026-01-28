@@ -12,7 +12,7 @@ from typing import Union
 from types import ModuleType
 from datetime import datetime
 
-from ..backend import slice_component
+from ..backend import slice_component, rle_encode_packed, rle_decode_packed
 from .uniqueimagestore import get_unique_path, load_image_from_file, UniqueImageStore
 from .json_prettier import pretty_json
 
@@ -22,23 +22,6 @@ from .settings import (
             ExposureSettings,
             PositionSettings,
         )
-
-def _unpack_image_from_meta(meta: dict) -> np.ndarray:
-    """Unpack a packed binary image from slice metadata into a uint8 image."""
-    image = meta["image_data"]
-    bits = np.unpackbits(image, axis=1)
-    width = meta["image_width"]
-    bits = bits[:, :width]
-    return (bits * 255).astype(np.uint8)
-
-
-def _pack_binary_image(image: np.ndarray) -> tuple[np.ndarray, int]:
-    """Pack a uint8 image into binary packed bits and return (packed, width)."""
-    image = np.array(image)
-    _, width = image.shape
-    binary = (image != 0).astype(np.uint8)
-    packed_image = np.packbits(binary, axis=1)
-    return packed_image, width
 
 from .image_generation import (
             generate_membrane_images_from_folders,
@@ -297,9 +280,7 @@ class Slicer:
 
                 expanded_slices = []
                 for slice_info in info["slices"]:
-                    bits = np.unpackbits(slice_info["image_data"], axis=1)
-                    W = slice_info["image_width"]
-                    bits = bits[:, :W]
+                    data = rle_decode_packed(*slice_info["image_data"])
 
                     for ty in range(device.tiles_y):
                         for tx in range(device.tiles_x):
@@ -308,14 +289,10 @@ class Slicer:
                             y0 = ty * step_y
                             y1 = y0 + base_px_count[1]
 
-                            tile = bits[y0:y1, x0:x1]
-                            packed_tile = np.packbits(
-                                (tile != 0).astype(np.uint8), axis=1
-                            )
+                            tile = data[y0:y1, x0:x1]
 
                             tile_slice = slice_info.copy()
-                            tile_slice["image_data"] = packed_tile
-                            tile_slice["image_width"] = base_px_count[0]
+                            tile_slice["image_data"] = rle_encode_packed(tile)
 
                             exposure_settings = device.default_exposure_settings.copy()
                             exposure_settings.image_x_offset = (
@@ -427,7 +404,7 @@ class Slicer:
     def _embed_component_slices(
         self,
         sliced_devices,
-        sliced_devices_info,
+        sliced_devices_data,
         temp_directory,
         slices_folder,
     ):
@@ -455,10 +432,9 @@ class Slicer:
             return x_mm, y_mm, z_mm
 
         embedded_devices = []
-        # print(sliced_devices, sliced_devices_info)
-        for device, info in zip(reversed(sliced_devices), reversed(sliced_devices_info)):
+        for device, info in zip(reversed(sliced_devices), reversed(sliced_devices_data)):
             print(f"\tEmbedding {device.get_fully_qualified_name()}...")
-            # If its a device, just copy the images from sliced_devices_info into the folder
+            # If its a device, just copy the images from sliced_devices_data into the folder
             if isinstance(device, Device):
                 embedded_devices.append((device, info))
 
@@ -468,23 +444,6 @@ class Slicer:
                 slice_list.extend(info.get("secondary_slices", []))
                 slice_list.extend(info.get("exposure_slices", []))
                 info["slices"] = slice_list
-
-                # if self.minimize_file:
-                #     for image in info["slices"]:
-                #         image_path = (
-                #             temp_directory
-                #             / device.get_fully_qualified_name()
-                #             / image["image_name"]
-                #         )
-                #         image["image_name"] = f"{image_path.name}"
-                # else:
-                #     # os.mkdir(slices_folder, exist_ok=True)
-                #     # Copy the all images from temp_directory/fqn to slices/fqn
-                #     shutil.copytree(
-                #         temp_directory / device.get_fully_qualified_name(),
-                #         slices_folder,
-                #         dirs_exist_ok=True,
-                #     )
 
             # If its a component, we need to insert its slices into its parent components (relabeling if necessary)
             else:
@@ -534,7 +493,7 @@ class Slicer:
                             / slice["image_name"]
                         )
                         slice_img = slice["image_data"]
-                        slice_img2 = _unpack_image_from_meta(slice)
+                        slice_img2 = rle_decode_packed(*slice_img)
                         # slice_img = None
                         # if slice_path.exists():
                         #     slice_img = cv2.imread(str(slice_path), cv2.IMREAD_UNCHANGED)
@@ -592,12 +551,11 @@ class Slicer:
                                         + child_center_offset_y_um
                                     )
 
-                                    sliced_devices_info[parent_index]["slices"].append(
+                                    sliced_devices_data[parent_index]["slices"].append(
                                         {
                                             "image_name": slice["image_name"],
                                             "parent": None,
                                             "image_data": slice_img,
-                                            "image_width": slice["image_width"],
                                             "device": device,
                                             "position": None,
                                             "layer_position": (
@@ -614,12 +572,11 @@ class Slicer:
                                         }
                                     )
                                 else:
-                                    sliced_devices_info[parent_index]["slices"].append(
+                                    sliced_devices_data[parent_index]["slices"].append(
                                         {
                                             "image_name": slice["image_name"],
                                             "parent": parent_device,
                                             "image_data": slice_img,
-                                            "image_width": slice["image_width"],
                                             "device": device,
                                             "position": (round(pos[1]), round(pos[2])),
                                             "layer_position": (
@@ -642,7 +599,7 @@ class Slicer:
                                 x = pos[1]
                                 y = pos[2]
                                 z = round(pos[3], 4)
-                                slice_image = self._embed_image(
+                                embedded_slice_image = self._embed_image(
                                     (x, y),
                                     resolution,
                                     slice_img2,
@@ -683,13 +640,11 @@ class Slicer:
                                     end="",
                                     flush=True,
                                 )
-                                packed_image, W = _pack_binary_image(slice_image)
-                                sliced_devices_info[parent_index]["slices"].append(
+                                sliced_devices_data[parent_index]["slices"].append(
                                     {
                                         "image_name": slice_image_path.name,
                                         "parent": None,
-                                        "image_data": packed_image,
-                                        "image_width": W,
+                                        "image_data": rle_encode_packed(embedded_slice_image),
                                         "device": None,
                                         "position": None,
                                         "layer_position": (
@@ -726,7 +681,7 @@ class Slicer:
         # Iterate by each layer position
         for layer in sorted_layers:
             current_layer_slices = []
-            for device_obj, info in embedded_devices:
+            for _, info in embedded_devices:
                 for slice_info in info.get("slices", []):
                     if slice_info["layer_position"] == layer:
                         current_layer_slices.append(slice_info)
@@ -838,22 +793,14 @@ class Slicer:
                 return name
             count += 1
 
-    def _load_binary_images(self, image_paths):
-        """Load images and convert to boolean masks (True = pixel lit)."""
-        imgs = []
-        for p in image_paths:
-            arr = np.array(Image.open(p))
-            imgs.append(arr == 255)
-        return np.array(imgs)  # shape: (N, H, W)
-
-    def _compress_exposures(self, images, exposure_times, temp_directory):
+    def _combine_exposures(self, images, exposure_times, temp_directory):
         """
         Combine binary images into minimal exposure layers using the exposure-sum method.
         Optimized to avoid repeated min-searches and masking.
         """
 
         def image_from_dict(slice_info):
-            image = _unpack_image_from_meta(slice_info)
+            image = rle_decode_packed(*slice_info["image_data"])
             if slice_info.get("parent") is None:
                 return image
             resolution = (
@@ -910,13 +857,18 @@ class Slicer:
 
         return output_images, output_exposures
 
-    def make_print_file(self) -> bool:
+    def make_print_file(self, save_temp_files=False) -> bool:
         """
         Generate a print file based on the provided device and settings.
         This function will create a temporary directory, slice the device's components,
         generate secondary and membrane images, create a JSON file with the print data,
         and create a print job zip or directory.
+
+        Parameters:
+
+        - save_temp_files (bool): If True, the temporary files will be saved for debugging purposes.
         """
+        error = None
         try:
 
             # # Check if output already exists
@@ -935,14 +887,15 @@ class Slicer:
 
             # Slice the device components
             sliced_devices = []
-            sliced_devices_info = []
+            sliced_devices_data = []
             print("Slicing...")
+            slice_dir = temp_directory if save_temp_files else None
             slice_component(
-                self.device, temp_directory, sliced_devices, sliced_devices_info
+                self.device, slice_dir, sliced_devices, sliced_devices_data
             )
 
             print("Make secondary images...")
-            for device, info in zip(sliced_devices, sliced_devices_info):
+            for device, info in zip(sliced_devices, sliced_devices_data):
                 print(f"\t{device.get_fully_qualified_name()}")
 
                 # Fill default settings for sliced devices
@@ -963,10 +916,11 @@ class Slicer:
                             exceptions=["exposure_time"],
                         )
                         generate_membrane_images_from_folders(
+                            data=sliced_devices_data[device_index],
                             image_dir=device_subdirectory,
-                            mask_dir=masks_subdirectory,
+                            mask_key=name,
                             membrane_settings=settings,
-                            slice_metadata=sliced_devices_info[device_index],
+                            save_temp_files=save_temp_files,
                         )
 
                     if isinstance(settings, SecondaryDoseSettings):
@@ -979,10 +933,11 @@ class Slicer:
                             exceptions=["exposure_time"],
                         )
                         generate_secondary_images_from_folders(
+                            data=sliced_devices_data[device_index],
                             image_dir=device_subdirectory,
-                            mask_dir=masks_subdirectory,
+                            mask_key=name,
                             settings=settings,
-                            slice_metadata=sliced_devices_info[device_index],
+                            save_temp_files=save_temp_files,
                         )
 
                     if isinstance(settings, ExposureSettings):
@@ -990,10 +945,11 @@ class Slicer:
                             device.default_exposure_settings,
                         )
                         generate_exposure_images_from_folders(
+                            data=sliced_devices_data[device_index],
                             image_dir=device_subdirectory,
-                            mask_dir=masks_subdirectory,
+                            mask_key=name,
                             settings=settings,
-                            slice_metadata=sliced_devices_info[device_index],
+                            save_temp_files=save_temp_files,
                         )
 
                     if isinstance(settings, PositionSettings):
@@ -1001,10 +957,9 @@ class Slicer:
                             device.default_position_settings,
                         )
                         generate_position_images_from_folders(
-                            image_dir=device_subdirectory,
-                            mask_dir=masks_subdirectory,
+                            data=sliced_devices_data[device_index],
+                            mask_key=name,
                             settings=settings,
-                            slice_metadata=sliced_devices_info[device_index],
                         )
 
             # Make slices directory
@@ -1019,7 +974,7 @@ class Slicer:
             print("Embedding component images...")
             # Embed component slices into devices
             embedded_devices = self._embed_component_slices(
-                sliced_devices, sliced_devices_info, temp_directory, slices_folder
+                sliced_devices, sliced_devices_data, temp_directory, slices_folder
             )
 
             # print le
@@ -1029,12 +984,12 @@ class Slicer:
                 )
 
             # embedded_devices = []
-            # for device, info in zip(sliced_devices, sliced_devices_info):
+            # for device, info in zip(sliced_devices, sliced_devices_data):
             #     if isinstance(device, Device):
             #         embedded_devices.append((device, info))
 
             # Make json file
-            print("Compile print settings...")
+            
             print_settings_filename = temp_directory / "print_settings.json"
             print_settings = {
                 "Header": {
@@ -1102,26 +1057,18 @@ class Slicer:
                 "Default layer settings"
             ]["Image settings"]
 
-            # Loop z positions
-            layers = []
-            last_layer = 0.0
+
+            print("Combining exposures...")
+            combined_slices = []
             for layer, slices in self._iterate_slices_by_layer(embedded_devices):
                 print(
                     f"\r\tProcessing layer at {layer:.1f} um... ",
                     end="",
                     flush=True,
                 )
-
-                layer_thickness = layer - last_layer
-                position_settings = None
-                layer_settings = {}
-                image_settings_list = []
-
-                # Group slices by settings
                 grouped_slices = self._group_images_by_settings(slices)
+                combined_slices_groups = []
                 for group in grouped_slices:
-                    group_exposure_settings = None
-
                     group_exposures = [
                         slice_info["exposure_settings"].exposure_time
                         for slice_info in group
@@ -1134,19 +1081,41 @@ class Slicer:
                                     "device": slice_info["device"],
                                     "parent": slice_info["parent"],
                                     "image_data": slice_info["image_data"],
-                                    "image_width": slice_info["image_width"],
                                     "image_name": slice_info["image_name"],
                                     "position": slice_info["position"],
                                 }
                             )
                         else:
-                            image = _unpack_image_from_meta(slice_info)
+                            image = rle_decode_packed(*slice_info["image_data"])
                             group_images.append(image)
 
-                    # Compress exposures
-                    output_imgs, output_times = self._compress_exposures(
+                    # combine exposures
+                    output_imgs, output_times = self._combine_exposures(
                         group_images, group_exposures, temp_directory
                     )
+                    combined_slices_groups.append((group, output_imgs, output_times))
+                combined_slices.append((layer, combined_slices_groups))
+            print()
+
+            # Loop z positions
+            print("Compile print settings...")
+            layers = []
+            last_layer = 0.0
+            for layer, groups in combined_slices:
+                print(
+                    f"\r\tProcessing layer at {layer:.1f} um... ",
+                    end="",
+                    flush=True,
+                )
+
+                layer_thickness = layer - last_layer
+                position_settings = None
+                layer_settings = {}
+                image_settings_list = []
+
+                # Group slices by settings
+                for group, output_imgs, output_times in groups:
+                    group_exposure_settings = None
 
                     output_img_files = []
                     for i, arr in enumerate(output_imgs):
@@ -1361,14 +1330,15 @@ class Slicer:
                 json.dump(pretty_json(print_settings), fileOut, indent=2)
 
             # Delete device and mask folders
-            print("Cleaning up temporary directories...")
-            for device in sliced_devices:
-                device_subdirectory = temp_directory / device.get_fully_qualified_name()
-                if device_subdirectory.exists():
-                    shutil.rmtree(device_subdirectory)
-            masks_directory = temp_directory / "masks"
-            if masks_directory.exists():
-                shutil.rmtree(masks_directory)
+            if not save_temp_files:
+                print("Cleaning up temporary directories...")
+                for device in sliced_devices:
+                    device_subdirectory = temp_directory / device.get_fully_qualified_name()
+                    if device_subdirectory.exists():
+                        shutil.rmtree(device_subdirectory)
+                masks_directory = temp_directory / "masks"
+                if masks_directory.exists():
+                    shutil.rmtree(masks_directory)
 
             # Zip if requested
             if self.zip_output:
@@ -1385,17 +1355,18 @@ class Slicer:
                 shutil.move(temp_directory, self.filename)
 
         except Exception as e:
+            error = e
             import traceback
-
             print(
                 f"❌ An error occurred during slicing: {e}. Removing temorary directory."
             )
             print(traceback.format_exc())
 
         finally:
-            # Clean up the temporary directory
-            # try:
-            #     shutil.rmtree(temp_directory)
-            # except Exception:
-            #     pass
+            if not save_temp_files or error is None:
+                # Clean up the temporary directory
+                try:
+                    shutil.rmtree(temp_directory)
+                except Exception:
+                    pass
             pass

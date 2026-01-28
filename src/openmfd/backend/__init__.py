@@ -16,7 +16,7 @@ from .manifold3d import (
 )
 from .render import render_component
 
-from .slice import slice_component
+from .slice import slice_component, rle_decode_packed, rle_encode_packed, rle_is_all_non_zeros, rle_is_all_zeros
 from .polychannel import (
     Polychannel,
     PolychannelShape,

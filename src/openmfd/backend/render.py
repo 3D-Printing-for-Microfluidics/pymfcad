@@ -1,11 +1,13 @@
 from __future__ import annotations
 
+import gc
 import trimesh
 import numpy as np
 from pathlib import Path
 from trimesh.scene import Scene
 from trimesh.visual import ColorVisuals
 
+from . import Shape
 from . import Color
 
 
@@ -279,13 +281,14 @@ def _component_to_manifold(
     regional_manifolds = {}
     ports = []
 
-    def accumulate_shape(comp: "Component") -> None:
+    def accumulate_shape(comp: "Component", _top_level: bool = True) -> None:
         """
         Accumulate shapes from the component and its subcomponents.
 
         Parameters:
 
         - comp (Component): Component to traverse.
+        - _top_level (bool): Whether this is the top-level component.
         """
         # Iterate shapes (includes inverted devices).
         for shape in comp.shapes.values():
@@ -296,14 +299,19 @@ def _component_to_manifold(
                 [comp._px_size, comp._px_size, comp._layer_size]
             )
             if key in manifolds.keys():
-                manifolds[key] += tmp_shape
+                manifolds[key].append(tmp_shape)
             else:
-                manifolds[key] = tmp_shape
+                manifolds[key] = [tmp_shape]
 
         # Iterate subcomponents.
         for sub in comp.subcomponents.values():
             if not sub.hide_in_render:
-                accumulate_shape(sub)
+                accumulate_shape(sub, _top_level=False)
+
+        if _top_level:
+            # Merge shapes of the same key.
+            for key, shape_list in manifolds.items():
+                manifolds[key] = Shape._batch_boolean_add(shape_list)
 
     def accumulate_bulk_shape(comp: "Component") -> dict[str, "Shape"]:
         """
@@ -329,9 +337,9 @@ def _component_to_manifold(
                 [comp._px_size, comp._px_size, comp._layer_size]
             )
             if key in bulks.keys():
-                bulks[key] += temp_bulk
+                bulks[key].append(temp_bulk)
             else:
-                bulks[key] = temp_bulk
+                bulks[key] = [temp_bulk]
 
         # Iterate subcomponents.
         for sub in comp.subcomponents.values():
@@ -356,34 +364,34 @@ def _component_to_manifold(
                 [comp._px_size, comp._px_size, comp._layer_size]
             )
             if comp_cubes is None:
-                comp_cubes = bbox_cube
+                comp_cubes = [bbox_cube]
             else:
-                comp_cubes += bbox_cube
+                comp_cubes.append(bbox_cube)
 
             if not sub.hide_in_render:
                 _bulks = accumulate_bulk_shape(sub)
                 for key, item in _bulks.items():
                     if key in comp_bulks.keys():
-                        comp_bulks[key] += item
+                        comp_bulks[key].append(item)
                     else:
-                        comp_bulks[key] = item
-        if comp_cubes is not None:
-            for key, bulk in bulks.items():
-                bulks[key] -= comp_cubes
-        for key, item in comp_bulks.items():
-            if key in bulks.keys():
-                bulks[key] += item
-            else:
-                bulks[key] = item
+                        comp_bulks[key] = [item]
+
+        comp_cubes = Shape._batch_boolean_add(comp_cubes) if comp_cubes is not None else None
+        for key, bulk in bulks.items():
+            bulks[key] = Shape._batch_boolean_add(bulk)
+            bulks[key] = bulks[key] - comp_cubes if comp_cubes is not None else bulks[key]
+            if key in comp_bulks.keys():
+                bulks[key] = Shape._batch_boolean_add([bulks[key]] + comp_bulks[key])
         return bulks
 
-    def accumulate_regional_settings(comp: "Component") -> None:
+    def accumulate_regional_settings(comp: "Component", _top_level: bool = True) -> None:
         """
         Accumulate regional settings from the component and its subcomponents.
 
         Parameters:
 
         - comp (Component): Component to traverse.
+        - _top_level (bool): Whether this is the top-level component.
         """
         for shape, setting in comp.regional_settings.values():
             if type(setting).__name__ == "MembraneSettings":
@@ -403,14 +411,19 @@ def _component_to_manifold(
                 [comp._px_size, comp._px_size, comp._layer_size]
             )
             if key in regional_manifolds.keys():
-                regional_manifolds[key] += tmp_shape
+                regional_manifolds[key].append(tmp_shape)
             else:
-                regional_manifolds[key] = tmp_shape
+                regional_manifolds[key] = [tmp_shape]
 
         # Iterate subcomponents.
         for sub in comp.subcomponents.values():
             if not sub.hide_in_render:
-                accumulate_regional_settings(sub)
+                accumulate_regional_settings(sub, _top_level=False)
+
+        if _top_level:
+            # Merge shapes of the same key.
+            for key, shape_list in regional_manifolds.items():
+                regional_manifolds[key] = Shape._batch_boolean_add(shape_list)
 
     def get_unconnected_ports(comp: "Component") -> None:
         """
@@ -443,15 +456,7 @@ def _component_to_manifold(
                 "Cannot render do bulk difference without rendering bulk device"
             )
 
-        for m in bulk_manifolds.values():
-            if diff is None:
-                diff = m.copy(_internal=True)
-            else:
-                diff += m
-        for m in manifolds.values():
-            diff -= m
-        # manifolds = {}
-        # bulk_manifolds = {"device": diff}
+        diff = Shape._batch_boolean_add_then_subtract(list(bulk_manifolds.values()), list(manifolds.values()))
 
     return manifolds, bulk_manifolds, regional_manifolds, diff, ports
 
@@ -579,6 +584,4 @@ def render_component(
         Path(path).parent.mkdir(parents=True, exist_ok=True)
         mesh.export(path)
         del mesh
-        import gc
-
         gc.collect()
