@@ -510,11 +510,11 @@ class Slicer:
                                     device._px_size != parent_device._px_size
                                     or device._layer_size != parent_device._layer_size
                                 )
-                                print(
-                                    f"\r\t\tDelaying embedding {slice['image_name']} to save memory",
-                                    end="",
-                                    flush=True,
-                                )
+                                # print(
+                                #     f"\r\t\tDelaying embedding {slice['image_name']} to save memory",
+                                #     end="",
+                                #     flush=True,
+                                # )
                                 if use_native_resolution:
                                     origin_x_mm, origin_y_mm, origin_z_mm = (
                                         _relative_origin_mm(device, parent_device)
