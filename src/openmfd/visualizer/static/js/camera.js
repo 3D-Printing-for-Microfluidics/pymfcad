@@ -31,6 +31,9 @@ export function createCameraSystem({
   let cameraStripEl = null;
   let cameraModeBtn = null;
   let updateButton = null;
+  let updateButtonLabelProvider = null;
+  let updateButtonHandler = null;
+  let dirtyStateProvider = null;
   let addButtons = [];
   let removeButton = null;
   let presetButtons = [];
@@ -223,6 +226,7 @@ export function createCameraSystem({
     renderCameraList();
     updateUpdateButton();
     if (onCameraChange) onCameraChange();
+    if (onActiveCameraChange) onActiveCameraChange();
   }
 
   function getReferenceUp(viewDir) {
@@ -353,7 +357,7 @@ export function createCameraSystem({
   }
 
   function isCameraDirty() {
-    const saved = camerasState[activeCameraIndex];
+    const saved = dirtyStateProvider ? dirtyStateProvider() : camerasState[activeCameraIndex];
     if (!saved) return false;
     const current = getCurrentCameraState();
     const eps = 1e-4;
@@ -372,6 +376,11 @@ export function createCameraSystem({
       (current.controlType || defaultControlType) !== (saved.controlType || defaultControlType) ||
       (saved.mode || 'perspective') !== (current.mode || 'perspective')
     );
+  }
+
+  function setDirtyStateProvider(provider) {
+    dirtyStateProvider = typeof provider === 'function' ? provider : null;
+    updateActiveCameraStateFromControls();
   }
 
   function getModelCenterWorld() {
@@ -563,11 +572,46 @@ export function createCameraSystem({
       return;
     }
     if (currentDirty) {
-      updateButton.textContent = `Update Camera ${activeCameraIndex + 1}`;
+      const fallbackLabel = `Update Camera ${activeCameraIndex + 1}`;
+      const customLabel = updateButtonLabelProvider ? updateButtonLabelProvider() : null;
+      updateButton.textContent = customLabel || fallbackLabel;
       updateButton.style.display = '';
     } else {
       updateButton.style.display = 'none';
     }
+  }
+
+  function setUpdateButtonLabelProvider(provider) {
+    updateButtonLabelProvider = typeof provider === 'function' ? provider : null;
+    updateUpdateButton();
+  }
+
+  function setUpdateButtonHandler(handler) {
+    updateButtonHandler = typeof handler === 'function' ? handler : null;
+  }
+
+  function applyExternalCameraState(state) {
+    if (!state || !state.pos || !state.target) return;
+    const desiredControlType = state.controlType || defaultControlType;
+    if (desiredControlType && desiredControlType !== currentControlType && onControlTypeChange) {
+      onControlTypeChange(desiredControlType);
+    }
+    currentControlType = desiredControlType;
+    isHomeMode = false;
+    isApplyingCameraState = true;
+    setCameraMode(state.mode || 'perspective');
+    const pos = new THREE.Vector3(state.pos.x, state.pos.y, state.pos.z);
+    const target = new THREE.Vector3(state.target.x, state.target.y, state.target.z);
+    setCameraPose(toSceneSpace(pos), toSceneSpace(target), state.roll ?? 0);
+    if ((state.mode || 'perspective') === 'perspective') {
+      const nextFov = Number.isFinite(state.fov) ? state.fov : defaultFov;
+      perspectiveCamera.fov = clampFov(nextFov);
+      perspectiveCamera.updateProjectionMatrix();
+    }
+    isApplyingCameraState = false;
+    updateCameraModeButton();
+    syncCameraInputs();
+    updateActiveCameraStateFromControls();
   }
 
   function updateRemoveButton() {
@@ -796,6 +840,9 @@ export function createCameraSystem({
 
     if (updateButton) {
       updateButton.addEventListener('click', () => {
+        if (updateButtonHandler && updateButtonHandler()) {
+          return;
+        }
         commitActiveCameraState();
       });
       updateUpdateButton();
@@ -954,6 +1001,11 @@ export function createCameraSystem({
     bindCameraUI,
     updateCameraIcon,
     updateActiveCameraStateFromControls,
+    refreshUpdateButton: updateUpdateButton,
+    setUpdateButtonLabelProvider,
+    setUpdateButtonHandler,
+    setDirtyStateProvider,
+    applyExternalCameraState,
     setCameraHelperVisible,
     updateCameraHelper,
     handleResize,

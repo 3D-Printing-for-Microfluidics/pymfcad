@@ -4,6 +4,7 @@ import { createModelSelector } from './modelSelector.js';
 import { createCameraSystem } from './camera.js';
 import { createLightSystem } from './lights.js';
 import { createPreviewSystem } from './preview.js';
+import { createKeyframeSystem } from './keyframes.js';
 import { createThemeManager } from './themes.js';
 import { createSettingsSystem } from './settings.js';
 
@@ -29,6 +30,7 @@ let controls = initialControls;
 const modelManager = createModelManager({ scene, world });
 
 let lightSystem = null;
+let keyframeSystem = null;
 const cameraSystem = createCameraSystem({
   scene,
   world,
@@ -49,8 +51,13 @@ const cameraSystem = createCameraSystem({
   },
   onActiveCameraChange: () => {
     syncCameraControlSelect();
+    if (keyframeSystem) {
+      keyframeSystem.handleCameraSelectionChange();
+    }
   },
 });
+
+keyframeSystem = createKeyframeSystem({ cameraSystem });
 
 const previewSystem = createPreviewSystem({ scene, controls, cameraSystem });
 
@@ -102,6 +109,12 @@ const settingsDialog = document.getElementById('settingsDialog');
 const settingsDialogClose = document.getElementById('settingsDialogClose');
 const docsBtn = document.getElementById('docsBtn');
 const saveSnapshotBtn = document.getElementById('saveSnapshotBtn');
+const animationToggleBtn = document.getElementById('animationToggleBtn');
+const animationPanel = document.getElementById('animationPanel');
+const keyframeListEl = document.getElementById('keyframeList');
+const keyframeEmptyEl = document.getElementById('keyframeEmpty');
+const addKeyframeBtn = document.getElementById('addKeyframeBtn');
+const removeKeyframeBtn = document.getElementById('removeKeyframeBtn');
 const updateCameraBtn = document.getElementById('updateCameraBtn');
 const modelSelectorEl = document.getElementById('modelSelector');
 const viewCubeEl = document.getElementById('viewCube');
@@ -623,6 +636,21 @@ cameraSystem.bindCameraUI({
     roll: camRoll,
     fov: camFov,
   },
+});
+
+keyframeSystem.bindUI({
+  panel: animationPanel,
+  toggleButton: animationToggleBtn,
+  list: keyframeListEl,
+  empty: keyframeEmptyEl,
+  addButton: addKeyframeBtn,
+  removeButton: removeKeyframeBtn,
+  settingsDialog,
+  settingsDialogClose,
+  lightSystem,
+  cameraList: cameraListEl,
+  addCameraBtnSettings: addCameraBtnSettings,
+  removeCameraBtnSettings: removeCameraBtnSettings,
 });
 
 lightSystem.bindLightUI({
@@ -1266,6 +1294,15 @@ async function init() {
     setAutoReloadIntervalMs,
     initModels,
     resetAllSettings,
+  });
+  keyframeSystem.setEditorDependencies({
+    settingsDialog,
+    settingsDialogClose,
+    settingsSystem,
+    lightSystem,
+    cameraList: cameraListEl,
+    addCameraBtnSettings: addCameraBtnSettings,
+    removeCameraBtnSettings: removeCameraBtnSettings,
   });
   settingsSystem.initTabs('general');
   settingsSystem.initGeneralSettings();

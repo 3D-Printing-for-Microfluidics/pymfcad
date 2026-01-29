@@ -42,6 +42,13 @@ canvas {
   align-items: flex-start;
 }
 
+#rightOverlayStack {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  align-items: flex-end;
+}
+
 #viewCube {
   width: 96px;
   height: 96px;
@@ -68,6 +75,65 @@ canvas {
   max-width: 300px;
   background: var(--panel);
   color: var(--text);
+}
+
+#animationPanel {
+  padding: 0.75rem 1.25rem;
+  border-radius: 0.5rem;
+  box-shadow: 0 2px 8px #0003;
+  font-size: 0.95rem;
+  max-width: 300px;
+  background: var(--panel);
+  color: var(--text);
+}
+
+#animationPanel .panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+#keyframeEmpty {
+  opacity: 0.7;
+  font-size: 0.85rem;
+  margin-bottom: 0.5rem;
+}
+
+.keyframe-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  max-height: 220px;
+  overflow-y: auto;
+  padding-right: 0.2rem;
+  margin-bottom: 0.5rem;
+}
+
+.keyframe-row {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.keyframe-edit-btn {
+  padding: 0.3rem 0.45rem;
+  font-size: 0.75rem;
+}
+
+.keyframe-btn {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  text-align: left;
+  width: 100%;
+}
+
+.keyframe-btn span {
+  opacity: 0.7;
+  font-size: 0.75rem;
 }
 
 .control-btn {
@@ -156,6 +222,7 @@ canvas {
 #settingsDialogBtn,
 #docsBtn,
 #saveSnapshotBtn,
+#animationToggleBtn,
 #addCameraBtn {
   padding: 0.35rem 0.55rem;
   font-size: 0.85rem;
