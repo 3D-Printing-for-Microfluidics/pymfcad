@@ -24,6 +24,12 @@ export function createLightSystem({ scene, world, cameraSystem, previewSystem, g
 
 
   function createDirectionalHelper(light) {
+    if (light.isSpotLight) {
+      const helper = new THREE.SpotLightHelper(light);
+      helper.visible = lightHelpersVisible;
+      scene.add(helper);
+      return helper;
+    }
     const helper = new THREE.DirectionalLightHelper(light, 2);
     helper.visible = lightHelpersVisible;
     scene.add(helper);
@@ -40,7 +46,10 @@ export function createLightSystem({ scene, world, cameraSystem, previewSystem, g
   }
 
   function addDirectionalLight(options = {}) {
-    const light = new THREE.DirectionalLight(options.color ?? 0xffffff, options.intensity ?? 1.0);
+    const type = options.type || 'directional';
+    const light = type === 'spot'
+      ? new THREE.SpotLight(options.color ?? 0xffffff, options.intensity ?? 1.0)
+      : new THREE.DirectionalLight(options.color ?? 0xffffff, options.intensity ?? 1.0);
     const modelCenter = getModelCenterModel();
     const offset = options.offset ?? new THREE.Vector3(10, 10, 10);
     const pos = options.position ?? modelCenter.clone().add(offset);
@@ -48,6 +57,12 @@ export function createLightSystem({ scene, world, cameraSystem, previewSystem, g
     world.add(light);
     world.add(light.target);
     light.target.position.copy(getModelCenterModel());
+    if (light.isSpotLight) {
+      if (Number.isFinite(options.distance)) light.distance = options.distance;
+      if (Number.isFinite(options.angle)) light.angle = options.angle;
+      if (Number.isFinite(options.penumbra)) light.penumbra = options.penumbra;
+      if (Number.isFinite(options.decay)) light.decay = options.decay;
+    }
     const helper = createDirectionalHelper(light);
     directionalLights.push(light);
     directionalHelpers.push(helper);
@@ -184,6 +199,14 @@ export function createLightSystem({ scene, world, cameraSystem, previewSystem, g
     intensityLabel.appendChild(intensityInput);
     gridPrimary.appendChild(intensityLabel);
 
+    const typeLabel = document.createElement('label');
+    typeLabel.textContent = 'Type';
+    const typeSelect = document.createElement('select');
+    typeSelect.innerHTML = '<option value="directional">Directional</option><option value="spot">Spot</option>';
+    typeSelect.value = light.isSpotLight ? 'spot' : 'directional';
+    typeLabel.appendChild(typeSelect);
+    gridPrimary.appendChild(typeLabel);
+
     const gridPosition = document.createElement('div');
     gridPosition.className = 'input-grid';
 
@@ -217,6 +240,60 @@ export function createLightSystem({ scene, world, cameraSystem, previewSystem, g
     editor.appendChild(gridPrimary);
     editor.appendChild(gridPosition);
 
+    const gridSpot = document.createElement('div');
+    gridSpot.className = 'input-grid';
+
+    const distanceLabel = document.createElement('label');
+    distanceLabel.textContent = 'Distance';
+    const distanceInput = document.createElement('input');
+    distanceInput.type = 'number';
+    distanceInput.step = '0.1';
+    distanceInput.min = '0';
+    distanceInput.value = light.isSpotLight ? light.distance.toFixed(3) : '0';
+    distanceLabel.appendChild(distanceInput);
+    gridSpot.appendChild(distanceLabel);
+
+    const angleLabel = document.createElement('label');
+    angleLabel.textContent = 'Angle (deg)';
+    const angleInput = document.createElement('input');
+    angleInput.type = 'number';
+    angleInput.step = '1';
+    angleInput.min = '1';
+    angleInput.max = '90';
+    angleInput.value = light.isSpotLight
+      ? THREE.MathUtils.radToDeg(light.angle).toFixed(1)
+      : '30';
+    angleLabel.appendChild(angleInput);
+    gridSpot.appendChild(angleLabel);
+
+    const penumbraLabel = document.createElement('label');
+    penumbraLabel.textContent = 'Penumbra';
+    const penumbraInput = document.createElement('input');
+    penumbraInput.type = 'number';
+    penumbraInput.step = '0.01';
+    penumbraInput.min = '0';
+    penumbraInput.max = '1';
+    penumbraInput.value = light.isSpotLight ? light.penumbra.toFixed(2) : '0';
+    penumbraLabel.appendChild(penumbraInput);
+    gridSpot.appendChild(penumbraLabel);
+
+    const decayLabel = document.createElement('label');
+    decayLabel.textContent = 'Decay';
+    const decayInput = document.createElement('input');
+    decayInput.type = 'number';
+    decayInput.step = '0.1';
+    decayInput.min = '0';
+    decayInput.value = light.isSpotLight ? light.decay.toFixed(2) : '1';
+    decayLabel.appendChild(decayInput);
+    gridSpot.appendChild(decayLabel);
+
+    editor.appendChild(gridSpot);
+
+    const syncSpotVisibility = () => {
+      gridSpot.style.display = light.isSpotLight ? '' : 'none';
+    };
+    syncSpotVisibility();
+
 
     function updateLight() {
       const nextIntensity = parseFloat(intensityInput.value);
@@ -231,6 +308,19 @@ export function createLightSystem({ scene, world, cameraSystem, previewSystem, g
       }
       light.color.set(colorInput.value);
       light.target.position.copy(modelCenter);
+      if (light.isSpotLight) {
+        const dist = parseFloat(distanceInput.value);
+        const angleDeg = parseFloat(angleInput.value);
+        const pen = parseFloat(penumbraInput.value);
+        const decay = parseFloat(decayInput.value);
+        if (Number.isFinite(dist)) light.distance = Math.max(0, dist);
+        if (Number.isFinite(angleDeg)) {
+          const angleRad = THREE.MathUtils.degToRad(Math.min(90, Math.max(1, angleDeg)));
+          light.angle = angleRad;
+        }
+        if (Number.isFinite(pen)) light.penumbra = Math.min(1, Math.max(0, pen));
+        if (Number.isFinite(decay)) light.decay = Math.max(0, decay);
+      }
       const helper = directionalHelpers[activeDirLightIndex];
       if (helper) {
         updateDirectionalHelper(helper, light);
@@ -242,6 +332,38 @@ export function createLightSystem({ scene, world, cameraSystem, previewSystem, g
     posXInput.addEventListener('input', updateLight);
     posYInput.addEventListener('input', updateLight);
     posZInput.addEventListener('input', updateLight);
+    distanceInput.addEventListener('input', updateLight);
+    angleInput.addEventListener('input', updateLight);
+    penumbraInput.addEventListener('input', updateLight);
+    decayInput.addEventListener('input', updateLight);
+
+    typeSelect.addEventListener('change', () => {
+      const nextType = typeSelect.value;
+      const current = directionalLights[activeDirLightIndex];
+      if (!current) return;
+      const offset = current.position.clone().sub(modelCenter);
+      const snapshot = {
+        color: current.color.getHex(),
+        intensity: current.intensity,
+        distance: current.isSpotLight ? current.distance : parseFloat(distanceInput.value),
+        angle: current.isSpotLight ? current.angle : THREE.MathUtils.degToRad(parseFloat(angleInput.value)),
+        penumbra: current.isSpotLight ? current.penumbra : parseFloat(penumbraInput.value),
+        decay: current.isSpotLight ? current.decay : parseFloat(decayInput.value),
+        offset,
+      };
+      removeDirectionalLight(activeDirLightIndex);
+      addDirectionalLight({
+        type: nextType,
+        color: snapshot.color,
+        intensity: snapshot.intensity,
+        distance: snapshot.distance,
+        angle: snapshot.angle,
+        penumbra: snapshot.penumbra,
+        decay: snapshot.decay,
+        offset,
+      });
+      renderDirectionalLightsList();
+    });
     directionalLightsList.appendChild(editor);
   }
 
@@ -255,9 +377,14 @@ export function createLightSystem({ scene, world, cameraSystem, previewSystem, g
       directional: directionalLights.map((light) => {
         const offset = light.position.clone().sub(modelCenter);
         return {
+          type: light.isSpotLight ? 'spot' : 'directional',
           color: toHexColor(light.color),
           intensity: light.intensity,
           offset: { x: offset.x, y: offset.y, z: offset.z },
+          distance: light.isSpotLight ? light.distance : undefined,
+          angle: light.isSpotLight ? light.angle : undefined,
+          penumbra: light.isSpotLight ? light.penumbra : undefined,
+          decay: light.isSpotLight ? light.decay : undefined,
         };
       }),
     };
@@ -283,10 +410,15 @@ export function createLightSystem({ scene, world, cameraSystem, previewSystem, g
       dirList.forEach((item) => {
         const offset = item?.offset || { x: 10, y: 10, z: 10 };
         addDirectionalLight({
+          type: item?.type || 'directional',
           color: item?.color ? new THREE.Color(item.color) : 0xffffff,
           intensity: Number.isFinite(item?.intensity) ? item.intensity : 1.0,
           offset: new THREE.Vector3(offset.x, offset.y, offset.z),
           position: modelCenter.clone().add(new THREE.Vector3(offset.x, offset.y, offset.z)),
+          distance: Number.isFinite(item?.distance) ? item.distance : undefined,
+          angle: Number.isFinite(item?.angle) ? item.angle : undefined,
+          penumbra: Number.isFinite(item?.penumbra) ? item.penumbra : undefined,
+          decay: Number.isFinite(item?.decay) ? item.decay : undefined,
         });
       });
     }
