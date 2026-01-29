@@ -74,6 +74,10 @@ const modelSelector = createModelSelector({
   toggleBtn: document.getElementById('toggleModelSelectorBtn'),
 });
 
+keyframeSystem.setEditorDependencies({
+  modelSelector,
+});
+
 modelManager.setVisibilityResolver((idx) => modelSelector.getModelVisibility(idx));
 modelSelector.setVisibilityCallback(() => {
   modelManager.updateVisibility();
@@ -114,6 +118,9 @@ const animationPanel = document.getElementById('animationPanel');
 const keyframeListEl = document.getElementById('keyframeList');
 const keyframeEmptyEl = document.getElementById('keyframeEmpty');
 const addKeyframeBtn = document.getElementById('addKeyframeBtn');
+const duplicateKeyframeBtn = document.getElementById('duplicateKeyframeBtn');
+const moveKeyframeUpBtn = document.getElementById('moveKeyframeUpBtn');
+const moveKeyframeDownBtn = document.getElementById('moveKeyframeDownBtn');
 const removeKeyframeBtn = document.getElementById('removeKeyframeBtn');
 const updateCameraBtn = document.getElementById('updateCameraBtn');
 const modelSelectorEl = document.getElementById('modelSelector');
@@ -644,6 +651,9 @@ keyframeSystem.bindUI({
   list: keyframeListEl,
   empty: keyframeEmptyEl,
   addButton: addKeyframeBtn,
+  duplicateButton: duplicateKeyframeBtn,
+  moveUpButton: moveKeyframeUpBtn,
+  moveDownButton: moveKeyframeDownBtn,
   removeButton: removeKeyframeBtn,
   settingsDialog,
   settingsDialogClose,
@@ -1300,6 +1310,7 @@ async function init() {
     settingsDialogClose,
     settingsSystem,
     lightSystem,
+    modelSelector,
     cameraList: cameraListEl,
     addCameraBtnSettings: addCameraBtnSettings,
     removeCameraBtnSettings: removeCameraBtnSettings,

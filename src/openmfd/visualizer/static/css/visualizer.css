@@ -95,6 +95,25 @@ canvas {
   margin-bottom: 0.5rem;
 }
 
+.keyframe-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  opacity: 0.7;
+  margin-bottom: 0.35rem;
+  padding-left: 2.1rem;
+  padding-right: 0.1rem;
+}
+
+.keyframe-header-label:last-child {
+  width: 3.15rem;
+  text-align: right;
+}
+
 #keyframeEmpty {
   opacity: 0.7;
   font-size: 0.85rem;
@@ -129,6 +148,16 @@ canvas {
   gap: 0.5rem;
   text-align: left;
   width: 100%;
+}
+
+.keyframe-time-input {
+  width: 3.15rem;
+  padding: 0.3rem 0.35rem;
+  border-radius: 0.35rem;
+  border: 1px solid var(--button-border);
+  background: var(--button-bg);
+  color: var(--button-text);
+  font-size: 0.8rem;
 }
 
 .keyframe-btn span {

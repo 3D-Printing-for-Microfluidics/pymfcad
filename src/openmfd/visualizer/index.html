@@ -22,13 +22,25 @@
 			<div id="animationPanel" style="display:none;">
 				<div class="panel-header">
 					<strong>Animation</strong>
-					<span style="font-size:0.75rem;opacity:0.7;">Keyframes</span>
+				</div>
+				<div class="keyframe-header">
+					<span class="keyframe-header-label">Keyframe</span>
+					<span class="keyframe-header-label">Time (s)</span>
 				</div>
 				<div id="keyframeEmpty">No keyframes yet.</div>
 				<div id="keyframeList" class="keyframe-list"></div>
 				<div class="row-actions" style="gap:0.5rem;flex-wrap:wrap;justify-content:flex-start;">
 					<button id="addKeyframeBtn" class="control-btn icon-btn" type="button" title="Add Keyframe">
 						<i class="fa-solid fa-plus"></i>
+					</button>
+					<button id="duplicateKeyframeBtn" class="control-btn icon-btn" type="button" title="Duplicate Keyframe">
+						<i class="fa-solid fa-copy"></i>
+					</button>
+					<button id="moveKeyframeUpBtn" class="control-btn icon-btn" type="button" title="Move Keyframe Up">
+						<i class="fa-solid fa-arrow-up"></i>
+					</button>
+					<button id="moveKeyframeDownBtn" class="control-btn icon-btn" type="button" title="Move Keyframe Down">
+						<i class="fa-solid fa-arrow-down"></i>
 					</button>
 					<button id="removeKeyframeBtn" class="control-btn icon-btn" type="button" title="Remove Keyframe">
 						<i class="fa-solid fa-minus"></i>

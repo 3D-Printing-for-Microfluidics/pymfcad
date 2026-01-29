@@ -3,6 +3,7 @@ const KEYFRAME_STORAGE_KEY = 'openmfd_keyframes_v1';
 export function createKeyframeSystem({
   cameraSystem,
   lightSystem = null,
+  modelSelector = null,
   settingsSystem = null,
   settingsDialog = null,
   settingsDialogClose = null,
@@ -20,6 +21,9 @@ export function createKeyframeSystem({
   let listEl = null;
   let emptyEl = null;
   let addBtn = null;
+  let duplicateBtn = null;
+  let moveUpBtn = null;
+  let moveDownBtn = null;
   let removeBtn = null;
 
   let settingsDialogEl = settingsDialog;
@@ -39,6 +43,8 @@ export function createKeyframeSystem({
   let hiddenTabButtons = [];
   let hiddenTabPanels = [];
   let globalLightStateBeforeKeyframe = null;
+  let globalModelSelectionBeforeKeyframe = null;
+  let selectionListenerAttached = false;
 
   function restoreDialogChrome() {
     if (settingsTitleEl) {
@@ -77,6 +83,7 @@ export function createKeyframeSystem({
       const frame = normalizeKeyframe(keyframes[editingIndex]);
       frame.camera = cameraSystem.getCameraState();
       frame.lights = lightSystemRef ? lightSystemRef.getLightState() : frame.lights;
+      frame.models = modelSelector ? modelSelector.getSelectionSnapshot() : frame.models;
       keyframes[editingIndex] = frame;
       saveKeyframes();
       renderList();
@@ -86,6 +93,9 @@ export function createKeyframeSystem({
       }
       if (restoreLights && prevLightState && lightSystemRef) {
         lightSystemRef.applyLightState(prevLightState);
+      }
+      if (modelSelector && globalModelSelectionBeforeKeyframe) {
+        modelSelector.applySelectionSnapshot(globalModelSelectionBeforeKeyframe);
       }
     }
 
@@ -115,18 +125,20 @@ export function createKeyframeSystem({
 
   function normalizeKeyframe(raw) {
     if (!raw) {
-      return { camera: cameraSystem.getCameraState(), lights: null };
+      return { camera: cameraSystem.getCameraState(), lights: null, models: null, time: 0 };
     }
     if (raw.camera || raw.lights) {
       return {
         camera: raw.camera || raw,
         lights: raw.lights || null,
+        models: raw.models || null,
+        time: Number.isFinite(raw.time) ? raw.time : 0,
       };
     }
     if (raw.pos && raw.target) {
-      return { camera: raw, lights: null };
+      return { camera: raw, lights: null, models: null, time: 0 };
     }
-    return { camera: cameraSystem.getCameraState(), lights: null };
+    return { camera: cameraSystem.getCameraState(), lights: null, models: null, time: 0 };
   }
 
   function saveKeyframes() {
@@ -175,7 +187,7 @@ export function createKeyframeSystem({
       const btn = document.createElement('button');
       btn.type = 'button';
       btn.className = 'camera-btn keyframe-btn keyframe-select-btn';
-      btn.innerHTML = `Keyframe ${index + 1} <span>Camera</span>`;
+      btn.innerHTML = `Keyframe ${index + 1}`;
       if (index === activeKeyframeIndex) {
         btn.classList.add('is-active');
       }
@@ -183,13 +195,41 @@ export function createKeyframeSystem({
         selectKeyframe(index);
       });
 
+      const timeInput = document.createElement('input');
+      timeInput.type = 'number';
+      timeInput.className = 'keyframe-time-input';
+      timeInput.min = '0';
+      timeInput.step = '0.1';
+      timeInput.value = Number.isFinite(state.time) ? state.time : 0;
+      timeInput.title = 'Keyframe time (s)';
+      timeInput.addEventListener('change', () => {
+        const next = Number.parseFloat(timeInput.value);
+        const safeValue = Number.isFinite(next) ? Math.max(0, next) : 0;
+        const frame = normalizeKeyframe(keyframes[index]);
+        frame.time = safeValue;
+        keyframes[index] = frame;
+        timeInput.value = safeValue;
+        saveKeyframes();
+      });
+
       row.appendChild(editBtn);
       row.appendChild(btn);
+      row.appendChild(timeInput);
       listEl.appendChild(row);
     });
     updateEmptyState();
+    const hasSelection = activeKeyframeIndex !== null && keyframes.length > 0;
     if (removeBtn) {
-      removeBtn.disabled = activeKeyframeIndex === null || keyframes.length === 0;
+      removeBtn.disabled = !hasSelection;
+    }
+    if (duplicateBtn) {
+      duplicateBtn.disabled = !hasSelection;
+    }
+    if (moveUpBtn) {
+      moveUpBtn.disabled = !hasSelection || activeKeyframeIndex <= 0;
+    }
+    if (moveDownBtn) {
+      moveDownBtn.disabled = !hasSelection || activeKeyframeIndex >= keyframes.length - 1;
     }
   }
 
@@ -208,15 +248,22 @@ export function createKeyframeSystem({
     if (activeKeyframeIndex === null && lightSystemRef) {
       globalLightStateBeforeKeyframe = lightSystemRef.getLightState();
     }
+    if (activeKeyframeIndex === null && modelSelector) {
+      globalModelSelectionBeforeKeyframe = modelSelector.getSelectionSnapshot();
+    }
     activeKeyframeIndex = index;
     const frame = normalizeKeyframe(keyframes[index]);
     keyframes[index] = frame;
     cameraSystem.setDirtyStateProvider(() => keyframes[activeKeyframeIndex]?.camera || null);
+    cameraSystem.setSuppressActiveCameraHighlight(true);
     if (frame.camera) {
       cameraSystem.applyExternalCameraState(frame.camera);
     }
     if (frame.lights && lightSystemRef) {
       lightSystemRef.applyLightState(frame.lights);
+    }
+    if (frame.models && modelSelector) {
+      modelSelector.applySelectionSnapshot(frame.models);
     }
     renderList();
     cameraSystem.refreshUpdateButton();
@@ -226,20 +273,59 @@ export function createKeyframeSystem({
   function clearSelection() {
     activeKeyframeIndex = null;
     cameraSystem.setDirtyStateProvider(null);
+    cameraSystem.setSuppressActiveCameraHighlight(false);
     renderList();
     cameraSystem.refreshUpdateButton();
     if (globalLightStateBeforeKeyframe && lightSystemRef) {
       lightSystemRef.applyLightState(globalLightStateBeforeKeyframe);
     }
     globalLightStateBeforeKeyframe = null;
+    if (globalModelSelectionBeforeKeyframe && modelSelector) {
+      modelSelector.applySelectionSnapshot(globalModelSelectionBeforeKeyframe);
+    }
+    globalModelSelectionBeforeKeyframe = null;
     saveKeyframes();
   }
 
   function addKeyframe() {
     const state = cameraSystem.getCameraState();
     const lights = lightSystemRef ? lightSystemRef.getLightState() : null;
-    keyframes.push({ camera: state, lights });
+    const models = modelSelector ? modelSelector.getSelectionSnapshot() : null;
+    const lastTime = keyframes.length
+      ? Number.isFinite(keyframes[keyframes.length - 1]?.time)
+        ? keyframes[keyframes.length - 1].time
+        : 0
+      : 0;
+    keyframes.push({ camera: state, lights, models, time: lastTime + 1 });
     selectKeyframe(keyframes.length - 1);
+    saveKeyframes();
+  }
+
+  function duplicateActiveKeyframe() {
+    if (activeKeyframeIndex === null) return;
+    if (activeKeyframeIndex < 0 || activeKeyframeIndex >= keyframes.length) return;
+    const frame = normalizeKeyframe(keyframes[activeKeyframeIndex]);
+    const copy = {
+      camera: frame.camera ? JSON.parse(JSON.stringify(frame.camera)) : frame.camera,
+      lights: frame.lights ? JSON.parse(JSON.stringify(frame.lights)) : frame.lights,
+      models: frame.models ? JSON.parse(JSON.stringify(frame.models)) : frame.models,
+      time: Number.isFinite(frame.time) ? frame.time : 0,
+    };
+    const insertIndex = activeKeyframeIndex + 1;
+    keyframes.splice(insertIndex, 0, copy);
+    selectKeyframe(insertIndex);
+    saveKeyframes();
+  }
+
+  function moveActiveKeyframe(direction) {
+    if (activeKeyframeIndex === null) return;
+    const nextIndex = activeKeyframeIndex + direction;
+    if (nextIndex < 0 || nextIndex >= keyframes.length) return;
+    const temp = keyframes[activeKeyframeIndex];
+    keyframes[activeKeyframeIndex] = keyframes[nextIndex];
+    keyframes[nextIndex] = temp;
+    activeKeyframeIndex = nextIndex;
+    renderList();
     saveKeyframes();
   }
 
@@ -265,6 +351,7 @@ export function createKeyframeSystem({
     if (activeKeyframeIndex === null) return false;
     const frame = normalizeKeyframe(keyframes[activeKeyframeIndex]);
     frame.camera = cameraSystem.getCameraState();
+    frame.models = modelSelector ? modelSelector.getSelectionSnapshot() : frame.models;
     keyframes[activeKeyframeIndex] = frame;
     renderList();
     saveKeyframes();
@@ -288,6 +375,9 @@ export function createKeyframeSystem({
     if (!frame.lights) {
       frame.lights = lightSystemRef.getLightState();
     }
+    if (!frame.models && modelSelector) {
+      frame.models = modelSelector.getSelectionSnapshot();
+    }
 
     isEditing = true;
     editingIndex = index;
@@ -298,6 +388,9 @@ export function createKeyframeSystem({
     cameraSystem.setDirtyStateProvider(() => keyframes[activeKeyframeIndex]?.camera || null);
     cameraSystem.applyExternalCameraState(frame.camera);
     lightSystemRef.applyLightState(frame.lights);
+    if (frame.models && modelSelector) {
+      modelSelector.applySelectionSnapshot(frame.models);
+    }
 
     cameraSystem.syncCameraInputs();
     cameraSystem.renderCameraList();
@@ -364,11 +457,15 @@ export function createKeyframeSystem({
       list,
       empty,
       addButton,
+      duplicateButton,
+      moveUpButton,
+      moveDownButton,
       removeButton,
       settingsDialog: dialog,
       settingsDialogClose: dialogClose,
       settingsSystem: settingsSys,
       lightSystem: lightsSys,
+      modelSelector: modelSelectorRef,
       cameraList,
       addCameraBtnSettings,
       removeCameraBtnSettings,
@@ -378,14 +475,29 @@ export function createKeyframeSystem({
       listEl = list || listEl;
       emptyEl = empty || emptyEl;
       addBtn = addButton || addBtn;
+      duplicateBtn = duplicateButton || duplicateBtn;
+      moveUpBtn = moveUpButton || moveUpBtn;
+      moveDownBtn = moveDownButton || moveDownBtn;
       removeBtn = removeButton || removeBtn;
       settingsDialogEl = dialog || settingsDialogEl;
       settingsDialogCloseBtn = dialogClose || settingsDialogCloseBtn;
       settingsSystemRef = settingsSys || settingsSystemRef;
       lightSystemRef = lightsSys || lightSystemRef;
+      modelSelector = modelSelectorRef || modelSelector;
       cameraListEl = cameraList || cameraListEl;
       addCameraBtnSettingsEl = addCameraBtnSettings || addCameraBtnSettingsEl;
       removeCameraBtnSettingsEl = removeCameraBtnSettings || removeCameraBtnSettingsEl;
+
+      if (modelSelector && !selectionListenerAttached) {
+        modelSelector.setSelectionChangeCallback((snapshot) => {
+          if (activeKeyframeIndex === null) return;
+          const frame = normalizeKeyframe(keyframes[activeKeyframeIndex]);
+          frame.models = snapshot;
+          keyframes[activeKeyframeIndex] = frame;
+          saveKeyframes();
+        });
+        selectionListenerAttached = true;
+      }
 
       if (toggleBtn) {
         toggleBtn.addEventListener('click', () => {
@@ -402,6 +514,24 @@ export function createKeyframeSystem({
       if (removeBtn) {
         removeBtn.addEventListener('click', () => {
           removeActiveKeyframe();
+        });
+      }
+
+      if (duplicateBtn) {
+        duplicateBtn.addEventListener('click', () => {
+          duplicateActiveKeyframe();
+        });
+      }
+
+      if (moveUpBtn) {
+        moveUpBtn.addEventListener('click', () => {
+          moveActiveKeyframe(-1);
+        });
+      }
+
+      if (moveDownBtn) {
+        moveDownBtn.addEventListener('click', () => {
+          moveActiveKeyframe(1);
         });
       }
 
@@ -428,6 +558,7 @@ export function createKeyframeSystem({
       settingsDialogClose: dialogClose,
       settingsSystem: settingsSys,
       lightSystem: lightsSys,
+      modelSelector: modelSelectorRef,
       cameraList,
       addCameraBtnSettings,
       removeCameraBtnSettings,
@@ -436,9 +567,21 @@ export function createKeyframeSystem({
       settingsDialogCloseBtn = dialogClose || settingsDialogCloseBtn;
       settingsSystemRef = settingsSys || settingsSystemRef;
       lightSystemRef = lightsSys || lightSystemRef;
+      modelSelector = modelSelectorRef || modelSelector;
       cameraListEl = cameraList || cameraListEl;
       addCameraBtnSettingsEl = addCameraBtnSettings || addCameraBtnSettingsEl;
       removeCameraBtnSettingsEl = removeCameraBtnSettings || removeCameraBtnSettingsEl;
+
+      if (modelSelector && !selectionListenerAttached) {
+        modelSelector.setSelectionChangeCallback((snapshot) => {
+          if (activeKeyframeIndex === null) return;
+          const frame = normalizeKeyframe(keyframes[activeKeyframeIndex]);
+          frame.models = snapshot;
+          keyframes[activeKeyframeIndex] = frame;
+          saveKeyframes();
+        });
+        selectionListenerAttached = true;
+      }
     },
     handleCameraSelectionChange: () => {
       const isHome = cameraSystem.isHomeMode();

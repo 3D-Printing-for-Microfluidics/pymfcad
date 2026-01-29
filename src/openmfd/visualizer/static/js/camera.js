@@ -34,6 +34,7 @@ export function createCameraSystem({
   let updateButtonLabelProvider = null;
   let updateButtonHandler = null;
   let dirtyStateProvider = null;
+  let suppressActiveHighlight = false;
   let addButtons = [];
   let removeButton = null;
   let presetButtons = [];
@@ -383,6 +384,11 @@ export function createCameraSystem({
     updateActiveCameraStateFromControls();
   }
 
+  function setSuppressActiveCameraHighlight(suppress) {
+    suppressActiveHighlight = !!suppress;
+    renderCameraList();
+  }
+
   function getModelCenterWorld() {
     const bboxScene = getBoundingBoxScene();
     let target = null;
@@ -545,7 +551,7 @@ export function createCameraSystem({
         btn.type = 'button';
         btn.className = 'camera-btn';
         btn.textContent = String(i + 1);
-        if (!isHomeMode && i === activeCameraIndex) {
+        if (!isHomeMode && i === activeCameraIndex && !suppressActiveHighlight) {
           btn.classList.add('is-active');
         }
         if (!camerasState[i]) {
@@ -1005,6 +1011,7 @@ export function createCameraSystem({
     setUpdateButtonLabelProvider,
     setUpdateButtonHandler,
     setDirtyStateProvider,
+    setSuppressActiveCameraHighlight,
     applyExternalCameraState,
     setCameraHelperVisible,
     updateCameraHelper,

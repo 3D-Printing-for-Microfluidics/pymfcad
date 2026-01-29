@@ -19,9 +19,15 @@ export function createModelSelector({ formEl, toggleBtn }) {
   let glbFiles = [];
   let listSignature = '';
   let onVisibilityChange = null;
+  let onSelectionChange = null;
+  let updateVisibilityFn = null;
 
   function setVisibilityCallback(callback) {
     onVisibilityChange = callback;
+  }
+
+  function setSelectionChangeCallback(callback) {
+    onSelectionChange = callback;
   }
 
   function getSelectionSnapshot() {
@@ -37,6 +43,24 @@ export function createModelSelector({ formEl, toggleBtn }) {
       groupMap[cb.id] = cb.checked;
     });
     return { models: modelMap, groups: groupMap };
+  }
+
+  function applySelectionSnapshot(snapshot, { persist = true } = {}) {
+    if (!formEl || !snapshot) return;
+    Object.entries(snapshot.models || {}).forEach(([id, checked]) => {
+      const cb = document.getElementById(id);
+      if (cb) cb.checked = checked;
+    });
+    Object.entries(snapshot.groups || {}).forEach(([id, checked]) => {
+      const cb = document.getElementById(id);
+      if (cb) cb.checked = checked;
+    });
+    if (updateVisibilityFn) {
+      updateVisibilityFn();
+    }
+    if (persist) {
+      persistSelection();
+    }
   }
 
   function persistSelection() {
@@ -143,7 +167,13 @@ export function createModelSelector({ formEl, toggleBtn }) {
         const enabled = parentGroup ? isGroupChecked(parentGroup) : true;
         setLabelDisabled(label, !enabled);
       });
+
+      if (onSelectionChange) {
+        onSelectionChange(getSelectionSnapshot());
+      }
     }
+
+    updateVisibilityFn = updateVisibility;
 
     const topTypes = ['device', 'bounding box', 'ports'];
     topTypes.forEach((type) => {
@@ -377,6 +407,9 @@ export function createModelSelector({ formEl, toggleBtn }) {
     build,
     getModelVisibility,
     setVisibilityCallback,
+    setSelectionChangeCallback,
     resetSelectionState,
+    getSelectionSnapshot,
+    applySelectionSnapshot,
   };
 }
