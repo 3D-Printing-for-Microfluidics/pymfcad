@@ -343,8 +343,8 @@ export function createCameraSystem({
   }
 
   function updateActiveCameraStateFromControls() {
-    if (isHomeMode) return;
-    if (!camerasState[activeCameraIndex]) return;
+    if (isHomeMode && !dirtyStateProvider) return;
+    if (!dirtyStateProvider && !camerasState[activeCameraIndex]) return;
     currentDirty = isCameraDirty();
     updateUpdateButton();
   }
@@ -573,7 +573,7 @@ export function createCameraSystem({
 
   function updateUpdateButton() {
     if (!updateButton) return;
-    if (isHomeMode || !camerasState[activeCameraIndex]) {
+    if (!dirtyStateProvider && (isHomeMode || !camerasState[activeCameraIndex])) {
       updateButton.style.display = 'none';
       return;
     }

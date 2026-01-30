@@ -1,4 +1,4 @@
-const SELECTION_STORAGE_KEY = 'openmfd_model_selection_v2';
+const SELECTION_STORAGE_KEY = 'openmfd_model_selection_v3';
 const COLLAPSED_STORAGE_KEY = 'openmfd_model_selector_collapsed';
 
 function loadSelectionState() {
@@ -20,6 +20,7 @@ export function createModelSelector({ formEl, toggleBtn }) {
   let listSignature = '';
   let onVisibilityChange = null;
   let onSelectionChange = null;
+  let onVersionChange = null;
   let updateVisibilityFn = null;
 
   function setVisibilityCallback(callback) {
@@ -30,10 +31,15 @@ export function createModelSelector({ formEl, toggleBtn }) {
     onSelectionChange = callback;
   }
 
+  function setVersionChangeCallback(callback) {
+    onVersionChange = callback;
+  }
+
   function getSelectionSnapshot() {
-    if (!formEl) return { models: {}, groups: {} };
+    if (!formEl) return { models: {}, groups: {}, versions: {} };
     const modelMap = {};
     const groupMap = {};
+    const versionMap = {};
     const modelCbs = formEl.querySelectorAll('input[data-model-idx]');
     modelCbs.forEach((cb) => {
       modelMap[cb.id] = cb.checked;
@@ -42,7 +48,11 @@ export function createModelSelector({ formEl, toggleBtn }) {
     groupCbs.forEach((cb) => {
       groupMap[cb.id] = cb.checked;
     });
-    return { models: modelMap, groups: groupMap };
+    const versionSelects = formEl.querySelectorAll('select[data-model-idx]');
+    versionSelects.forEach((select) => {
+      versionMap[select.id] = select.value;
+    });
+    return { models: modelMap, groups: groupMap, versions: versionMap };
   }
 
   function applySelectionSnapshot(snapshot, { persist = true } = {}) {
@@ -54,6 +64,19 @@ export function createModelSelector({ formEl, toggleBtn }) {
     Object.entries(snapshot.groups || {}).forEach(([id, checked]) => {
       const cb = document.getElementById(id);
       if (cb) cb.checked = checked;
+    });
+    Object.entries(snapshot.versions || {}).forEach(([id, value]) => {
+      const select = document.getElementById(id);
+      if (select) {
+        const prev = select.value;
+        select.value = value;
+        if (select.value === value && prev !== value && onVersionChange) {
+          const idx = Number.parseInt(select.dataset.modelIdx || '-1', 10);
+          if (Number.isInteger(idx) && idx >= 0) {
+            onVersionChange(idx, value, select);
+          }
+        }
+      }
     });
     if (updateVisibilityFn) {
       updateVisibilityFn();
@@ -79,6 +102,18 @@ export function createModelSelector({ formEl, toggleBtn }) {
     Object.entries(saved.groups || {}).forEach(([id, checked]) => {
       const cb = document.getElementById(id);
       if (cb) cb.checked = checked;
+    });
+    Object.entries(saved.versions || {}).forEach(([id, value]) => {
+      const select = document.getElementById(id);
+      if (select) {
+        select.value = value;
+        if (select.value === value && onVersionChange) {
+          const idx = Number.parseInt(select.dataset.modelIdx || '-1', 10);
+          if (Number.isInteger(idx) && idx >= 0) {
+            onVersionChange(idx, value, select);
+          }
+        }
+      }
     });
   }
 
@@ -117,7 +152,12 @@ export function createModelSelector({ formEl, toggleBtn }) {
 
     function createCheckbox(id, checked, labelText, onChange, style = {}, meta = {}) {
       const label = document.createElement('label');
-      label.style.display = 'block';
+      label.style.display = meta.inline ? 'flex' : 'block';
+      if (meta.inline) {
+        label.style.alignItems = 'center';
+        label.style.gap = '0.5em';
+        label.classList.add('model-row');
+      }
       label.style.marginBottom = '0.25em';
       Object.assign(label.style, style);
       const cb = document.createElement('input');
@@ -133,7 +173,18 @@ export function createModelSelector({ formEl, toggleBtn }) {
         persistSelection();
       });
       label.appendChild(cb);
-      label.appendChild(document.createTextNode(labelText));
+      const textSpan = document.createElement('span');
+      textSpan.textContent = labelText;
+      if (meta.inline) {
+        textSpan.classList.add('model-name');
+      }
+      label.appendChild(textSpan);
+      if (meta.versionSelect) {
+        if (meta.versionSelect.classList) {
+          meta.versionSelect.classList.add('model-version');
+        }
+        label.appendChild(meta.versionSelect);
+      }
       return label;
     }
 
@@ -176,11 +227,71 @@ export function createModelSelector({ formEl, toggleBtn }) {
     updateVisibilityFn = updateVisibility;
 
     const topTypes = ['device', 'bounding box', 'ports'];
+    function buildVersionSelect(entry, idx) {
+      const versions = entry?.versions || [];
+      const currentVersion = entry?.versionId || versions[0]?.id || 'v0';
+      if (versions.length <= 1) {
+        const wrapper = document.createElement('span');
+        wrapper.classList.add('model-version');
+        wrapper.style.marginLeft = 'auto';
+        wrapper.style.fontSize = '0.8rem';
+        wrapper.style.opacity = '0.85';
+        const labelText = versions[0]?.label || versions[0]?.id || currentVersion;
+        wrapper.appendChild(document.createTextNode(labelText));
+
+        const hiddenSelect = document.createElement('select');
+        hiddenSelect.id = 'glb_ver_' + idx;
+        hiddenSelect.dataset.modelIdx = String(idx);
+        hiddenSelect.style.display = 'none';
+        const option = document.createElement('option');
+        option.value = currentVersion;
+        option.textContent = labelText;
+        option.selected = true;
+        hiddenSelect.appendChild(option);
+        wrapper.appendChild(hiddenSelect);
+        return wrapper;
+      }
+
+      const select = document.createElement('select');
+      select.id = 'glb_ver_' + idx;
+      select.dataset.modelIdx = String(idx);
+      select.style.marginLeft = 'auto';
+      select.style.padding = '0.2rem 0.3rem';
+      select.style.borderRadius = '0.35rem';
+      select.style.border = '1px solid var(--button-border)';
+      select.style.background = 'var(--button-bg)';
+      select.style.color = 'var(--button-text)';
+      versions.forEach((ver) => {
+        const option = document.createElement('option');
+        option.value = ver.id;
+        option.textContent = ver.label || ver.id;
+        if (entry?.versionId && ver.id === entry.versionId) option.selected = true;
+        select.appendChild(option);
+      });
+      select.addEventListener('change', () => {
+        const versionId = select.value;
+        if (onVersionChange) {
+          onVersionChange(idx, versionId, select);
+        }
+        persistSelection();
+        if (onSelectionChange) {
+          onSelectionChange(getSelectionSnapshot());
+        }
+      });
+      return select;
+    }
+
     topTypes.forEach((type) => {
-      groups[type].forEach(({ name, idx }) => {
+      groups[type].forEach(({ name, idx, versions, versionId }) => {
         const id = 'glb_cb_' + idx;
         const checked = true;
-        const label = createCheckbox(id, checked, name, updateVisibility, {}, { modelIdx: idx, groups: [] });
+        const entry = { versions, versionId };
+        const label = createCheckbox(id, checked, name, updateVisibility, {}, {
+          modelIdx: idx,
+          groups: [],
+          inline: true,
+          versionSelect: buildVersionSelect(entry, idx),
+        });
         label.id = 'glb_cb_label_' + idx;
         formEl.appendChild(label);
       });
@@ -293,10 +404,16 @@ export function createModelSelector({ formEl, toggleBtn }) {
             subExpBtn.textContent = isOpen ? '►' : '▼';
           });
 
-          models.forEach(({ name, idx }) => {
+          models.forEach(({ name, idx, versions, versionId }) => {
             const id = 'glb_cb_' + idx;
             const checked = true;
-            const label = createCheckbox(id, checked, name, updateVisibility, {}, { modelIdx: idx, groups: [groupId, subGroupId] });
+            const entry = { versions, versionId };
+            const label = createCheckbox(id, checked, name, updateVisibility, {}, {
+              modelIdx: idx,
+              groups: [groupId, subGroupId],
+              inline: true,
+              versionSelect: buildVersionSelect(entry, idx),
+            });
             label.id = 'glb_cb_label_' + idx;
             subGroupContent.appendChild(label);
           });
@@ -362,10 +479,16 @@ export function createModelSelector({ formEl, toggleBtn }) {
       groupContent.style.display = 'none';
       groupContent.style.marginLeft = '1.5em';
 
-      groups[type].forEach(({ name, idx }) => {
+      groups[type].forEach(({ name, idx, versions, versionId }) => {
         const id = 'glb_cb_' + idx;
         const checked = true;
-        const label = createCheckbox(id, checked, name, updateVisibility, {}, { modelIdx: idx, groups: [groupId] });
+        const entry = { versions, versionId };
+        const label = createCheckbox(id, checked, name, updateVisibility, {}, {
+          modelIdx: idx,
+          groups: [groupId],
+          inline: true,
+          versionSelect: buildVersionSelect(entry, idx),
+        });
         label.id = 'glb_cb_label_' + idx;
         groupContent.appendChild(label);
       });
@@ -408,6 +531,7 @@ export function createModelSelector({ formEl, toggleBtn }) {
     getModelVisibility,
     setVisibilityCallback,
     setSelectionChangeCallback,
+    setVersionChangeCallback,
     resetSelectionState,
     getSelectionSnapshot,
     applySelectionSnapshot,

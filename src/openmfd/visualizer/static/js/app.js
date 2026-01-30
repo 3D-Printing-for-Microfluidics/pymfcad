@@ -13,6 +13,7 @@ const AUTO_RELOAD_INTERVAL_KEY = 'openmfd_auto_reload_interval_ms';
 const AXES_STORAGE_KEY = 'openmfd_axes_visible';
 const DEFAULT_CONTROLS_TYPE_STORAGE_KEY = 'openmfd_default_controls_type';
 const MODEL_SETTINGS_BEHAVIOR_KEY = 'openmfd_model_settings_behavior';
+const MODEL_DEFAULT_VERSION_KEY = 'openmfd_model_default_version';
 
 const sceneState = createScene();
 const {
@@ -83,6 +84,13 @@ modelManager.setVisibilityResolver((idx) => modelSelector.getModelVisibility(idx
 modelSelector.setVisibilityCallback(() => {
   modelManager.updateVisibility();
   lightSystem.updateDirectionalLightTargets();
+});
+modelSelector.setVersionChangeCallback((idx, versionId) => {
+  modelManager.setModelVersion(idx, versionId);
+  lightSystem.updateDirectionalLightTargets();
+});
+modelSelector.setVersionChangeCallback((idx, versionId) => {
+  modelManager.setModelVersion(idx, versionId);
 });
 
 const resetCameraBtn = document.getElementById('resetCameraBtn');
@@ -169,6 +177,7 @@ const previewDirResetBtn = document.getElementById('previewDirResetBtn');
 const previewDirWarningEl = document.getElementById('previewDirWarning');
 const autoReloadIntervalInput = document.getElementById('autoReloadIntervalInput');
 const modelSettingsBehaviorSelect = document.getElementById('modelSettingsBehaviorSelect');
+const defaultModelVersionSelect = document.getElementById('defaultModelVersionSelect');
 const resetSettingsSelect = document.getElementById('resetSettingsSelect');
 const resetSettingsApplyBtn = document.getElementById('resetSettingsApplyBtn');
 const saveSettingsBtn = document.getElementById('saveSettingsBtn');
@@ -255,6 +264,16 @@ function getModelSettingsBehavior() {
 function setModelSettingsBehavior(value) {
   const next = value || 'dialog';
   localStorage.setItem(MODEL_SETTINGS_BEHAVIOR_KEY, next);
+}
+
+function getDefaultModelVersionStrategy() {
+  return localStorage.getItem(MODEL_DEFAULT_VERSION_KEY) || 'largest';
+}
+
+function setDefaultModelVersionStrategy(value) {
+  const next = value === 'smallest' ? 'smallest' : 'largest';
+  localStorage.setItem(MODEL_DEFAULT_VERSION_KEY, next);
+  modelManager.setDefaultVersionStrategy(next);
 }
 
 function setAnimationExportStatus(message) {
@@ -727,6 +746,7 @@ async function resetGeneralSettings() {
   localStorage.removeItem(AUTO_RELOAD_INTERVAL_KEY);
   localStorage.removeItem(DEFAULT_CONTROLS_TYPE_STORAGE_KEY);
   localStorage.removeItem(MODEL_SETTINGS_BEHAVIOR_KEY);
+  localStorage.removeItem(MODEL_DEFAULT_VERSION_KEY);
   const defaultType = 'orbit';
   if (defaultControlTypeSelect) {
     defaultControlTypeSelect.value = defaultType;
@@ -814,12 +834,12 @@ async function fetchPreviewSettingsList() {
 
 async function checkPreviewSettingsPrompt() {
   const listData = await fetchPreviewSettingsList();
-  if (!listData) return;
   const behavior = getModelSettingsBehavior();
   if (behavior === 'dialog') {
-    openPreviewSettingsDialog(listData);
+    openPreviewSettingsDialog(listData || { files: [] });
     return;
   }
+  if (!listData) return;
   if (behavior === 'ignore') return;
 
   const file = listData.files?.[0];
@@ -878,6 +898,7 @@ function buildSettingsPayload() {
       [AXES_STORAGE_KEY]: localStorage.getItem(AXES_STORAGE_KEY),
       [DEFAULT_CONTROLS_TYPE_STORAGE_KEY]: localStorage.getItem(DEFAULT_CONTROLS_TYPE_STORAGE_KEY),
       [MODEL_SETTINGS_BEHAVIOR_KEY]: localStorage.getItem(MODEL_SETTINGS_BEHAVIOR_KEY),
+      [MODEL_DEFAULT_VERSION_KEY]: localStorage.getItem(MODEL_DEFAULT_VERSION_KEY),
       openmfd_cameras_v1: localStorage.getItem('openmfd_cameras_v1'),
       openmfd_theme: localStorage.getItem('openmfd_theme'),
       openmfd_theme_defs_v1: localStorage.getItem('openmfd_theme_defs_v1'),
@@ -944,6 +965,7 @@ function applySettingsPayload(payload, sections = {}) {
       AXES_STORAGE_KEY,
       DEFAULT_CONTROLS_TYPE_STORAGE_KEY,
       MODEL_SETTINGS_BEHAVIOR_KEY,
+      MODEL_DEFAULT_VERSION_KEY,
     ];
     keys.forEach((key) => {
       if (key in stored) {
@@ -985,6 +1007,25 @@ function applySettingsPayload(payload, sections = {}) {
         modelSettingsBehaviorSelect.value = behavior;
       }
       setModelSettingsBehavior(behavior);
+    }
+
+    if (stored[MODEL_DEFAULT_VERSION_KEY]) {
+      const strategy = stored[MODEL_DEFAULT_VERSION_KEY];
+      if (defaultModelVersionSelect) {
+        defaultModelVersionSelect.value = strategy;
+      }
+      setDefaultModelVersionStrategy(strategy);
+      modelManager.applyDefaultVersionStrategy();
+      if (modelSelector) {
+        const snapshot = modelSelector.getSelectionSnapshot();
+        modelSelector.applySelectionSnapshot({
+          ...snapshot,
+          versions: modelManager.getVersionSelections(),
+        }, { persist: true });
+      }
+      modelManager.loadAllModels().then(() => {
+        lightSystem.updateDirectionalLightTargets();
+      });
     }
   }
 
@@ -1404,11 +1445,21 @@ async function handleModelRefresh() {
   }
   if (result.listChanged) {
     modelManager.setModelList(result.list);
+    modelManager.setDefaultVersionStrategy(getDefaultModelVersionStrategy());
+    modelManager.applyDefaultVersionStrategy();
     modelSelector.build({
-      files: result.list,
+      files: modelManager.getModelList(),
       signature: result.signature,
       resetSelection: true,
     });
+    if (modelSelector) {
+      const snapshot = modelSelector.getSelectionSnapshot();
+      modelSelector.applySelectionSnapshot({
+        ...snapshot,
+        versions: modelManager.getVersionSelections(),
+      }, { persist: false });
+    }
+    modelManager.setModelVersionSelections(modelSelector.getSelectionSnapshot().versions);
     modelManager.updateVisibility();
     await modelManager.loadAllModels();
     lightSystem.ensureDefaultLight();
@@ -1446,6 +1497,7 @@ async function resetAllSettings() {
   localStorage.removeItem('openmfd_keyframes_v1');
   localStorage.removeItem('openmfd_model_selector_collapsed');
   localStorage.removeItem('openmfd_model_selection_v2');
+  localStorage.removeItem('openmfd_model_selection_v3');
   localStorage.removeItem('openmfd_controls_type');
   await fetch('/set_preview_dir', {
     method: 'POST',
@@ -1481,7 +1533,17 @@ async function initModels() {
     return;
   }
   modelManager.setModelList(list);
-  modelSelector.build({ files: list, signature: modelManager.getListSignature() });
+  modelManager.setDefaultVersionStrategy(getDefaultModelVersionStrategy());
+  modelManager.applyDefaultVersionStrategy();
+  modelSelector.build({ files: modelManager.getModelList(), signature: modelManager.getListSignature() });
+  if (modelSelector) {
+    const snapshot = modelSelector.getSelectionSnapshot();
+    modelSelector.applySelectionSnapshot({
+      ...snapshot,
+      versions: modelManager.getVersionSelections(),
+    }, { persist: false });
+  }
+  modelManager.setModelVersionSelections(modelSelector.getSelectionSnapshot().versions);
   await modelManager.loadAllModels();
   lightSystem.ensureDefaultLight();
   lightSystem.updateDirectionalLightTargets();
@@ -1595,6 +1657,12 @@ async function init() {
       } else if (value === 'all') {
         await resetAllSettings();
       }
+    });
+  }
+
+  if (saveSettingsBtn) {
+    saveSettingsBtn.addEventListener('click', async () => {
+      await saveSettingsToFile();
     });
   }
 
@@ -1784,6 +1852,22 @@ async function init() {
     modelSettingsBehaviorSelect.value = getModelSettingsBehavior();
     modelSettingsBehaviorSelect.addEventListener('change', () => {
       setModelSettingsBehavior(modelSettingsBehaviorSelect.value);
+    });
+  }
+  if (defaultModelVersionSelect) {
+    defaultModelVersionSelect.value = getDefaultModelVersionStrategy();
+    defaultModelVersionSelect.addEventListener('change', async () => {
+      setDefaultModelVersionStrategy(defaultModelVersionSelect.value);
+      modelManager.applyDefaultVersionStrategy();
+      if (modelSelector) {
+        const snapshot = modelSelector.getSelectionSnapshot();
+        modelSelector.applySelectionSnapshot({
+          ...snapshot,
+          versions: modelManager.getVersionSelections(),
+        }, { persist: true });
+      }
+      await modelManager.loadAllModels();
+      lightSystem.updateDirectionalLightTargets();
     });
   }
   await initModels();

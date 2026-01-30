@@ -7,7 +7,7 @@ set_fn(50)
 
 
 class Valve20px(VariableLayerThicknessComponent):
-    def __init__(self, quiet: bool = False):
+    def __init__(self, cross_section: bool = False, active: bool = False, quiet: bool = False):
         # Setup initial args/kwargs
         frame = inspect.currentframe()
         args, _, _, values = inspect.getargvalues(frame)
@@ -51,6 +51,10 @@ class Valve20px(VariableLayerThicknessComponent):
         fluidics = Cylinder(height=4, radius=10, center_z=False).translate((18, 18, 8))
         fluidics += Cube((4, 4, 8), center=False).translate((16, 16, 0))
         fluidics += Cube((10, 8, 12), center=False).translate((26, 14, 0))
+        if active:
+            sphere_d = 30
+            sphere = Sphere((sphere_d,sphere_d,sphere_d), fn=100).translate((18,18,sphere_d/2+8))
+            fluidics -= sphere
         self.add_void("FluidicShapes", fluidics, label="fluidic")
 
         pneumatics = Cylinder(height=22, radius=10, center_z=False).translate(
@@ -58,6 +62,11 @@ class Valve20px(VariableLayerThicknessComponent):
         )
         pneumatics += Cube((8, 10, 12), center=False).translate((14, 0, 24))
         pneumatics += Cube((8, 10, 12), center=False).translate((14, 26, 24))
+        if active:
+            sphere_d = 30
+            sphere = Sphere((sphere_d,sphere_d,sphere_d), fn=100).translate((18,18,sphere_d/2+10))
+            sphere -= Cube((sphere_d,sphere_d,sphere_d), center=True).translate((18,18,sphere_d/2+14))
+            pneumatics += sphere
         self.add_void("PneumaticShapes", pneumatics, label="pneumatic")
 
         # Add regional settings
@@ -95,12 +104,20 @@ class Valve20px(VariableLayerThicknessComponent):
         # Build bulk shape
         self.add_bulk("BulkShape", Cube((36, 36, 48), center=False), label="device")
 
+        if cross_section:
+            # do a crosssection cut
+            cross_section = Cube((36, 18, 48), center=False).translate((0, 0, 0))
+            for shape in self.shapes.values():
+                shape = shape - cross_section
+            for bulk in self.bulk_shapes.values():
+                bulk = bulk - cross_section
+
 
 # Valve20px().preview()
 
 
 class DC(VariableLayerThicknessComponent):
-    def __init__(self, quiet: bool = False):
+    def __init__(self, cross_section: bool = False, active: bool = False, quiet: bool = False):
         # Setup initial args/kwargs
         frame = inspect.currentframe()
         args, _, _, values = inspect.getargvalues(frame)
@@ -143,6 +160,10 @@ class DC(VariableLayerThicknessComponent):
         fluidics = Cylinder(height=4, radius=10, center_z=False).translate((18, 18, 8))
         fluidics += Cube((10, 8, 12), center=False).translate((0, 14, 0))
         fluidics += Cube((10, 8, 12), center=False).translate((26, 14, 0))
+        if active:
+            sphere_d = 30
+            sphere = Sphere((sphere_d,sphere_d,sphere_d), fn=100).translate((18,18,sphere_d/2+8))
+            fluidics -= sphere
         self.add_void("FluidicShapes", fluidics, label="fluidic")
 
         pneumatics = Cylinder(height=22, radius=10, center_z=False).translate(
@@ -150,6 +171,11 @@ class DC(VariableLayerThicknessComponent):
         )
         pneumatics += Cube((8, 10, 12), center=False).translate((14, 0, 24))
         pneumatics += Cube((8, 10, 12), center=False).translate((14, 26, 24))
+        if active:
+            sphere_d = 30
+            sphere = Sphere((sphere_d,sphere_d,sphere_d), fn=100).translate((18,18,sphere_d/2+10))
+            sphere -= Cube((sphere_d,sphere_d,sphere_d), center=True).translate((18,18,sphere_d/2+14))
+            pneumatics += sphere
         self.add_void("PneumaticShapes", pneumatics, label="pneumatic")
 
         # Add regional settings
@@ -177,12 +203,20 @@ class DC(VariableLayerThicknessComponent):
         # Build bulk shape
         self.add_bulk("BulkShape", Cube((36, 36, 48), center=False), label="device")
 
+        if cross_section:
+            # do a crosssection cut
+            cross_section = Cube((36, 18, 48), center=False).translate((0, 0, 0))
+            for shape in self.shapes.values():
+                shape = shape - cross_section
+            for bulk in self.bulk_shapes.values():
+                bulk = bulk - cross_section
+
 
 # DC().preview()
 
 
 class Pump(Component):
-    def __init__(self, quiet: bool = False):
+    def __init__(self, render_state: str = "render", quiet: bool = False):
         # Setup initial args/kwargs
         frame = inspect.currentframe()
         args, _, _, values = inspect.getargvalues(frame)
@@ -195,6 +229,11 @@ class Pump(Component):
             layer_size=0.01,
             quiet=quiet,
         )
+
+        preview = render_state.startswith("preview")
+        cross_section = False
+        if preview and render_state != "preview":
+            cross_section = True
 
         # Setup labels
         self.add_label("device", Color.from_name("cyan", 255))
@@ -214,18 +253,19 @@ class Pump(Component):
             "F_OUT",
             Port(Port.PortType.OUT, (125, 14, 12), (8, 8, 6), Port.SurfaceNormal.POS_X),
         )
-        self.add_port(
-            "P1_IN",
-            Port(Port.PortType.INOUT, (14, 0, 24), (8, 8, 6), Port.SurfaceNormal.NEG_Y),
-        )
-        self.add_port(
-            "P2_IN",
-            Port(Port.PortType.INOUT, (59, 0, 24), (8, 8, 6), Port.SurfaceNormal.NEG_Y),
-        )
-        self.add_port(
-            "P3_IN",
-            Port(Port.PortType.INOUT, (103, 0, 24), (8, 8, 6), Port.SurfaceNormal.NEG_Y),
-        )
+        if not cross_section:
+            self.add_port(
+                "P1_IN",
+                Port(Port.PortType.INOUT, (14, 0, 24), (8, 8, 6), Port.SurfaceNormal.NEG_Y),
+            )
+            self.add_port(
+                "P2_IN",
+                Port(Port.PortType.INOUT, (59, 0, 24), (8, 8, 6), Port.SurfaceNormal.NEG_Y),
+            )
+            self.add_port(
+                "P3_IN",
+                Port(Port.PortType.INOUT, (103, 0, 24), (8, 8, 6), Port.SurfaceNormal.NEG_Y),
+            )
         self.add_port(
             "P1_OUT",
             Port(Port.PortType.INOUT, (14, 36, 24), (8, 8, 6), Port.SurfaceNormal.POS_Y),
@@ -240,11 +280,29 @@ class Pump(Component):
         )
 
         # Build void shapes
+        valve_1_toggled = False
+        dc_toggled = False
+        valve_2_toggled = False
+        if preview:
+            if render_state == "preview_1":
+                valve_1_toggled = True
+                dc_toggled = True
+                valve_2_toggled = True
+            elif render_state == "preview_2":
+                valve_2_toggled = True
+            elif render_state == "preview_3":
+                valve_1_toggled = True
+                valve_2_toggled = True
+            elif render_state == "preview_4":
+                valve_1_toggled = True
+            elif render_state == "preview_5":
+                valve_1_toggled = True
+                dc_toggled = True
 
         # Add components
-        v1 = Valve20px().translate([0, 0, 12])
-        dc = DC().translate([45, 0, 12])
-        v2 = Valve20px().translate([89, 0, 12])
+        v1 = Valve20px(cross_section, valve_1_toggled).translate([0, 0, 12])
+        dc = DC(cross_section, dc_toggled).translate([45, 0, 12])
+        v2 = Valve20px(cross_section, valve_2_toggled).translate([89, 0, 12])
         self.add_subcomponent("Valve1", v1)
         self.add_subcomponent("DC", dc)
         self.add_subcomponent("Valve2", v2)
@@ -268,6 +326,14 @@ class Pump(Component):
         # Build bulk shape
         self.add_bulk("BulkShape", Cube((125, 36, 36), center=False), label="device")
 
+        if cross_section:
+            # do a crosssection cut
+            cccube = Cube((125, 18, 36), center=False).translate((0, 0, 0))
+            for shape in self.shapes.values():
+                shape = shape - cccube
+            for bulk in self.bulk_shapes.values():
+                bulk = bulk - cccube
+
         # Color channels
         self.relabel({
             "pneumatic": "pneumatic",
@@ -283,6 +349,10 @@ class Pump(Component):
 
 
 # Pump().rotate(270, in_place=True).mirror(
+#     mirror_x=False, mirror_y=False, in_place=True
+# ).preview()
+
+# Pump("preview_1").rotate(270, in_place=True).mirror(
 #     mirror_x=False, mirror_y=False, in_place=True
 # ).preview()
 
@@ -538,195 +608,216 @@ class SerpentineChannel(Component):
 
 # Pinhole(channel_size=(8, 8, 6)).preview()
 
+render_animation = True
+devices = []
+for preview in [
+    "render",
+    "preview",
+    "preview_0",
+    "preview_1",
+    "preview_2",
+    "preview_3",
+    "preview_4",
+    "preview_5",
+] if render_animation else ["render"]:
 
-dev = Visitech_LRS10_Device(
-    "FullTestDevice", position=(0, 0, 0), layers=250, layer_size=0.01
-)
+    dev = Visitech_LRS10_Device(
+        "FullTestDevice", position=(0, 0, 0), layers=250, layer_size=0.01
+    )
 
-dev.add_label("device", Color.from_name("aqua", 100))
-dev.add_label("edge", Color.from_name("red", 100))
-dev.add_label("control", Color.from_name("fuchsia", 255))
-dev.add_label("fluidic", Color.from_name("aqua", 255))
+    dev.add_label("device", Color.from_name("aqua", 100))
+    dev.add_label("edge", Color.from_name("red", 100))
+    dev.add_label("control", Color.from_name("fuchsia", 255))
+    dev.add_label("fluidic", Color.from_name("aqua", 255))
 
-device_width = 1600
-device_length = 2560
-pinhole_width = 110
-pinhole_height = 144
-pinhole_length = 250
-pump_width = 36
-mixer_width = 24
-view_width = 48
-harc_width = 24
-harc_height = 36
-serp_width = 1200
-f_in1 = Pinhole(channel_size=(8, 8, 6)).translate((0, 500, 75))
-f_in2 = Pinhole(channel_size=(8, 8, 6)).translate(
-    (0, device_width - 500 - pinhole_width, 75)
-)
-f_out = (
-    Pinhole(channel_size=(8, 8, 6))
-    .rotate(180, in_place=True)
-    .translate((device_length - pinhole_length, device_width / 2 - pinhole_width / 2, 75))
-)
-v1_control = (
-    Pinhole(channel_size=(8, 8, 6)).rotate(90, in_place=True).translate((300, 0, 75))
-)
-v1_flush = (
-    Pinhole(channel_size=(8, 8, 6))
-    .rotate(270, in_place=True)
-    .translate((300, device_width - pinhole_length, 75))
-)
-dc_control = (
-    Pinhole(channel_size=(8, 8, 6)).rotate(90, in_place=True).translate((600, 0, 75))
-)
-dc_flush = (
-    Pinhole(channel_size=(8, 8, 6))
-    .rotate(270, in_place=True)
-    .translate((600, device_width - pinhole_length, 75))
-)
-v2_control = (
-    Pinhole(channel_size=(8, 8, 6)).rotate(90, in_place=True).translate((900, 0, 75))
-)
-v2_flush = (
-    Pinhole(channel_size=(8, 8, 6))
-    .rotate(270, in_place=True)
-    .translate((900, device_width - pinhole_length, 75))
-)
-pump1 = Pump().translate((600, 700, 150))
-pump2 = Pump().translate((600, device_width - 700 - pump_width, 150))
+    device_width = 1600
+    device_length = 2560
+    pinhole_width = 110
+    pinhole_height = 144
+    pinhole_length = 250
+    pump_width = 36
+    mixer_width = 24
+    view_width = 48
+    harc_width = 24
+    harc_height = 36
+    serp_width = 1200
+    f_in1 = Pinhole(channel_size=(8, 8, 6)).translate((0, 500, 75))
+    f_in2 = Pinhole(channel_size=(8, 8, 6)).translate(
+        (0, device_width - 500 - pinhole_width, 75)
+    )
+    f_out = (
+        Pinhole(channel_size=(8, 8, 6))
+        .rotate(180, in_place=True)
+        .translate((device_length - pinhole_length, device_width / 2 - pinhole_width / 2, 75))
+    )
+    v1_control = (
+        Pinhole(channel_size=(8, 8, 6)).rotate(90, in_place=True).translate((300, 0, 75))
+    )
+    v1_flush = (
+        Pinhole(channel_size=(8, 8, 6))
+        .rotate(270, in_place=True)
+        .translate((300, device_width - pinhole_length, 75))
+    )
+    dc_control = (
+        Pinhole(channel_size=(8, 8, 6)).rotate(90, in_place=True).translate((600, 0, 75))
+    )
+    dc_flush = (
+        Pinhole(channel_size=(8, 8, 6))
+        .rotate(270, in_place=True)
+        .translate((600, device_width - pinhole_length, 75))
+    )
+    v2_control = (
+        Pinhole(channel_size=(8, 8, 6)).rotate(90, in_place=True).translate((900, 0, 75))
+    )
+    v2_flush = (
+        Pinhole(channel_size=(8, 8, 6))
+        .rotate(270, in_place=True)
+        .translate((900, device_width - pinhole_length, 75))
+    )
 
-mixer = (
-    TJunction()
-    .rotate(270, in_place=True)
-    .translate((700, device_width / 2 - mixer_width / 2, 150))
-)
-view1 = ViewingRegion().translate((800, device_width / 2 - view_width / 2, 150))
-harc = HARChannel().translate(
-    (900, device_width / 2 - harc_width / 2, 150 - harc_height / 2 + 9)
-)
-serp = SerpentineChannel(width=serp_width, turns=40, layers=15).translate(
-    (1200, device_width / 2 - serp_width / 2, 25)
-)
-view2 = ViewingRegion().translate((2000, device_width / 2 - view_width / 2, 150))
+    pump1 = Pump().translate((600, 700, 150))
+    pump2 = Pump(preview).translate((600, device_width - 700 - pump_width, 150))
 
-dev.add_subcomponent("F_IN1", f_in1)
-dev.add_subcomponent("F_IN2", f_in2)
-dev.add_subcomponent("F_OUT", f_out)
-dev.add_subcomponent("V1_CONT", v1_control)
-dev.add_subcomponent("V1_FLUSH", v1_flush)
-dev.add_subcomponent("DC_CONT", dc_control)
-dev.add_subcomponent("DC_FLUSH", dc_flush)
-dev.add_subcomponent("V2_CONT", v2_control)
-dev.add_subcomponent("V2_FLUSH", v2_flush)
-dev.add_subcomponent("Pump1", pump1)
-dev.add_subcomponent("Pump2", pump2)
-dev.add_subcomponent("TMixer", mixer)
-dev.add_subcomponent("ViewingRegion1", view1)
-dev.add_subcomponent("HARChannel", harc)
-dev.add_subcomponent("SerpentineChannel", serp)
-dev.add_subcomponent("ViewingRegion2", view2)
+    mixer = (
+        TJunction()
+        .rotate(270, in_place=True)
+        .translate((700, device_width / 2 - mixer_width / 2, 150))
+    )
+    view1 = ViewingRegion().translate((800, device_width / 2 - view_width / 2, 150))
+    harc = HARChannel().translate(
+        (900, device_width / 2 - harc_width / 2, 150 - harc_height / 2 + 9)
+    )
+    serp = SerpentineChannel(width=serp_width, turns=40, layers=15).translate(
+        (1200, device_width / 2 - serp_width / 2, 25)
+    )
+    view2 = ViewingRegion().translate((2000, device_width / 2 - view_width / 2, 150))
 
-r = Router(component=dev, channel_size=(8, 8, 6), channel_margin=(8, 8, 6))
+    dev.add_subcomponent("F_IN1", f_in1)
+    dev.add_subcomponent("F_IN2", f_in2)
+    dev.add_subcomponent("F_OUT", f_out)
+    if not preview.startswith("preview"):
+        dev.add_subcomponent("V1_CONT", v1_control)
+        dev.add_subcomponent("V1_FLUSH", v1_flush)
+        dev.add_subcomponent("DC_CONT", dc_control)
+        dev.add_subcomponent("DC_FLUSH", dc_flush)
+        dev.add_subcomponent("V2_CONT", v2_control)
+        dev.add_subcomponent("V2_FLUSH", v2_flush)
+    dev.add_subcomponent("Pump1", pump1)
+    dev.add_subcomponent("Pump2", pump2)
+    dev.add_subcomponent("TMixer", mixer)
+    dev.add_subcomponent("ViewingRegion1", view1)
+    dev.add_subcomponent("HARChannel", harc)
+    dev.add_subcomponent("SerpentineChannel", serp)
+    dev.add_subcomponent("ViewingRegion2", view2)
 
-# Fluidic lines
-r.autoroute_channel(f_in1.port, pump1.F_IN, label="fluidic")
-r.autoroute_channel(f_in2.port, pump2.F_IN, label="fluidic")
-r.autoroute_channel(pump1.F_OUT, mixer.F_IN2, label="fluidic")
-r.autoroute_channel(pump2.F_OUT, mixer.F_IN1, label="fluidic")
-r.autoroute_channel(mixer.F_OUT, view1.F_IN, label="fluidic")
-r.autoroute_channel(view1.F_OUT, harc.F_IN, label="fluidic")
-r.autoroute_channel(harc.F_OUT, serp.F_IN, label="fluidic")
-r.route_with_polychannel(
-    serp.F_OUT,
-    view2.F_IN,
-    [
-        BezierCurveShape(
-            position=(120, 0, -43),
-            control_points=[
-                (40, 0, 0),
-                (80, 0, -43),
-            ],
-            bezier_segments=20,
-            absolute_position=False,
-        ),
-    ],
-    label="fluidic",
-)
-r.route_with_polychannel(
-    view2.F_OUT,
-    f_out.port,
-    [
-        BezierCurveShape(
-            position=(254, 17, -29),
-            control_points=[(0, 0, 0)],
-            bezier_segments=20,
-            absolute_position=False,
-        ),
-    ],
-    label="fluidic",
-)
+    r = Router(component=dev, channel_size=(8, 8, 6), channel_margin=(8, 8, 6))
 
-# Control and flush lines
-r.autoroute_channel(
-    v1_control.port, pump1.P1_IN, label="control", direction_preference=("Z", "Y", "X")
-)
-r.autoroute_channel(pump1.P1_OUT, pump2.P1_IN, label="control")
-r.autoroute_channel(
-    pump2.P1_OUT, v1_flush.port, label="control", direction_preference=("X", "Y", "Z")
-)
-r.autoroute_channel(
-    dc_control.port, pump1.P2_IN, label="control", direction_preference=("Z", "Y", "X")
-)
-r.autoroute_channel(pump1.P2_OUT, pump2.P2_IN, label="control")
-r.autoroute_channel(
-    pump2.P2_OUT, dc_flush.port, label="control", direction_preference=("X", "Y", "Z")
-)
-r.autoroute_channel(
-    v2_control.port, pump1.P3_IN, label="control", direction_preference=("Z", "Y", "X")
-)
-r.autoroute_channel(pump1.P3_OUT, pump2.P3_IN, label="control")
-r.autoroute_channel(
-    pump2.P3_OUT, v2_flush.port, label="control", direction_preference=("X", "Y", "Z")
-)
+    # Fluidic lines
+    r.autoroute_channel(f_in1.port, pump1.F_IN, label="fluidic")
+    r.autoroute_channel(f_in2.port, pump2.F_IN, label="fluidic")
+    r.autoroute_channel(pump1.F_OUT, mixer.F_IN2, label="fluidic")
+    r.autoroute_channel(pump2.F_OUT, mixer.F_IN1, label="fluidic")
+    r.autoroute_channel(mixer.F_OUT, view1.F_IN, label="fluidic")
+    r.autoroute_channel(view1.F_OUT, harc.F_IN, label="fluidic")
+    r.autoroute_channel(harc.F_OUT, serp.F_IN, label="fluidic")
+    r.route_with_polychannel(
+        serp.F_OUT,
+        view2.F_IN,
+        [
+            BezierCurveShape(
+                position=(120, 0, -43),
+                control_points=[
+                    (40, 0, 0),
+                    (80, 0, -43),
+                ],
+                bezier_segments=20,
+                absolute_position=False,
+            ),
+        ],
+        label="fluidic",
+    )
+    r.route_with_polychannel(
+        view2.F_OUT,
+        f_out.port,
+        [
+            BezierCurveShape(
+                position=(254, 17, -29),
+                control_points=[(0, 0, 0)],
+                bezier_segments=20,
+                absolute_position=False,
+            ),
+        ],
+        label="fluidic",
+    )
 
-# Finalize routing
-r.finalize_routes()
+    # Control and flush lines
+    if not preview.startswith("preview"):
+        r.autoroute_channel(
+            v1_control.port, pump1.P1_IN, label="control", direction_preference=("Z", "Y", "X")
+        )
+        r.autoroute_channel(pump1.P1_OUT, pump2.P1_IN, label="control")
+        r.autoroute_channel(
+            pump2.P1_OUT, v1_flush.port, label="control", direction_preference=("X", "Y", "Z")
+        )
+        r.autoroute_channel(
+            dc_control.port, pump1.P2_IN, label="control", direction_preference=("Z", "Y", "X")
+        )
+        r.autoroute_channel(pump1.P2_OUT, pump2.P2_IN, label="control")
+        r.autoroute_channel(
+            pump2.P2_OUT, dc_flush.port, label="control", direction_preference=("X", "Y", "Z")
+        )
+        r.autoroute_channel(
+            v2_control.port, pump1.P3_IN, label="control", direction_preference=("Z", "Y", "X")
+        )
+        r.autoroute_channel(pump1.P3_OUT, pump2.P3_IN, label="control")
+        r.autoroute_channel(
+            pump2.P3_OUT, v2_flush.port, label="control", direction_preference=("X", "Y", "Z")
+        )
 
-# Add regional settings
-dev.add_regional_settings(
-    "EdgeExposure",
-    Cube((2560, 1600, 250), center=False).translate((0, 0, 0))
-    - Cube((2460, 1500, 250), center=False).translate((50, 50, 0)),
-    ExposureSettings(exposure_time=1000),
-    label="edge",
-)
+    # Finalize routing
+    r.finalize_routes()
 
-dev.set_burn_in_exposure([10000, 5000, 2500])
+    # Add regional settings
+    dev.add_regional_settings(
+        "EdgeExposure",
+        Cube((2560, 1600, 250), center=False).translate((0, 0, 0))
+        - Cube((2460, 1500, 250), center=False).translate((50, 50, 0)),
+        ExposureSettings(exposure_time=1000),
+        label="edge",
+    )
 
-dev.add_bulk(
-    "BulkShape",
-    Cube((2560, 1600, 250), center=False).translate((0, 0, 0)),
-    label="device",
-)
+    dev.set_burn_in_exposure([10000, 5000, 2500])
 
-# Color channels
-dev.relabel({
-    "pneumatic": "control",
-    "fluidic": "fluidic",
-    "bulk": "device",
-    "device": "device",
-    "V1_CONT.void": "control",
-    "V1_FLUSH.void": "control",
-    "DC_CONT.void": "control",
-    "DC_FLUSH.void": "control",
-    "V2_CONT.void": "control",
-    "V2_FLUSH.void": "control",
-    "F_IN1.void": "fluidic",
-    "F_IN2.void": "fluidic",
-    "F_OUT.void": "fluidic",
-}, recursive=True)
+    dev.add_bulk(
+        "BulkShape",
+        Cube((2560, 1600, 250), center=False).translate((0, 0, 0)),
+        label="device",
+    )
 
-dev.preview()
+    # Color channels
+    dev.relabel({
+        "pneumatic": "control",
+        "fluidic": "fluidic",
+        "bulk": "device",
+        "device": "device",
+        "F_IN1.void": "fluidic",
+        "F_IN2.void": "fluidic",
+        "F_OUT.void": "fluidic",
+    }, recursive=True)
+
+    if not preview.startswith("preview"):
+        dev.relabel({
+            "V1_CONT.void": "control",
+            "V1_FLUSH.void": "control",
+            "DC_CONT.void": "control",
+            "DC_FLUSH.void": "control",
+            "V2_CONT.void": "control",
+            "V2_FLUSH.void": "control",
+        }, recursive=True)
+
+    devices.append(dev)
+
+Component.preview_components(devices)
 
 settings = Settings(
     # user="Test User",

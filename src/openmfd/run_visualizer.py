@@ -1,5 +1,6 @@
 import json
 import importlib.util
+import re
 from pathlib import Path
 
 from flask import Flask, jsonify, send_from_directory, abort, request
@@ -48,17 +49,26 @@ def start_server():
         glb_list = []
         for path in preview_dir.iterdir():
             if path.is_file() and path.suffix.lower() == ".glb":
-                name = path.stem
+                stem = path.stem
+                version = "v0"
+                base_name = stem
+                match = re.match(r"^(.*)__v(\d+)$", stem, re.IGNORECASE)
+                if match:
+                    base_name = match.group(1)
+                    version = f"v{match.group(2)}"
+
+                name_key = base_name.lower()
+                name = base_name
                 type_str = "unknown"
 
-                if name.startswith("bulk_"):
-                    name = name[5:].capitalize()
+                if name_key.startswith("bulk_"):
+                    name = name_key[5:].capitalize()
                     type_str = "bulk"
-                elif name.startswith("void_"):
-                    name = name[5:].capitalize()
+                elif name_key.startswith("void_"):
+                    name = name_key[5:].capitalize()
                     type_str = "void"
-                elif name.startswith("regional_"):
-                    name = name[9:]
+                elif name_key.startswith("regional_"):
+                    name = name_key[9:]
                     if name.startswith("membrane_settings_"):
                         name = name[18:].capitalize()
                         type_str = "regional membrane settings"
@@ -74,13 +84,13 @@ def start_server():
                     else:
                         name = name.capitalize()
                         type_str = "regional"
-                elif name == "ports":
+                elif name_key == "ports":
                     name = "Unconnected Ports"
                     type_str = "ports"
-                elif name == "device":
+                elif name_key == "device":
                     name = "Device"
                     type_str = "device"
-                elif name == "bounding_box":
+                elif name_key == "bounding_box":
                     name = "Bounding Box"
                     type_str = "bounding box"
 
@@ -88,7 +98,13 @@ def start_server():
                 path = path.resolve().relative_to(CWD)
 
                 glb_list.append(
-                    {"name": name, "type": type_str, "file": path.as_posix()}
+                    {
+                        "name": name,
+                        "type": type_str,
+                        "file": path.as_posix(),
+                        "version": version,
+                        "base_name": base_name,
+                    }
                 )
 
         return glb_list

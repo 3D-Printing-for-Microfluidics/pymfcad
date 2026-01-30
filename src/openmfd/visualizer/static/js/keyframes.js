@@ -902,6 +902,16 @@ export function createKeyframeSystem({
     return !!checked && groupsOn;
   }
 
+  function getModelVersionFromSnapshot(snapshot, idx) {
+    const selectId = `glb_ver_${idx}`;
+    if (snapshot?.versions && Object.prototype.hasOwnProperty.call(snapshot.versions, selectId)) {
+      return snapshot.versions[selectId];
+    }
+    const select = document.getElementById(selectId);
+    if (select) return select.value;
+    return modelManagerRef?.getModelVersionId ? modelManagerRef.getModelVersionId(idx) : null;
+  }
+
   function buildVisibilityMap(snapshot) {
     const map = new Map();
     const count = modelManagerRef ? modelManagerRef.getModelCount() : 0;
@@ -930,14 +940,35 @@ export function createKeyframeSystem({
     for (let i = 0; i < count; i += 1) {
       const startVisible = startMap.get(i);
       const endVisible = endMap.get(i);
-      if (startVisible && !endVisible) {
+      const startVersion = getModelVersionFromSnapshot(startSnapshot, i);
+      const endVersion = getModelVersionFromSnapshot(endSnapshot, i);
+      const hasVersionChange = startVersion && endVersion && startVersion !== endVersion;
+
+      if (startVisible && endVisible) {
+        if (hasVersionChange) {
+          modelManagerRef.setModelVersionVisible(i, startVersion, true);
+          modelManagerRef.setModelVersionVisible(i, endVersion, true);
+          modelManagerRef.setModelVersionOpacity(i, startVersion, 1 - easedT);
+          modelManagerRef.setModelVersionOpacity(i, endVersion, easedT);
+        } else {
+          modelManagerRef.setModelOpacity(i, 1);
+        }
+      } else if (startVisible && !endVisible) {
         overrides.set(i, true);
-        modelManagerRef.setModelOpacity(i, 1 - easedT);
+        if (startVersion) {
+          modelManagerRef.setModelVersionVisible(i, startVersion, true);
+          modelManagerRef.setModelVersionOpacity(i, startVersion, 1 - easedT);
+        } else {
+          modelManagerRef.setModelOpacity(i, 1 - easedT);
+        }
       } else if (!startVisible && endVisible) {
         overrides.set(i, true);
-        modelManagerRef.setModelOpacity(i, easedT);
-      } else if (startVisible && endVisible) {
-        modelManagerRef.setModelOpacity(i, 1);
+        if (endVersion) {
+          modelManagerRef.setModelVersionVisible(i, endVersion, true);
+          modelManagerRef.setModelVersionOpacity(i, endVersion, easedT);
+        } else {
+          modelManagerRef.setModelOpacity(i, easedT);
+        }
       } else {
         modelManagerRef.setModelOpacity(i, 0);
       }
@@ -946,9 +977,12 @@ export function createKeyframeSystem({
     if (t >= 1 && playbackSegment && !playbackSegment.modelsEndApplied) {
       suppressModelSelectionSave = true;
       modelSelector.applySelectionSnapshot(endSnapshot, { persist: false });
+      if (modelManagerRef?.setModelVersionSelections) {
+        modelManagerRef.setModelVersionSelections(endSnapshot?.versions, { force: true });
+      }
       modelManagerRef.clearVisibilityOverrides();
       for (let i = 0; i < count; i += 1) {
-        modelManagerRef.setModelOpacity(i, 1);
+        modelManagerRef.resetModelVersionOpacity(i);
       }
       suppressModelSelectionSave = false;
       playbackSegment.modelsEndApplied = true;
@@ -976,6 +1010,9 @@ export function createKeyframeSystem({
     }
     if (frame.models && modelSelector) {
       modelSelector.applySelectionSnapshot(frame.models, { persist });
+      if (modelManagerRef?.setModelVersionSelections) {
+        modelManagerRef.setModelVersionSelections(frame.models.versions, { force: true });
+      }
     }
     if (modelManagerRef) {
       modelManagerRef.clearVisibilityOverrides();
@@ -1218,6 +1255,9 @@ export function createKeyframeSystem({
       }
       if (frame.models && modelSelector) {
         modelSelector.applySelectionSnapshot(frame.models);
+        if (modelManagerRef?.setModelVersionSelections) {
+          modelManagerRef.setModelVersionSelections(frame.models.versions, { force: true });
+        }
       }
     }
     renderList();

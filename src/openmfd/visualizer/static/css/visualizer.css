@@ -124,7 +124,7 @@ canvas {
   border-radius: 0.5rem;
   box-shadow: 0 2px 8px #0003;
   font-size: 0.95rem;
-  max-width: 300px;
+  max-width: 450px;
   background: var(--panel);
   color: var(--text);
 }
@@ -143,6 +143,29 @@ canvas {
 
 #modelSelector.is-in-dialog form {
   margin-top: 0;
+}
+
+#modelSelector .model-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  width: 100%;
+}
+
+#modelSelector .model-row .model-name {
+  flex: 1 1 0;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+#modelSelector .model-row .model-version {
+  flex: 0 0 auto;
+  max-width: 140px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 #animationPanel {

@@ -467,6 +467,8 @@ def render_component(
     render_bulk: bool = True,
     do_bulk_difference: bool = True,
     preview: bool = False,
+    version_suffix: str | None = None,
+    empty_directory: bool = True,
 ) -> trimesh.Trimesh | Scene:
     """
     Render a Component to a Scene.
@@ -499,9 +501,15 @@ def render_component(
             p.mkdir(parents=True, exist_ok=False)
         except FileExistsError:
             # Clear existing previews before exporting.
-            for f in p.iterdir():
-                if f.is_file():
-                    f.unlink()
+            if empty_directory:
+                for f in p.iterdir():
+                    if f.is_file() and f.suffix.lower() != ".json":
+                        f.unlink()
+
+        suffix = version_suffix or ""
+
+        def preview_name(base: str) -> str:
+            return f"{base}{suffix}.glb"
 
         bbox_scene = Scene()
         _draw_bounding_box(
@@ -512,13 +520,13 @@ def render_component(
             px_size=component._px_size,
             layer_size=component._layer_size,
         )
-        bbox_scene.export(f"{path}/bounding_box.glb")
+        bbox_scene.export(f"{path}/{preview_name('bounding_box')}")
         diff_scene = Scene()
         if diff is not None:
             mesh = _manifold3d_shape_to_trimesh(diff)
             diff_scene.add_geometry(mesh)
             del mesh
-            diff_scene.export(f"{path}/device.glb")
+            diff_scene.export(f"{path}/{preview_name('device')}")
             del diff_scene
         if len(manifolds) > 0:
             for k, v in manifolds.items():
@@ -526,7 +534,7 @@ def render_component(
                 mesh = _manifold3d_shape_to_trimesh(v)
                 void_scene.add_geometry(mesh)
                 del mesh
-                void_scene.export(f"{path}/void_{k}.glb")
+                void_scene.export(f"{path}/{preview_name(f'void_{k}')}")
                 del void_scene
             del manifolds
         if len(bulk_manifolds) > 0:
@@ -535,7 +543,7 @@ def render_component(
                 mesh = _manifold3d_shape_to_trimesh(v)
                 bulk_scene.add_geometry(mesh)
                 del mesh
-                bulk_scene.export(f"{path}/bulk_{k}.glb")
+                bulk_scene.export(f"{path}/{preview_name(f'bulk_{k}')}")
                 del bulk_scene
             del bulk_manifolds
         if len(regional_manifolds) > 0:
@@ -544,7 +552,7 @@ def render_component(
                 mesh = _manifold3d_shape_to_trimesh(v)
                 regional_scene.add_geometry(mesh)
                 del mesh
-                regional_scene.export(f"{path}/regional_{k}.glb")
+                regional_scene.export(f"{path}/{preview_name(f'regional_{k}')}")
                 del regional_scene
             del regional_manifolds
         if len(ports) > 0:
@@ -552,7 +560,7 @@ def render_component(
             for port in ports:
                 p, c = port
                 _draw_port(port_scene, p, c)
-            port_scene.export(f"{path}/ports.glb")
+            port_scene.export(f"{path}/{preview_name('ports')}")
             del port_scene
 
     else:

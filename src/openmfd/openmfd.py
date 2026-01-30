@@ -1305,28 +1305,72 @@ class Component(_InstantiationTrackerMixin):
             preview=False,
         )
 
+    @classmethod
+    def preview_components(
+        cls,
+        components: "Component | list[Component]",
+        preview_dir: str = "preview",
+    ):
+        """
+        Preview one or more components in GLB files.
+
+        Parameters:
+
+        - components (Component | list[Component]): Components to preview. If a list is provided,
+          each entry is exported with __vN suffixes (v1, v2, ...). If a single component is provided,
+          no suffix is added.
+        - preview_dir (str): The directory where the preview GLB file will be saved. Default is "preview/".
+
+        Returns:
+
+        - None: The rendered scene is exported to the specified file.
+        """
+        if components is None:
+            return None
+        if isinstance(components, (list, tuple)):
+            components_list = list(components)
+        else:
+            components_list = [components]
+
+        if any(not getattr(model, "quiet", False) for model in components_list):
+            print("Generating Preview...")
+
+        if len(components_list) <= 1:
+            scene = render_component(
+                component=components_list[0],
+                path=preview_dir,
+                preview=True,
+            )
+            return scene
+
+        for index, component in enumerate(components_list, start=1):
+            clear_directory = index == 1
+            render_component(
+                component=component,
+                path=preview_dir,
+                preview=True,
+                version_suffix=f"__v{index}",
+                empty_directory=clear_directory
+            )
+
+        return None
+
     def preview(
         self,
         preview_dir: str = "preview",
     ):
         """
         Preview the component in a GLB file.
-        
+
         Parameters:
 
         - preview_dir (str): The directory where the preview GLB file will be saved. Default is "preview/".
-        
+
         Returns:
 
         - None: The rendered scene is exported to the specified file.
         """
-        if not self.quiet:
-            print("Generating Preview...")
-        scene = render_component(
-            component=self,
-            path=preview_dir,
-            preview=True,
-        )
+        return self.preview_components(self, preview_dir=preview_dir)
 
 
 def float_gcf(numbers, max_denominator=10**6):
