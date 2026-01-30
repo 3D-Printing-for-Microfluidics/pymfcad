@@ -113,20 +113,26 @@ canvas {
 
 .keyframe-header {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.5rem;
+  flex-direction: column;
+  gap: 0.2rem;
   font-size: 0.75rem;
   text-transform: uppercase;
   letter-spacing: 0.05em;
   opacity: 0.7;
   margin-bottom: 0.35rem;
+}
+
+.keyframe-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
   padding-left: 2.1rem;
   padding-right: 0.1rem;
 }
 
 .keyframe-header-label:last-child {
-  width: 3.15rem;
+  width: 3.4rem;
   text-align: right;
 }
 
@@ -220,8 +226,23 @@ canvas {
 
 .keyframe-row {
   display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.keyframe-row-line {
+  display: flex;
   align-items: center;
   gap: 0.35rem;
+}
+
+.keyframe-row-line-secondary {
+  opacity: 0.85;
+}
+
+.keyframe-row-spacer {
+  width: 2.1rem;
+  flex: 0 0 auto;
 }
 
 .keyframe-edit-btn {
@@ -238,8 +259,23 @@ canvas {
   width: 100%;
 }
 
+.keyframe-transition-label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  text-align: left;
+  width: 100%;
+  padding: 0.35rem 0.55rem;
+  border-radius: 0.35rem;
+  border: 1px solid var(--button-border);
+  background: var(--button-bg);
+  color: var(--button-text);
+  font-size: 0.8rem;
+  opacity: 0.8;
+}
+
 .keyframe-time-input {
-  width: 3.15rem;
+  width: 3.4rem;
   padding: 0.3rem 0.35rem;
   border-radius: 0.35rem;
   border: 1px solid var(--button-border);

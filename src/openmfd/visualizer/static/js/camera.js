@@ -1014,6 +1014,7 @@ export function createCameraSystem({
     setSuppressActiveCameraHighlight,
     applyExternalCameraState,
     setCameraHelperVisible,
+    getCameraHelperVisible: () => cameraHelperVisible,
     updateCameraHelper,
     handleResize,
     setTargetToModelCenter,

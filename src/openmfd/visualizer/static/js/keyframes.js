@@ -1,6 +1,8 @@
 import * as THREE from '../lib/three/three.module.js';
 
 const KEYFRAME_STORAGE_KEY = 'openmfd_keyframes_v1';
+const DEFAULT_HOLD_DURATION = 1;
+const DEFAULT_TRANSITION_DURATION = 1;
 
 export function createKeyframeSystem({
   cameraSystem,
@@ -141,21 +143,45 @@ export function createKeyframeSystem({
 
   function normalizeKeyframe(raw) {
     if (!raw) {
-      return { camera: cameraSystem.getCameraState(), lights: null, models: null, time: 0, transitions: {} };
+      return {
+        camera: cameraSystem.getCameraState(),
+        lights: null,
+        models: null,
+        holdDuration: DEFAULT_HOLD_DURATION,
+        transitionDuration: DEFAULT_TRANSITION_DURATION,
+        transitions: {},
+      };
     }
     if (raw.camera || raw.lights) {
       return {
         camera: raw.camera || raw,
         lights: raw.lights || null,
         models: raw.models || null,
-        time: Number.isFinite(raw.time) ? raw.time : 0,
+        holdDuration: Number.isFinite(raw.holdDuration) ? raw.holdDuration : DEFAULT_HOLD_DURATION,
+        transitionDuration: Number.isFinite(raw.transitionDuration)
+          ? raw.transitionDuration
+          : DEFAULT_TRANSITION_DURATION,
         transitions: raw.transitions || {},
       };
     }
     if (raw.pos && raw.target) {
-      return { camera: raw, lights: null, models: null, time: 0, transitions: {} };
+      return {
+        camera: raw,
+        lights: null,
+        models: null,
+        holdDuration: DEFAULT_HOLD_DURATION,
+        transitionDuration: DEFAULT_TRANSITION_DURATION,
+        transitions: {},
+      };
     }
-    return { camera: cameraSystem.getCameraState(), lights: null, models: null, time: 0, transitions: {} };
+    return {
+      camera: cameraSystem.getCameraState(),
+      lights: null,
+      models: null,
+      holdDuration: DEFAULT_HOLD_DURATION,
+      transitionDuration: DEFAULT_TRANSITION_DURATION,
+      transitions: {},
+    };
   }
 
   function saveKeyframes() {
@@ -171,7 +197,36 @@ export function createKeyframeSystem({
     try {
       const parsed = JSON.parse(saved);
       if (Array.isArray(parsed.keyframes)) {
-        keyframes = parsed.keyframes.map((frame) => normalizeKeyframe(frame));
+        const legacyFrames = parsed.keyframes;
+        const hasLegacyTime = legacyFrames.some((frame) => Object.prototype.hasOwnProperty.call(frame, 'time'));
+        const hasDurationFields = legacyFrames.some(
+          (frame) => Object.prototype.hasOwnProperty.call(frame, 'holdDuration') || Object.prototype.hasOwnProperty.call(frame, 'transitionDuration')
+        );
+        if (hasLegacyTime && !hasDurationFields) {
+          const times = legacyFrames.map((frame) => (Number.isFinite(frame?.time) ? frame.time : 0));
+          const migrated = legacyFrames.map((frame, index) => {
+            const transitionDelta = index < times.length - 1 ? Math.max(0, times[index + 1] - times[index]) : 0;
+            return normalizeKeyframe({
+              ...frame,
+              holdDuration: 0,
+              transitionDuration: transitionDelta,
+              transitions: {},
+            });
+          });
+          legacyFrames.forEach((frame, index) => {
+            const transitions = frame?.transitions || null;
+            if (!transitions || Object.keys(transitions).length === 0) return;
+            const targetIndex = Math.max(0, index - 1);
+            migrated[targetIndex].transitions = {
+              ...migrated[targetIndex].transitions,
+              ...transitions,
+            };
+          });
+          keyframes = migrated;
+        } else {
+          keyframes = legacyFrames.map((frame) => normalizeKeyframe(frame));
+        }
+        enforceKeyframeDurations();
       }
       activeKeyframeIndex = null;
     } catch (e) {
@@ -191,6 +246,12 @@ export function createKeyframeSystem({
       const row = document.createElement('div');
       row.className = 'keyframe-row';
       row.dataset.keyframeIndex = String(index);
+
+      const topRow = document.createElement('div');
+      topRow.className = 'keyframe-row-line';
+
+      const bottomRow = document.createElement('div');
+      bottomRow.className = 'keyframe-row-line keyframe-row-line-secondary';
 
       const editBtn = document.createElement('button');
       editBtn.type = 'button';
@@ -212,28 +273,63 @@ export function createKeyframeSystem({
       btn.addEventListener('click', () => {
         selectKeyframe(index);
       });
-
-      const timeInput = document.createElement('input');
-      timeInput.type = 'number';
-      timeInput.className = 'keyframe-time-input';
-      timeInput.min = '0';
-      timeInput.step = '0.1';
-      timeInput.value = Number.isFinite(state.time) ? state.time : 0;
-      timeInput.title = 'Keyframe time (s)';
-      timeInput.addEventListener('change', () => {
-        const next = Number.parseFloat(timeInput.value);
+      const holdInput = document.createElement('input');
+      holdInput.type = 'number';
+      holdInput.className = 'keyframe-time-input';
+      holdInput.min = '0';
+      holdInput.step = '0.1';
+      holdInput.value = Number.isFinite(state.holdDuration) ? state.holdDuration : 0;
+      holdInput.title = 'Keyframe hold duration (s)';
+      holdInput.addEventListener('change', () => {
+        const next = Number.parseFloat(holdInput.value);
         const safeValue = Number.isFinite(next) ? Math.max(0, next) : 0;
         const frame = normalizeKeyframe(keyframes[index]);
-        frame.time = safeValue;
+        frame.holdDuration = safeValue;
         keyframes[index] = frame;
-        enforceKeyframeTimes();
+        enforceKeyframeDurations();
         renderList();
         saveKeyframes();
       });
 
-      row.appendChild(editBtn);
-      row.appendChild(btn);
-      row.appendChild(timeInput);
+      const spacer = document.createElement('div');
+      spacer.className = 'keyframe-row-spacer';
+
+      const transitionLabel = document.createElement('div');
+      transitionLabel.className = 'keyframe-transition-label';
+      transitionLabel.textContent = 'Transition';
+
+      const transitionInput = document.createElement('input');
+      transitionInput.type = 'number';
+      transitionInput.className = 'keyframe-time-input keyframe-transition-input';
+      transitionInput.min = '0';
+      transitionInput.step = '0.1';
+      transitionInput.value = Number.isFinite(state.transitionDuration) ? state.transitionDuration : 0;
+      transitionInput.title = 'Transition duration (s)';
+      if (index >= keyframes.length - 1) {
+        transitionInput.value = '0';
+        transitionInput.disabled = true;
+      }
+      transitionInput.addEventListener('change', () => {
+        const next = Number.parseFloat(transitionInput.value);
+        const safeValue = Number.isFinite(next) ? Math.max(0, next) : 0;
+        const frame = normalizeKeyframe(keyframes[index]);
+        frame.transitionDuration = safeValue;
+        keyframes[index] = frame;
+        enforceKeyframeDurations();
+        renderList();
+        saveKeyframes();
+      });
+
+      topRow.appendChild(editBtn);
+      topRow.appendChild(btn);
+      topRow.appendChild(holdInput);
+
+      bottomRow.appendChild(spacer);
+      bottomRow.appendChild(transitionLabel);
+      bottomRow.appendChild(transitionInput);
+
+      row.appendChild(topRow);
+      row.appendChild(bottomRow);
       listEl.appendChild(row);
     });
     updateEmptyState();
@@ -283,34 +379,29 @@ export function createKeyframeSystem({
   function getChangedItems(index) {
     if (!Number.isInteger(index) || index < 0 || index >= keyframes.length) return [];
     const current = normalizeKeyframe(keyframes[index]);
-    const prev = index > 0 ? normalizeKeyframe(keyframes[index - 1]) : null;
+    const next = index < keyframes.length - 1 ? normalizeKeyframe(keyframes[index + 1]) : null;
 
     const changed = [];
-    const pushIfChanged = (key, label, currentValue, prevValue) => {
-      if (!prev) {
-        if (currentValue !== null && currentValue !== undefined) {
-          changed.push({ key, label });
-        }
-        return;
-      }
-      if (!isEqual(currentValue, prevValue)) {
+    const pushIfChanged = (key, label, currentValue, nextValue) => {
+      if (!next) return;
+      if (!isEqual(currentValue, nextValue)) {
         changed.push({ key, label });
       }
     };
 
-    pushIfChanged('camera', 'Camera', current.camera, prev?.camera);
-    pushIfChanged('lights', 'Lighting', current.lights, prev?.lights);
-    pushIfChanged('models', 'Models', current.models, prev?.models);
+    pushIfChanged('camera', 'Camera', current.camera, next?.camera);
+    pushIfChanged('lights', 'Lighting', current.lights, next?.lights);
+    pushIfChanged('models', 'Models', current.models, next?.models);
     return changed;
   }
 
   function renderTransitionMenu() {
     if (!transitionMenuListEl || activeKeyframeIndex === null) return;
-    if (activeKeyframeIndex === 0) {
+    if (activeKeyframeIndex >= keyframes.length - 1) {
       transitionMenuListEl.innerHTML = '';
       const note = document.createElement('div');
       note.className = 'transition-item';
-      note.textContent = 'Transitions start at keyframe 2.';
+      note.textContent = 'No transition after the last keyframe.';
       transitionMenuListEl.appendChild(note);
       return;
     }
@@ -515,18 +606,15 @@ export function createKeyframeSystem({
     });
   }
 
-  function enforceKeyframeTimes() {
-    const minStep = 0.1;
+  function enforceKeyframeDurations() {
     keyframes.forEach((frame, index) => {
       const normalized = normalizeKeyframe(frame);
-      if (index === 0) {
-        normalized.time = 0;
-      } else {
-        const prevTime = Number.isFinite(keyframes[index - 1]?.time)
-          ? keyframes[index - 1].time
-          : 0;
-        const nextTime = Number.isFinite(normalized.time) ? normalized.time : prevTime + minStep;
-        normalized.time = Math.max(prevTime + minStep, nextTime);
+      normalized.holdDuration = Number.isFinite(normalized.holdDuration) ? Math.max(0, normalized.holdDuration) : 0;
+      normalized.transitionDuration = Number.isFinite(normalized.transitionDuration)
+        ? Math.max(0, normalized.transitionDuration)
+        : 0;
+      if (index >= keyframes.length - 1) {
+        normalized.transitionDuration = 0;
       }
       keyframes[index] = normalized;
     });
@@ -844,6 +932,72 @@ export function createKeyframeSystem({
     lightSystemRef.applyLightStateInterpolated(startFrame.lights, endFrame.lights, easedT);
   }
 
+  function applyFrameState(frame, { persist = false } = {}) {
+    if (frame.camera) {
+      cameraSystem.applyExternalCameraState(frame.camera);
+    }
+    if (frame.lights && lightSystemRef) {
+      lightSystemRef.applyLightState(frame.lights);
+    }
+    if (frame.models && modelSelector) {
+      modelSelector.applySelectionSnapshot(frame.models, { persist });
+    }
+    if (modelManagerRef) {
+      modelManagerRef.clearVisibilityOverrides();
+      const count = modelManagerRef.getModelCount();
+      for (let i = 0; i < count; i += 1) {
+        modelManagerRef.setModelOpacity(i, 1);
+      }
+    }
+  }
+
+  function applyAtTime(timeMs) {
+    if (!keyframes.length) return;
+    const clamped = Math.max(0, Number.isFinite(timeMs) ? timeMs : 0);
+    let elapsed = 0;
+    const prevSuppress = suppressModelSelectionSave;
+    suppressModelSelectionSave = true;
+
+    const ensureFrameData = (frame) => {
+      if (!frame.lights && lightSystemRef) {
+        frame.lights = lightSystemRef.getLightState();
+      }
+      if (!frame.models && modelSelector) {
+        frame.models = modelSelector.getSelectionSnapshot();
+      }
+      return frame;
+    };
+
+    for (let i = 0; i < keyframes.length; i += 1) {
+      const frame = ensureFrameData(normalizeKeyframe(keyframes[i]));
+      const holdMs = Math.max(0, (Number.isFinite(frame.holdDuration) ? frame.holdDuration : 0) * 1000);
+      if (clamped <= elapsed + holdMs || i === keyframes.length - 1) {
+        applyFrameState(frame, { persist: false });
+        suppressModelSelectionSave = prevSuppress;
+        return;
+      }
+      elapsed += holdMs;
+
+      const transitionMs = Math.max(0, (Number.isFinite(frame.transitionDuration) ? frame.transitionDuration : 0) * 1000);
+      if (i < keyframes.length - 1) {
+        const nextFrame = ensureFrameData(normalizeKeyframe(keyframes[i + 1]));
+        if (clamped <= elapsed + transitionMs) {
+          const t = transitionMs <= 0 ? 1 : (clamped - elapsed) / transitionMs;
+          applyCameraTransition(frame, nextFrame, t, frame);
+          applyLightingTransition(frame, nextFrame, t, frame);
+          applyModelTransition(frame.models, nextFrame.models, t, frame);
+          suppressModelSelectionSave = prevSuppress;
+          return;
+        }
+      }
+      elapsed += transitionMs;
+    }
+
+    const lastFrame = ensureFrameData(normalizeKeyframe(keyframes[keyframes.length - 1]));
+    applyFrameState(lastFrame, { persist: false });
+    suppressModelSelectionSave = prevSuppress;
+  }
+
   function startSegment(fromIndex, toIndex, nowMs) {
     const startFrame = normalizeKeyframe(keyframes[fromIndex]);
     const endFrame = normalizeKeyframe(keyframes[toIndex]);
@@ -859,15 +1013,19 @@ export function createKeyframeSystem({
     if (!endFrame.models && modelSelector) {
       endFrame.models = startFrame.models;
     }
-    const startTime = Number.isFinite(startFrame.time) ? startFrame.time : 0;
-    const endTime = Number.isFinite(endFrame.time) ? endFrame.time : startTime + 1;
-    const duration = Math.max(0.05, endTime - startTime);
+    const holdDuration = Number.isFinite(startFrame.holdDuration) ? Math.max(0, startFrame.holdDuration) : 0;
+    const transitionDuration = Number.isFinite(startFrame.transitionDuration)
+      ? Math.max(0, startFrame.transitionDuration)
+      : 0;
 
     playbackSegment = {
       fromIndex,
       toIndex,
       startTimeMs: nowMs,
-      durationMs: duration * 1000,
+      holdDurationMs: holdDuration * 1000,
+      transitionDurationMs: transitionDuration * 1000,
+      phase: holdDuration > 0 ? 'hold' : 'transition',
+      holdApplied: false,
       modelsStartApplied: false,
       modelsEndApplied: false,
     };
@@ -877,7 +1035,7 @@ export function createKeyframeSystem({
 
   function tickPlayback(nowMs) {
     if (!isPlaying || !playbackSegment) return;
-    const { fromIndex, toIndex, startTimeMs, durationMs } = playbackSegment;
+    const { fromIndex, toIndex, startTimeMs, holdDurationMs, transitionDurationMs } = playbackSegment;
     const startFrame = normalizeKeyframe(keyframes[fromIndex]);
     const endFrame = normalizeKeyframe(keyframes[toIndex]);
     if (!startFrame.lights && lightSystemRef) {
@@ -892,11 +1050,36 @@ export function createKeyframeSystem({
     if (!endFrame.models && modelSelector) {
       endFrame.models = startFrame.models;
     }
-    const rawT = Math.min(1, Math.max(0, (nowMs - startTimeMs) / durationMs));
+    if (playbackSegment.phase === 'hold') {
+      if (!playbackSegment.holdApplied) {
+        if (startFrame.camera) {
+          cameraSystem.applyExternalCameraState(startFrame.camera);
+        }
+        if (startFrame.lights && lightSystemRef) {
+          lightSystemRef.applyLightState(startFrame.lights);
+        }
+        if (startFrame.models && modelSelector) {
+          modelSelector.applySelectionSnapshot(startFrame.models, { persist: false });
+        }
+        playbackSegment.holdApplied = true;
+      }
+      if (holdDurationMs <= 0 || nowMs - startTimeMs >= holdDurationMs) {
+        playbackSegment.phase = 'transition';
+        playbackSegment.startTimeMs = nowMs;
+      } else {
+        playbackRaf = requestAnimationFrame(tickPlayback);
+        return;
+      }
+    }
 
-    applyCameraTransition(startFrame, endFrame, rawT, endFrame);
-    applyLightingTransition(startFrame, endFrame, rawT, endFrame);
-    applyModelTransition(startFrame.models, endFrame.models, rawT, endFrame);
+    const elapsed = nowMs - playbackSegment.startTimeMs;
+    const rawT = transitionDurationMs <= 0
+      ? 1
+      : Math.min(1, Math.max(0, elapsed / transitionDurationMs));
+
+    applyCameraTransition(startFrame, endFrame, rawT, startFrame);
+    applyLightingTransition(startFrame, endFrame, rawT, startFrame);
+    applyModelTransition(startFrame.models, endFrame.models, rawT, startFrame);
 
     if (rawT >= 1) {
       playbackIndex = toIndex;
@@ -1033,13 +1216,15 @@ export function createKeyframeSystem({
     const state = cameraSystem.getCameraState();
     const lights = lightSystemRef ? lightSystemRef.getLightState() : null;
     const models = modelSelector ? modelSelector.getSelectionSnapshot() : null;
-    const lastTime = keyframes.length
-      ? Number.isFinite(keyframes[keyframes.length - 1]?.time)
-        ? keyframes[keyframes.length - 1].time
-        : 0
-      : 0;
-    keyframes.push({ camera: state, lights, models, time: lastTime + 1, transitions: {} });
-    enforceKeyframeTimes();
+    keyframes.push({
+      camera: state,
+      lights,
+      models,
+      holdDuration: DEFAULT_HOLD_DURATION,
+      transitionDuration: DEFAULT_TRANSITION_DURATION,
+      transitions: {},
+    });
+    enforceKeyframeDurations();
     selectKeyframe(keyframes.length - 1);
     scrollToActiveKeyframe();
     saveKeyframes();
@@ -1053,7 +1238,7 @@ export function createKeyframeSystem({
     keyframes[activeKeyframeIndex] = keyframes[nextIndex];
     keyframes[nextIndex] = temp;
     activeKeyframeIndex = nextIndex;
-    enforceKeyframeTimes();
+    enforceKeyframeDurations();
     if (isPlaying) {
       playbackIndex = activeKeyframeIndex;
     }
@@ -1065,7 +1250,7 @@ export function createKeyframeSystem({
     if (activeKeyframeIndex === null) return;
     if (activeKeyframeIndex < 0 || activeKeyframeIndex >= keyframes.length) return;
     keyframes.splice(activeKeyframeIndex, 1);
-    enforceKeyframeTimes();
+    enforceKeyframeDurations();
     if (keyframes.length === 0) {
       stopPlayback();
     } else if (isPlaying && playbackIndex >= keyframes.length) {
@@ -1380,6 +1565,9 @@ export function createKeyframeSystem({
     removeActiveKeyframe,
     selectKeyframe,
     clearSelection,
+    startPlaybackFromBeginning,
+    stopPlayback,
+    applyAtTime,
     getKeyframes: () => keyframes.slice(),
   };
 }

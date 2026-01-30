@@ -25,8 +25,14 @@
 				</div>
 				<div id="animationPanelBody" style="display:none;">
 					<div class="keyframe-header">
-						<span class="keyframe-header-label">Keyframe</span>
-						<span class="keyframe-header-label">Time (s)</span>
+						<div class="keyframe-header-row">
+							<span class="keyframe-header-label">Keyframe</span>
+							<span class="keyframe-header-label">Hold (s)</span>
+						</div>
+						<div class="keyframe-header-row">
+							<span class="keyframe-header-label">Transition</span>
+							<span class="keyframe-header-label">Duration (s)</span>
+						</div>
 					</div>
 					<div id="keyframeEmpty">No keyframes yet.</div>
 					<div id="keyframeList" class="keyframe-list"></div>
@@ -53,6 +59,13 @@
 						<button id="keyframePlayFromStartBtn" class="control-btn" type="button" title="Play From Beginning">
 							<i class="fa-solid fa-backward-step"></i>
 							<span>From Start</span>
+						</button>
+					</div>
+					<div class="keyframe-section-title">Export</div>
+					<div class="keyframe-playback">
+						<button id="animationExportBtn" class="control-btn" type="button" title="Export Animation">
+							<i class="fa-solid fa-film"></i>
+							<span>Export</span>
 						</button>
 					</div>
 				</div>
@@ -361,6 +374,55 @@
 				<div id="snapshotProgress" class="snapshot-progress"></div>
 				<div class="row-actions" style="gap:0.5rem;flex-wrap:wrap;">
 					<button id="snapshotSaveBtn" class="control-btn" type="button">Save Snapshot</button>
+				</div>
+			</div>
+		</div>
+	</div>
+
+	<div id="animationExportDialog" class="modal">
+		<div class="modal-content" style="max-width:560px;">
+			<div class="modal-header">
+				<h3>Export Animation</h3>
+				<button id="animationExportClose" class="control-btn">Close</button>
+			</div>
+			<div class="modal-body" style="grid-template-columns: 1fr;">
+				<div class="modal-section">
+					<h4>Output</h4>
+					<div class="input-grid">
+						<label>Resolution
+							<select id="animationExportResolution">
+								<option value="1280x720">1280×720 (720p)</option>
+								<option value="1920x1080" selected>1920×1080 (1080p)</option>
+								<option value="2560x1440">2560×1440 (1440p)</option>
+							</select>
+						</label>
+						<label>Frame Rate (fps)
+							<input id="animationExportFps" type="number" min="1" max="60" step="1" value="30">
+						</label>
+						<label>Quality
+							<select id="animationExportQuality">
+								<option value="low">Low (4 Mbps)</option>
+								<option value="medium" selected>Medium (12 Mbps)</option>
+								<option value="high">High (30 Mbps)</option>
+								<option value="lossless">Lossless (WebM)</option>
+							</select>
+						</label>
+						<label>File Type
+							<select id="animationExportType">
+								<option value="webm">WebM (video)</option>
+								<option value="mp4">MP4 (video)</option>
+								<option value="gif">GIF (image sequence)</option>
+								<option value="avi">AVI (video)</option>
+							</select>
+						</label>
+						<label>File Name
+							<input id="animationExportFileName" type="text" value="openmfd-animation">
+						</label>
+					</div>
+				</div>
+				<div id="animationExportProgress" class="snapshot-progress"></div>
+				<div class="row-actions" style="gap:0.5rem;flex-wrap:wrap;">
+					<button id="animationExportSaveBtn" class="control-btn" type="button">Export Animation</button>
 				</div>
 			</div>
 		</div>

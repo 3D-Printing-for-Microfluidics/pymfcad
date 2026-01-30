@@ -124,6 +124,7 @@ const moveKeyframeDownBtn = document.getElementById('moveKeyframeDownBtn');
 const removeKeyframeBtn = document.getElementById('removeKeyframeBtn');
 const keyframePlayBtn = document.getElementById('keyframePlayBtn');
 const keyframePlayFromStartBtn = document.getElementById('keyframePlayFromStartBtn');
+const animationExportBtn = document.getElementById('animationExportBtn');
 const transitionMenu = document.getElementById('transitionMenu');
 const transitionMenuList = document.getElementById('transitionMenuList');
 const updateCameraBtn = document.getElementById('updateCameraBtn');
@@ -189,6 +190,15 @@ const snapshotSaveBtn = document.getElementById('snapshotSaveBtn');
 const snapshotScaleInput = document.getElementById('snapshotScale');
 const snapshotFileNameInput = document.getElementById('snapshotFileName');
 const snapshotProgress = document.getElementById('snapshotProgress');
+const animationExportDialog = document.getElementById('animationExportDialog');
+const animationExportClose = document.getElementById('animationExportClose');
+const animationExportResolutionSelect = document.getElementById('animationExportResolution');
+const animationExportFpsInput = document.getElementById('animationExportFps');
+const animationExportQualitySelect = document.getElementById('animationExportQuality');
+const animationExportTypeSelect = document.getElementById('animationExportType');
+const animationExportFileNameInput = document.getElementById('animationExportFileName');
+const animationExportSaveBtn = document.getElementById('animationExportSaveBtn');
+const animationExportProgress = document.getElementById('animationExportProgress');
 
 let settingsSystem = null;
 let themeManager = null;
@@ -238,6 +248,11 @@ function setSnapshotStatus(message) {
   snapshotProgress.textContent = message || '';
 }
 
+function setAnimationExportStatus(message) {
+  if (!animationExportProgress) return;
+  animationExportProgress.textContent = message || '';
+}
+
 function normalizeSnapshotName(name) {
   const trimmed = (name || '').trim();
   if (!trimmed) return 'openmfd-viewport.png';
@@ -250,6 +265,50 @@ function getSnapshotSettings() {
   return { scale, fileName };
 }
 
+function normalizeAnimationName(name, type) {
+  const trimmed = (name || '').trim() || 'openmfd-animation';
+  const extMap = {
+    webm: '.webm',
+    mp4: '.mp4',
+    gif: '.gif',
+    avi: '.avi',
+  };
+  const ext = extMap[type] || '.webm';
+  return trimmed.toLowerCase().endsWith(ext) ? trimmed : `${trimmed}${ext}`;
+}
+
+function getAnimationExportSettings() {
+  const fps = Math.max(1, Math.min(60, Number.parseInt(animationExportFpsInput?.value || '30', 10) || 30));
+  const quality = animationExportQualitySelect?.value || 'medium';
+  let type = animationExportTypeSelect?.value || 'webm';
+  if (quality === 'lossless') {
+    type = 'webm';
+    if (animationExportTypeSelect) {
+      animationExportTypeSelect.value = 'webm';
+    }
+  }
+  const fileName = normalizeAnimationName(animationExportFileNameInput?.value, type);
+  const resolutionValue = animationExportResolutionSelect?.value || '';
+  const [w, h] = resolutionValue.split('x').map((value) => Number.parseInt(value, 10));
+  const width = Number.isFinite(w) && w > 0 ? w : window.innerWidth;
+  const height = Number.isFinite(h) && h > 0 ? h : window.innerHeight;
+  return { width, height, fps, quality, type, fileName };
+}
+
+function syncAnimationExportTypeForQuality() {
+  if (!animationExportQualitySelect || !animationExportTypeSelect) return;
+  const isLossless = animationExportQualitySelect.value === 'lossless';
+  const options = Array.from(animationExportTypeSelect.options);
+  options.forEach((opt) => {
+    if (opt.value !== 'webm') {
+      opt.disabled = isLossless;
+    }
+  });
+  if (isLossless) {
+    animationExportTypeSelect.value = 'webm';
+  }
+}
+
 function openSnapshotDialog() {
   if (!snapshotDialog) return;
   setSnapshotStatus('');
@@ -260,6 +319,18 @@ function closeSnapshotDialog() {
   if (!snapshotDialog) return;
   snapshotDialog.classList.remove('is-open');
   setSnapshotStatus('');
+}
+
+function openAnimationExportDialog() {
+  if (!animationExportDialog) return;
+  setAnimationExportStatus('');
+  animationExportDialog.classList.add('is-open');
+}
+
+function closeAnimationExportDialog() {
+  if (!animationExportDialog) return;
+  animationExportDialog.classList.remove('is-open');
+  setAnimationExportStatus('');
 }
 
 async function saveBlobAsFile(blob, fileName) {
@@ -336,17 +407,33 @@ async function renderRasterSnapshot({ width, height }) {
 
 async function handleSnapshotSave() {
   const settings = getSnapshotSettings();
-  const width = Math.max(1, Math.round(window.innerWidth * settings.scale));
-  const height = Math.max(1, Math.round(window.innerHeight * settings.scale));
+  const baseWidth = window.innerWidth;
+  const baseHeight = window.innerHeight;
+  const width = Math.max(1, Math.round(baseWidth * settings.scale));
+  const height = Math.max(1, Math.round(baseHeight * settings.scale));
+  const maxPixels = 3840 * 2160;
+  const maxScale = Math.sqrt(maxPixels / (baseWidth * baseHeight));
+  const clampedScale = Math.min(settings.scale, Math.max(0.25, Math.min(4, maxScale)));
+  const exportWidth = Math.max(1, Math.round(baseWidth * clampedScale));
+  const exportHeight = Math.max(1, Math.round(baseHeight * clampedScale));
+  if (clampedScale < settings.scale) {
+    setSnapshotStatus(`Resolution scale reduced to ${clampedScale.toFixed(2)} to avoid memory issues.`);
+  }
   const uiElements = [modelSelectorEl, cameraStripWrapper, controlsEl, settingsDialogEl].filter(Boolean);
+  const prevCameraHelperVisible = typeof cameraSystem.getCameraHelperVisible === 'function'
+    ? cameraSystem.getCameraHelperVisible()
+    : false;
   uiElements.forEach((el) => el.classList.add('ui-hidden'));
   if (snapshotSaveBtn) snapshotSaveBtn.disabled = true;
   if (snapshotDialogClose) snapshotDialogClose.disabled = true;
   setSnapshotStatus('Rendering snapshot...');
+  cameraSystem.setCameraHelperVisible(false);
 
   try {
     let blob = null;
-    blob = await renderRasterSnapshot({ width, height });
+    const renderWidth = exportWidth || width;
+    const renderHeight = exportHeight || height;
+    blob = await renderRasterSnapshot({ width: renderWidth, height: renderHeight });
 
     if (!blob) {
       setSnapshotStatus('Snapshot failed to render.');
@@ -362,6 +449,232 @@ async function handleSnapshotSave() {
     uiElements.forEach((el) => el.classList.remove('ui-hidden'));
     if (snapshotSaveBtn) snapshotSaveBtn.disabled = false;
     if (snapshotDialogClose) snapshotDialogClose.disabled = false;
+    cameraSystem.setCameraHelperVisible(prevCameraHelperVisible);
+  }
+}
+
+function getAnimationDurationMs() {
+  if (!keyframeSystem) return 0;
+  const frames = keyframeSystem.getKeyframes();
+  if (!frames.length) return 0;
+  return frames.reduce((total, frame) => {
+    const hold = Number.isFinite(frame?.holdDuration) ? Math.max(0, frame.holdDuration) : 0;
+    const transition = Number.isFinite(frame?.transitionDuration) ? Math.max(0, frame.transitionDuration) : 0;
+    return total + (hold + transition) * 1000;
+  }, 0);
+}
+
+function applyExportCameraSize(width, height) {
+  const camera = cameraSystem.getCamera();
+  if (!camera) return;
+  if (camera.isPerspectiveCamera) {
+    camera.aspect = width / height;
+    camera.updateProjectionMatrix();
+  } else if (camera.isOrthographicCamera) {
+    const centerX = (camera.left + camera.right) / 2;
+    const centerY = (camera.top + camera.bottom) / 2;
+    const viewHeight = camera.top - camera.bottom;
+    const viewWidth = viewHeight * (width / height);
+    camera.left = centerX - viewWidth / 2;
+    camera.right = centerX + viewWidth / 2;
+    camera.top = centerY + viewHeight / 2;
+    camera.bottom = centerY - viewHeight / 2;
+    camera.updateProjectionMatrix();
+  }
+}
+
+async function handleAnimationExport() {
+  if (!animationExportSaveBtn || !animationExportClose) return;
+  const settings = getAnimationExportSettings();
+  const durationMs = getAnimationDurationMs();
+  if (!durationMs) {
+    setAnimationExportStatus('Add keyframes before exporting.');
+    return;
+  }
+  if (!renderer?.domElement?.captureStream || typeof MediaRecorder === 'undefined') {
+    setAnimationExportStatus('Recording is not supported in this browser.');
+    return;
+  }
+
+  let exportRenderer = null;
+  const prevCameraHelperVisible = typeof cameraSystem.getCameraHelperVisible === 'function'
+    ? cameraSystem.getCameraHelperVisible()
+    : false;
+  const prevCameraState = cameraSystem.getCameraState();
+  const prevLightState = lightSystem ? lightSystem.getLightState() : null;
+  const prevModelSelection = modelSelector ? modelSelector.getSelectionSnapshot() : null;
+
+  const exportWidth = Math.max(1, Math.round(settings.width));
+  const exportHeight = Math.max(1, Math.round(settings.height));
+  let effectiveFps = settings.fps;
+  if (settings.quality === 'lossless' && effectiveFps > 30) {
+    effectiveFps = 30;
+    setAnimationExportStatus('Lossless export capped at 30 fps to avoid memory issues.');
+  }
+  if (settings.quality === 'lossless' && exportWidth * exportHeight * effectiveFps > 3840 * 2160 * 30) {
+    setAnimationExportStatus('Lossless export at this resolution/fps is too heavy. Lower resolution or fps.');
+    return;
+  }
+  const uiElements = [modelSelectorEl, cameraStripWrapper, controlsEl, settingsDialogEl, animationPanel].filter(Boolean);
+
+  const prevSize = new THREE.Vector2();
+  renderer.getSize(prevSize);
+  const prevPixelRatio = renderer.getPixelRatio();
+
+  uiElements.forEach((el) => el.classList.add('ui-hidden'));
+  cameraSystem.setCameraHelperVisible(false);
+  animationExportSaveBtn.disabled = true;
+  animationExportClose.disabled = true;
+  setAnimationExportStatus('Recording animation...');
+
+  try {
+    renderer.setPixelRatio(1);
+    applyExportCameraSize(exportWidth, exportHeight);
+
+    let mimeType = '';
+    let videoBitsPerSecond = 12000000;
+    if (settings.quality === 'low') {
+      videoBitsPerSecond = 4000000;
+    } else if (settings.quality === 'high') {
+      videoBitsPerSecond = 30000000;
+    } else if (settings.quality === 'lossless') {
+      videoBitsPerSecond = 80000000;
+    }
+    if (settings.type === 'mp4') {
+      mimeType = 'video/mp4;codecs=h264';
+      if (!MediaRecorder.isTypeSupported(mimeType)) {
+        mimeType = 'video/mp4';
+      }
+    } else if (settings.type === 'avi') {
+      mimeType = 'video/avi';
+    } else if (settings.type === 'gif') {
+      setAnimationExportStatus('GIF export is not supported in this browser. Use WebM or MP4.');
+      return;
+    } else {
+      if (settings.quality === 'lossless') {
+        mimeType = 'video/webm;codecs=vp9';
+      } else {
+        mimeType = 'video/webm;codecs=vp9';
+      }
+      if (!MediaRecorder.isTypeSupported(mimeType)) {
+        mimeType = 'video/webm;codecs=vp8';
+      }
+      if (!MediaRecorder.isTypeSupported(mimeType)) {
+        mimeType = 'video/webm';
+      }
+    }
+    if (!MediaRecorder.isTypeSupported(mimeType)) {
+      setAnimationExportStatus('Selected file type is not supported in this browser.');
+      return;
+    }
+
+    const exportCanvas = document.createElement('canvas');
+    exportRenderer = new THREE.WebGLRenderer({ canvas: exportCanvas, antialias: true, preserveDrawingBuffer: false });
+    exportRenderer.setSize(exportWidth, exportHeight, false);
+    exportRenderer.setPixelRatio(1);
+    exportRenderer.outputColorSpace = renderer.outputColorSpace;
+    exportRenderer.toneMapping = renderer.toneMapping;
+    exportRenderer.toneMappingExposure = renderer.toneMappingExposure;
+
+    const stream = exportCanvas.captureStream(effectiveFps);
+    const chunks = [];
+    let writable = null;
+    let writeChain = Promise.resolve();
+    if (window.showSaveFilePicker) {
+      const pickerTypes = [
+        {
+          description: 'Video',
+          accept: {
+            'video/webm': ['.webm'],
+            'video/mp4': ['.mp4'],
+            'video/avi': ['.avi'],
+          },
+        },
+      ];
+      const handle = await window.showSaveFilePicker({
+        suggestedName: settings.fileName,
+        types: pickerTypes,
+      });
+      writable = await handle.createWritable();
+    }
+
+    const recorder = new MediaRecorder(stream, { mimeType, videoBitsPerSecond });
+    recorder.ondataavailable = (event) => {
+      if (!event.data || event.data.size === 0) return;
+      if (writable) {
+        writeChain = writeChain.then(() => writable.write(event.data));
+      } else {
+        chunks.push(event.data);
+      }
+    };
+
+    const stopPromise = new Promise((resolve) => {
+      recorder.onstop = () => resolve();
+    });
+
+    recorder.start(250);
+
+    const totalFrames = Math.max(1, Math.ceil((durationMs / 1000) * effectiveFps) + 1);
+    const track = stream.getVideoTracks()[0];
+    for (let i = 0; i < totalFrames; i += 1) {
+      const timeMs = Math.min(durationMs, (i / effectiveFps) * 1000);
+      keyframeSystem.applyAtTime(timeMs);
+      cameraSystem.setCameraHelperVisible(false);
+      exportRenderer.render(scene, cameraSystem.getCamera());
+      if (track && typeof track.requestFrame === 'function') {
+        track.requestFrame();
+      }
+      if (i % Math.max(1, Math.floor(effectiveFps)) === 0) {
+        const pct = Math.round((i / totalFrames) * 100);
+        setAnimationExportStatus(`Recording animation... ${pct}%`);
+      }
+      await new Promise((resolve) => setTimeout(resolve, 1000 / effectiveFps));
+    }
+
+    recorder.stop();
+    await stopPromise;
+    await writeChain;
+
+    if (writable) {
+      await writable.close();
+      closeAnimationExportDialog();
+    } else {
+      const blob = new Blob(chunks, { type: mimeType });
+      if (!blob.size) {
+        setAnimationExportStatus('Export failed to render.');
+        return;
+      }
+      setAnimationExportStatus('Saving...');
+      await saveBlobAsFile(blob, settings.fileName);
+      closeAnimationExportDialog();
+    }
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Export failed.';
+    setAnimationExportStatus(message);
+  } finally {
+    keyframeSystem.stopPlayback();
+    if (prevCameraState) {
+      cameraSystem.applyExternalCameraState(prevCameraState);
+    }
+    if (prevLightState && lightSystem) {
+      lightSystem.applyLightState(prevLightState);
+    }
+    if (prevModelSelection && modelSelector) {
+      modelSelector.applySelectionSnapshot(prevModelSelection, { persist: false });
+    }
+    cameraSystem.setCameraHelperVisible(prevCameraHelperVisible);
+    renderer.setPixelRatio(prevPixelRatio);
+    renderer.setSize(prevSize.x, prevSize.y, false);
+    cameraSystem.handleResize();
+    if (controls && typeof controls.handleResize === 'function') {
+      controls.handleResize();
+    }
+    if (exportRenderer) {
+      exportRenderer.dispose();
+    }
+    uiElements.forEach((el) => el.classList.remove('ui-hidden'));
+    animationExportSaveBtn.disabled = false;
+    animationExportClose.disabled = false;
   }
 }
 
@@ -1119,15 +1432,39 @@ async function init() {
     });
   }
 
+  if (animationExportBtn) {
+    animationExportBtn.addEventListener('click', () => {
+      openAnimationExportDialog();
+    });
+  }
+
+  if (animationExportQualitySelect) {
+    animationExportQualitySelect.addEventListener('change', () => {
+      syncAnimationExportTypeForQuality();
+    });
+  }
+
   if (snapshotDialogClose) {
     snapshotDialogClose.addEventListener('click', () => {
       closeSnapshotDialog();
     });
   }
 
+  if (animationExportClose) {
+    animationExportClose.addEventListener('click', () => {
+      closeAnimationExportDialog();
+    });
+  }
+
   if (snapshotSaveBtn) {
     snapshotSaveBtn.addEventListener('click', async () => {
       await handleSnapshotSave();
+    });
+  }
+
+  if (animationExportSaveBtn) {
+    animationExportSaveBtn.addEventListener('click', async () => {
+      await handleAnimationExport();
     });
   }
 
@@ -1266,6 +1603,16 @@ async function init() {
       }
     });
   }
+
+  if (animationExportDialog) {
+    animationExportDialog.addEventListener('click', (event) => {
+      if (event.target === animationExportDialog) {
+        closeAnimationExportDialog();
+      }
+    });
+  }
+
+  syncAnimationExportTypeForQuality();
 
   if (defaultControlTypeSelect) {
     const savedType = localStorage.getItem(DEFAULT_CONTROLS_TYPE_STORAGE_KEY) || 'orbit';
