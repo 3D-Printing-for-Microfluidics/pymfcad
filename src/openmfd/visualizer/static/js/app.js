@@ -122,6 +122,8 @@ const duplicateKeyframeBtn = document.getElementById('duplicateKeyframeBtn');
 const moveKeyframeUpBtn = document.getElementById('moveKeyframeUpBtn');
 const moveKeyframeDownBtn = document.getElementById('moveKeyframeDownBtn');
 const removeKeyframeBtn = document.getElementById('removeKeyframeBtn');
+const keyframePlayBtn = document.getElementById('keyframePlayBtn');
+const keyframePlayFromStartBtn = document.getElementById('keyframePlayFromStartBtn');
 const updateCameraBtn = document.getElementById('updateCameraBtn');
 const modelSelectorEl = document.getElementById('modelSelector');
 const viewCubeEl = document.getElementById('viewCube');
@@ -655,6 +657,8 @@ keyframeSystem.bindUI({
   moveUpButton: moveKeyframeUpBtn,
   moveDownButton: moveKeyframeDownBtn,
   removeButton: removeKeyframeBtn,
+  playButton: keyframePlayBtn,
+  playFromStartButton: keyframePlayFromStartBtn,
   settingsDialog,
   settingsDialogClose,
   lightSystem,

@@ -25,6 +25,8 @@ export function createKeyframeSystem({
   let moveUpBtn = null;
   let moveDownBtn = null;
   let removeBtn = null;
+  let playBtn = null;
+  let playFromStartBtn = null;
 
   let settingsDialogEl = settingsDialog;
   let settingsDialogCloseBtn = settingsDialogClose;
@@ -45,6 +47,9 @@ export function createKeyframeSystem({
   let globalLightStateBeforeKeyframe = null;
   let globalModelSelectionBeforeKeyframe = null;
   let selectionListenerAttached = false;
+  let isPlaying = false;
+  let playbackTimer = null;
+  let playbackIndex = 0;
 
   function restoreDialogChrome() {
     if (settingsTitleEl) {
@@ -208,7 +213,8 @@ export function createKeyframeSystem({
         const frame = normalizeKeyframe(keyframes[index]);
         frame.time = safeValue;
         keyframes[index] = frame;
-        timeInput.value = safeValue;
+        enforceKeyframeTimes();
+        renderList();
         saveKeyframes();
       });
 
@@ -231,6 +237,116 @@ export function createKeyframeSystem({
     if (moveDownBtn) {
       moveDownBtn.disabled = !hasSelection || activeKeyframeIndex >= keyframes.length - 1;
     }
+    if (playBtn) {
+      playBtn.disabled = keyframes.length === 0;
+    }
+  }
+
+  function enforceKeyframeTimes() {
+    const minStep = 0.1;
+    keyframes.forEach((frame, index) => {
+      const normalized = normalizeKeyframe(frame);
+      if (index === 0) {
+        normalized.time = 0;
+      } else {
+        const prevTime = Number.isFinite(keyframes[index - 1]?.time)
+          ? keyframes[index - 1].time
+          : 0;
+        const nextTime = Number.isFinite(normalized.time) ? normalized.time : prevTime + minStep;
+        normalized.time = Math.max(prevTime + minStep, nextTime);
+      }
+      keyframes[index] = normalized;
+    });
+  }
+
+  function updatePlayButton() {
+    if (!playBtn) return;
+    const icon = playBtn.querySelector('i');
+    const label = playBtn.querySelector('span');
+    if (isPlaying) {
+      if (icon) {
+        icon.classList.remove('fa-play');
+        icon.classList.add('fa-pause');
+      }
+      if (label) label.textContent = 'Pause';
+    } else {
+      if (icon) {
+        icon.classList.remove('fa-pause');
+        icon.classList.add('fa-play');
+      }
+      if (label) label.textContent = 'Play';
+    }
+  }
+
+  function clearPlaybackTimer() {
+    if (playbackTimer) {
+      clearTimeout(playbackTimer);
+      playbackTimer = null;
+    }
+  }
+
+  function stopPlayback() {
+    if (!isPlaying) return;
+    isPlaying = false;
+    clearPlaybackTimer();
+    updatePlayButton();
+  }
+
+  function getTimelineDuration() {
+    if (keyframes.length < 2) return 1;
+    const times = keyframes.map((frame) => Number.isFinite(frame?.time) ? frame.time : 0);
+    const minTime = Math.min(...times);
+    const maxTime = Math.max(...times);
+    const duration = maxTime - minTime;
+    return duration > 0 ? duration : 1;
+  }
+
+  function scheduleNextPlaybackStep() {
+    if (!isPlaying || keyframes.length === 0) return;
+    const currentIndex = playbackIndex;
+    const nextIndex = currentIndex + 1;
+    if (nextIndex >= keyframes.length) {
+      stopPlayback();
+      return;
+    }
+    const currentTime = Number.isFinite(keyframes[currentIndex]?.time)
+      ? keyframes[currentIndex].time
+      : 0;
+    const nextTime = Number.isFinite(keyframes[nextIndex]?.time)
+      ? keyframes[nextIndex].time
+      : 0;
+    let delay = nextTime - currentTime;
+    if (!Number.isFinite(delay)) delay = 1;
+    delay = Math.max(0.05, delay);
+    playbackTimer = setTimeout(() => {
+      playbackIndex = nextIndex;
+      selectKeyframe(playbackIndex);
+      scheduleNextPlaybackStep();
+    }, delay * 1000);
+  }
+
+  function startPlayback() {
+    if (keyframes.length === 0) return;
+    if (isPlaying) return;
+    isPlaying = true;
+    playbackIndex = activeKeyframeIndex !== null ? activeKeyframeIndex : 0;
+    selectKeyframe(playbackIndex);
+    updatePlayButton();
+    clearPlaybackTimer();
+    scheduleNextPlaybackStep();
+  }
+
+  function startPlaybackFromBeginning() {
+    if (keyframes.length === 0) return;
+    if (isPlaying) {
+      stopPlayback();
+    }
+    isPlaying = true;
+    playbackIndex = 0;
+    selectKeyframe(playbackIndex);
+    updatePlayButton();
+    clearPlaybackTimer();
+    scheduleNextPlaybackStep();
   }
 
   function setPanelOpen(open) {
@@ -297,6 +413,7 @@ export function createKeyframeSystem({
         : 0
       : 0;
     keyframes.push({ camera: state, lights, models, time: lastTime + 1 });
+    enforceKeyframeTimes();
     selectKeyframe(keyframes.length - 1);
     saveKeyframes();
   }
@@ -313,6 +430,7 @@ export function createKeyframeSystem({
     };
     const insertIndex = activeKeyframeIndex + 1;
     keyframes.splice(insertIndex, 0, copy);
+    enforceKeyframeTimes();
     selectKeyframe(insertIndex);
     saveKeyframes();
   }
@@ -325,6 +443,10 @@ export function createKeyframeSystem({
     keyframes[activeKeyframeIndex] = keyframes[nextIndex];
     keyframes[nextIndex] = temp;
     activeKeyframeIndex = nextIndex;
+    enforceKeyframeTimes();
+    if (isPlaying) {
+      playbackIndex = activeKeyframeIndex;
+    }
     renderList();
     saveKeyframes();
   }
@@ -333,6 +455,12 @@ export function createKeyframeSystem({
     if (activeKeyframeIndex === null) return;
     if (activeKeyframeIndex < 0 || activeKeyframeIndex >= keyframes.length) return;
     keyframes.splice(activeKeyframeIndex, 1);
+    enforceKeyframeTimes();
+    if (keyframes.length === 0) {
+      stopPlayback();
+    } else if (isPlaying && playbackIndex >= keyframes.length) {
+      playbackIndex = 0;
+    }
     if (!keyframes.length) {
       clearSelection();
       return;
@@ -461,6 +589,8 @@ export function createKeyframeSystem({
       moveUpButton,
       moveDownButton,
       removeButton,
+      playButton,
+      playFromStartButton,
       settingsDialog: dialog,
       settingsDialogClose: dialogClose,
       settingsSystem: settingsSys,
@@ -479,6 +609,8 @@ export function createKeyframeSystem({
       moveUpBtn = moveUpButton || moveUpBtn;
       moveDownBtn = moveDownButton || moveDownBtn;
       removeBtn = removeButton || removeBtn;
+      playBtn = playButton || playBtn;
+      playFromStartBtn = playFromStartButton || playFromStartBtn;
       settingsDialogEl = dialog || settingsDialogEl;
       settingsDialogCloseBtn = dialogClose || settingsDialogCloseBtn;
       settingsSystemRef = settingsSys || settingsSystemRef;
@@ -532,6 +664,23 @@ export function createKeyframeSystem({
       if (moveDownBtn) {
         moveDownBtn.addEventListener('click', () => {
           moveActiveKeyframe(1);
+        });
+      }
+
+      if (playBtn) {
+        playBtn.addEventListener('click', () => {
+          if (isPlaying) {
+            stopPlayback();
+          } else {
+            startPlayback();
+          }
+        });
+        updatePlayButton();
+      }
+
+      if (playFromStartBtn) {
+        playFromStartBtn.addEventListener('click', () => {
+          startPlaybackFromBeginning();
         });
       }
 
