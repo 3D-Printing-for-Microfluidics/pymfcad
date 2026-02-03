@@ -10,6 +10,7 @@ from typing import Union
 from copy import deepcopy
 
 from .. import Polychannel, PolychannelShape, BezierCurveShape
+from ..backend.manifold3d import _is_integer
 
 
 class _AutorouterNode:
@@ -741,6 +742,20 @@ class Router:
         """
         # create polychannel
         polychannel_shapes = deepcopy(route_info["_path"])
+        
+        # check if size is odd and translation is on 0.5 (+-eps). If so, decrease translation by 0.5
+        prev_size = None
+        prev_position = None
+        for shape in polychannel_shapes:
+            size = shape._size if shape._size is not None else prev_size
+            position = shape._position if shape._position is not None else prev_position
+            for i in range(3):
+                if size[i] % 2 == 1:
+                    if _is_integer(position[i]*2):
+                        shape._no_validation = True
+            prev_size = shape._size if shape._size is not None else prev_size
+            prev_position = shape._position if shape._position is not None else prev_position
+
         polychannel = Polychannel(polychannel_shapes)
 
         # validate keepouts if autoroute
