@@ -1176,8 +1176,9 @@ class ImportModel(Shape):
                 mesh = mesh.copy()
                 trimesh.repair.fill_holes(mesh)
                 trimesh.repair.fix_normals(mesh)
-                mesh.remove_degenerate_faces()
-                mesh.remove_duplicate_faces()
+                # mesh.remove_degenerate_faces()
+                # mesh.remove_duplicate_faces() # deprecated
+                mesh.update_faces(mesh.unique_faces())
                 mesh.remove_infinite_values()
                 mesh.remove_unreferenced_vertices()
 
