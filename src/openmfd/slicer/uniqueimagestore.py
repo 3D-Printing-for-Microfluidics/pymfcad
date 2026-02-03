@@ -20,12 +20,12 @@ def get_unique_path(
     while True:
         if count == 0:
             filename = (
-                f"{stem}_{postfix}{suffix}" if postfix is not "" else f"{stem}{suffix}"
+                f"{stem}_{postfix}{suffix}" if postfix != "" else f"{stem}{suffix}"
             )
         else:
             filename = (
                 f"{stem}_{postfix}_{count}{suffix}"
-                if postfix is not ""
+                if postfix != ""
                 else f"{stem}_{count}{suffix}"
             )
         full_path = base_path / filename
