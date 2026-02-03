@@ -399,6 +399,14 @@
 				<div class="modal-section">
 					<h4>Output</h4>
 					<div class="input-grid">
+						<label>Renderer
+							<select id="snapshotRenderer">
+								<option value="raster" selected>Raster (default)</option>
+								<option value="pathtracing">Path Tracing (experimental)</option>
+							</select>
+						</label>
+					</div>
+					<div class="input-grid" style="margin-top:0.5rem;">
 						<label>Resolution
 							<select id="snapshotResolution">
 								<option value="current" selected>Current</option>
@@ -408,8 +416,16 @@
 								<option value="3840x2160">3840×2160 (4K)</option>
 							</select>
 						</label>
-						<label>File Name
-							<input id="snapshotFileName" type="text" value="openmfd-viewport.png">
+					</div>
+					<div id="snapshotPathTracingOptions" class="input-grid" style="display:none; margin-top:0.5rem;">
+						<label>Pixel Ratio
+							<input id="snapshotPtPixelRatio" type="number" min="0.1" max="1" step="0.1" value="0.8">
+						</label>
+						<label>Exposure
+							<input id="snapshotPtExposure" type="number" min="0" step="0.1" value="1.0">
+						</label>
+						<label>Samples
+							<input id="snapshotPtSamples" type="number" min="1" step="1" value="64">
 						</label>
 					</div>
 				</div>
@@ -431,6 +447,14 @@
 				<div class="modal-section">
 					<h4>Output</h4>
 					<div class="input-grid">
+						<label>Renderer
+							<select id="animationRenderer">
+								<option value="raster" selected>Raster (default)</option>
+								<option value="pathtracing">Path Tracing (experimental)</option>
+							</select>
+						</label>
+					</div>
+					<div class="input-grid" style="margin-top:0.5rem;">
 						<label>Resolution
 							<select id="animationExportResolution">
 								<option value="1280x720">1280×720 (720p)</option>
@@ -438,7 +462,7 @@
 								<option value="2560x1440">2560×1440 (1440p)</option>
 							</select>
 						</label>
-						<label>Frame Rate (fps)
+						<label style="max-width:120px;">FPS
 							<input id="animationExportFps" type="number" min="1" max="60" step="1" value="30">
 						</label>
 						<label>Quality
@@ -457,8 +481,16 @@
 								<option value="avi">AVI (video)</option>
 							</select>
 						</label>
-						<label>File Name
-							<input id="animationExportFileName" type="text" value="openmfd-animation">
+					</div>
+					<div id="animationPathTracingOptions" class="input-grid" style="display:none; margin-top:0.5rem;">
+						<label>Pixel Ratio
+							<input id="animationPtPixelRatio" type="number" min="0.1" max="1" step="0.1" value="0.8">
+						</label>
+						<label>Exposure
+							<input id="animationPtExposure" type="number" min="0" step="0.1" value="1.0">
+						</label>
+						<label>Samples / Frame
+							<input id="animationPtSamples" type="number" min="1" step="1" value="32">
 						</label>
 					</div>
 				</div>
@@ -469,6 +501,14 @@
 			</div>
 		</div>
 	</div>
+
+	<iframe
+		id="pathTracingFrame"
+		src="static/lib/pathTracing/GLTF_Model_Viewer.html"
+		title="Path Tracing Renderer"
+		referrerpolicy="no-referrer"
+		style="display:none;"
+	></iframe>
 
 	<script type="module" src="static/js/app.js"></script>
 </body>

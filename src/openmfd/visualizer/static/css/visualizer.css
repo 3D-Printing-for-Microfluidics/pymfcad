@@ -515,6 +515,11 @@ canvas {
   gap: 0.75rem;
 }
 
+.pathtracing-modal {
+  width: min(1400px, 96vw);
+  max-height: 92vh;
+}
+
 .modal-header {
   display: flex;
   align-items: center;
@@ -529,6 +534,22 @@ canvas {
   gap: 0.75rem;
   overflow: hidden;
   min-height: 320px;
+}
+
+.pathtracing-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  min-height: 60vh;
+  height: 70vh;
+}
+
+.pathtracing-frame {
+  flex: 1 1 auto;
+  width: 100%;
+  border: 1px solid var(--button-border);
+  border-radius: 0.5rem;
+  background: #000000;
 }
 
 .settings-tabs {

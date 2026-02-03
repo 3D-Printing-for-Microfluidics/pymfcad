@@ -1,9 +1,12 @@
 import json
 import importlib.util
 import re
+import tempfile
+import uuid
+import subprocess
 from pathlib import Path
 
-from flask import Flask, jsonify, send_from_directory, abort, request
+from flask import Flask, jsonify, send_from_directory, abort, request, send_file, after_this_request
 
 PORT = 8000
 CWD = Path.cwd().resolve()
@@ -28,6 +31,7 @@ def start_server():
     app = Flask(__name__, static_folder=str(static_dir), static_url_path="/static")
 
     selected_preview_dir = None
+    render_sessions = {}
 
     if not visualizer_dir.is_dir():
         raise RuntimeError("Cannot find visualizer directory!")
@@ -226,6 +230,109 @@ def start_server():
         except json.JSONDecodeError:
             return jsonify({"error": "Invalid JSON"}), 400
         return jsonify(data)
+
+    @app.route("/pathtracing_animation/start", methods=["POST"])
+    def start_pathtracing_animation():
+        session_id = uuid.uuid4().hex
+        tmp_dir = Path(tempfile.mkdtemp(prefix="openmfd_pt_"))
+        render_sessions[session_id] = {
+            "dir": tmp_dir,
+            "count": 0,
+        }
+        return jsonify({"session_id": session_id})
+
+    @app.route("/pathtracing_animation/frame", methods=["POST"])
+    def upload_pathtracing_frame():
+        session_id = (request.form.get("session_id") or "").strip()
+        if not session_id or session_id not in render_sessions:
+            return jsonify({"error": "Invalid session"}), 400
+        frame_index = request.form.get("index")
+        try:
+            frame_num = int(frame_index)
+        except (TypeError, ValueError):
+            return jsonify({"error": "Invalid frame index"}), 400
+        file = request.files.get("frame")
+        if file is None:
+            return jsonify({"error": "Missing frame file"}), 400
+        session = render_sessions[session_id]
+        out_path = session["dir"] / f"frame_{frame_num:04d}.png"
+        file.save(out_path)
+        session["count"] = max(session["count"], frame_num + 1)
+        return jsonify({"ok": True})
+
+    @app.route("/pathtracing_animation/finish", methods=["POST"])
+    def finish_pathtracing_animation():
+        data = request.get_json(silent=True) or {}
+        session_id = (data.get("session_id") or "").strip()
+        if not session_id or session_id not in render_sessions:
+            return jsonify({"error": "Invalid session"}), 400
+        session = render_sessions.pop(session_id, None)
+        if not session:
+            return jsonify({"error": "Missing session"}), 400
+
+        tmp_dir = session["dir"]
+        fps = int(data.get("fps") or 30)
+        fps = max(1, min(60, fps))
+        file_type = (data.get("type") or "webm").lower()
+        quality = (data.get("quality") or "medium").lower()
+        filename = (data.get("filename") or "openmfd-animation").strip()
+        filename = re.sub(r"[^a-zA-Z0-9_.-]", "_", filename)
+
+        if file_type not in {"webm", "mp4", "avi"}:
+            file_type = "webm"
+
+        output_path = tmp_dir / f"{filename}.{file_type}"
+
+        if quality == "low":
+            bitrate = "4M"
+        elif quality == "high":
+            bitrate = "30M"
+        elif quality == "lossless":
+            bitrate = "80M"
+        else:
+            bitrate = "12M"
+
+        if file_type == "mp4":
+            codec = "libx264"
+            extra = ["-pix_fmt", "yuv420p"]
+        elif file_type == "avi":
+            codec = "mpeg4"
+            extra = []
+        else:
+            codec = "libvpx-vp9"
+            extra = ["-pix_fmt", "yuv420p"]
+
+        cmd = [
+            "ffmpeg",
+            "-y",
+            "-framerate",
+            str(fps),
+            "-i",
+            str(tmp_dir / "frame_%04d.png"),
+            "-c:v",
+            codec,
+            "-b:v",
+            bitrate,
+            *extra,
+            str(output_path),
+        ]
+
+        try:
+            subprocess.run(cmd, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        except Exception:
+            return jsonify({"error": "Encoding failed. Ensure ffmpeg is installed."}), 500
+
+        @after_this_request
+        def cleanup(response):
+            try:
+                for item in tmp_dir.iterdir():
+                    item.unlink(missing_ok=True)
+                tmp_dir.rmdir()
+            except Exception:
+                pass
+            return response
+
+        return send_file(str(output_path), as_attachment=True, download_name=output_path.name)
 
     @app.route("/set_preview_dir", methods=["POST"])
     def set_preview_dir():

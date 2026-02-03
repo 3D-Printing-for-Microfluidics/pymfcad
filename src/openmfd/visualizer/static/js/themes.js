@@ -95,6 +95,12 @@ export function createThemeManager({ scene, axes }) {
     const bg = themes[themeName]['--bg'] || '#222222';
     scene.background = new THREE.Color(bg);
     updateAxesColors(axes, themes[themeName]);
+    window.dispatchEvent(new CustomEvent('openmfd-theme-changed', {
+      detail: {
+        theme: themeName,
+        vars: { ...themes[themeName] },
+      },
+    }));
   }
 
   function resetTheme(themeName) {

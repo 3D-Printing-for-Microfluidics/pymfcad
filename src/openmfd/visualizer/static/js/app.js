@@ -202,17 +202,27 @@ const snapshotDialog = document.getElementById('snapshotDialog');
 const snapshotDialogClose = document.getElementById('snapshotDialogClose');
 const snapshotSaveBtn = document.getElementById('snapshotSaveBtn');
 const snapshotResolutionSelect = document.getElementById('snapshotResolution');
-const snapshotFileNameInput = document.getElementById('snapshotFileName');
 const snapshotProgress = document.getElementById('snapshotProgress');
+const snapshotRendererSelect = document.getElementById('snapshotRenderer');
+const snapshotPathTracingOptions = document.getElementById('snapshotPathTracingOptions');
+const snapshotPtPixelRatio = document.getElementById('snapshotPtPixelRatio');
+const snapshotPtExposure = document.getElementById('snapshotPtExposure');
+const snapshotPtSamples = document.getElementById('snapshotPtSamples');
 const animationExportDialog = document.getElementById('animationExportDialog');
 const animationExportClose = document.getElementById('animationExportClose');
 const animationExportResolutionSelect = document.getElementById('animationExportResolution');
 const animationExportFpsInput = document.getElementById('animationExportFps');
 const animationExportQualitySelect = document.getElementById('animationExportQuality');
 const animationExportTypeSelect = document.getElementById('animationExportType');
-const animationExportFileNameInput = document.getElementById('animationExportFileName');
 const animationExportSaveBtn = document.getElementById('animationExportSaveBtn');
 const animationExportProgress = document.getElementById('animationExportProgress');
+const pathTracingFrame = document.getElementById('pathTracingFrame');
+let pathTracingFrameReady = false;
+const animationRendererSelect = document.getElementById('animationRenderer');
+const animationPathTracingOptions = document.getElementById('animationPathTracingOptions');
+const animationPtPixelRatio = document.getElementById('animationPtPixelRatio');
+const animationPtExposure = document.getElementById('animationPtExposure');
+const animationPtSamples = document.getElementById('animationPtSamples');
 
 let settingsSystem = null;
 let themeManager = null;
@@ -303,13 +313,11 @@ function applyAnimationSettingsPayload(payload) {
 }
 
 function normalizeSnapshotName(name) {
-  const trimmed = (name || '').trim();
-  if (!trimmed) return 'openmfd-viewport.png';
-  return trimmed.toLowerCase().endsWith('.png') ? trimmed : `${trimmed}.png`;
+  return 'openmfd-viewport.png';
 }
 
 function getSnapshotSettings() {
-  const fileName = normalizeSnapshotName(snapshotFileNameInput?.value);
+  const fileName = normalizeSnapshotName();
   const resolutionValue = snapshotResolutionSelect?.value || 'current';
   let baseWidth = window.innerWidth;
   let baseHeight = window.innerHeight;
@@ -322,6 +330,12 @@ function getSnapshotSettings() {
     fileName,
     baseWidth,
     baseHeight,
+    renderer: snapshotRendererSelect?.value || 'raster',
+    pathTracing: {
+      pixelRatio: Number.parseFloat(snapshotPtPixelRatio?.value || '0.8') || 0.8,
+      exposure: Number.parseFloat(snapshotPtExposure?.value || '1') || 1,
+      samples: Number.parseInt(snapshotPtSamples?.value || '64', 10) || 64,
+    },
   };
 }
 
@@ -347,12 +361,25 @@ function getAnimationExportSettings() {
       animationExportTypeSelect.value = 'webm';
     }
   }
-  const fileName = normalizeAnimationName(animationExportFileNameInput?.value, type);
+  const fileName = normalizeAnimationName('', type);
   const resolutionValue = animationExportResolutionSelect?.value || '';
   const [w, h] = resolutionValue.split('x').map((value) => Number.parseInt(value, 10));
   const width = Number.isFinite(w) && w > 0 ? w : window.innerWidth;
   const height = Number.isFinite(h) && h > 0 ? h : window.innerHeight;
-  return { width, height, fps, quality, type, fileName };
+  return {
+    width,
+    height,
+    fps,
+    quality,
+    type,
+    fileName,
+    renderer: animationRendererSelect?.value || 'raster',
+    pathTracing: {
+      pixelRatio: Number.parseFloat(animationPtPixelRatio?.value || '0.8') || 0.8,
+      exposure: Number.parseFloat(animationPtExposure?.value || '1') || 1,
+      samples: Number.parseInt(animationPtSamples?.value || '32', 10) || 32,
+    },
+  };
 }
 
 function syncAnimationExportTypeForQuality() {
@@ -369,6 +396,17 @@ function syncAnimationExportTypeForQuality() {
   }
 }
 
+function updatePathTracingOptionVisibility() {
+  const snapshotMode = snapshotRendererSelect?.value || 'raster';
+  if (snapshotPathTracingOptions) {
+    snapshotPathTracingOptions.style.display = snapshotMode === 'pathtracing' ? '' : 'none';
+  }
+  const animationMode = animationRendererSelect?.value || 'raster';
+  if (animationPathTracingOptions) {
+    animationPathTracingOptions.style.display = animationMode === 'pathtracing' ? '' : 'none';
+  }
+}
+
 function openSnapshotDialog() {
   if (!snapshotDialog) return;
   if (snapshotResolutionSelect) {
@@ -378,6 +416,7 @@ function openSnapshotDialog() {
       currentOption.textContent = `Current (${window.innerWidth}×${window.innerHeight})`;
     }
   }
+  updatePathTracingOptionVisibility();
   setSnapshotStatus('');
   snapshotDialog.classList.add('is-open');
 }
@@ -390,6 +429,7 @@ function closeSnapshotDialog() {
 
 function openAnimationExportDialog() {
   if (!animationExportDialog) return;
+  updatePathTracingOptionVisibility();
   setAnimationExportStatus('');
   animationExportDialog.classList.add('is-open');
 }
@@ -398,6 +438,169 @@ function closeAnimationExportDialog() {
   if (!animationExportDialog) return;
   animationExportDialog.classList.remove('is-open');
   setAnimationExportStatus('');
+}
+
+function getPathTracingModelPaths() {
+  const entries = modelManager.getModelList();
+  if (!entries || !entries.length) return [];
+  const snapshot = modelSelector.getSelectionSnapshot();
+  const paths = [];
+  entries.forEach((entry, idx) => {
+    if (!modelSelector.getModelVisibility(idx)) return;
+    const versionKey = `glb_ver_${idx}`;
+    const versionId = snapshot?.versions?.[versionKey] || entry.versionId;
+    const version = (entry.versions || []).find((ver) => ver.id === versionId) || entry.versions?.[0];
+    if (!version?.file) return;
+    try {
+      const url = new URL(version.file, window.location.href).href;
+      paths.push(url);
+    } catch (e) {
+      paths.push(version.file);
+    }
+  });
+  return Array.from(new Set(paths));
+}
+
+function getPathTracingCameraState() {
+  if (!cameraSystem?.getCameraState) return null;
+  const state = cameraSystem.getCameraState();
+  if (!state) return null;
+  return {
+    pos: state.pos,
+    target: state.target,
+    roll: state.roll,
+    fov: state.fov,
+    mode: state.mode,
+  };
+}
+
+function getPathTracingLightState() {
+  if (!lightSystem?.getLightState) return null;
+  const state = lightSystem.getLightState();
+  const modelCenter = modelManager.getModelCenterModel();
+  if (!state || !modelCenter) return null;
+
+  const ambientColor = new THREE.Color(state.ambient?.color || '#000000').convertSRGBToLinear();
+  const directional = (state.directional || []).map((light) => {
+    const pos = new THREE.Vector3(light.offset?.x || 0, light.offset?.y || 0, light.offset?.z || 0)
+      .add(modelCenter);
+    const target = new THREE.Vector3(light.targetOffset?.x || 0, light.targetOffset?.y || 0, light.targetOffset?.z || 0)
+      .add(modelCenter);
+    const color = new THREE.Color(light.color || '#ffffff').convertSRGBToLinear();
+    return {
+      type: light.type || 'directional',
+      position: { x: pos.x, y: pos.y, z: pos.z },
+      target: { x: target.x, y: target.y, z: target.z },
+      color: [color.r, color.g, color.b],
+      intensity: Number.isFinite(light.intensity) ? light.intensity : 1,
+      distance: Number.isFinite(light.distance) ? light.distance : 0,
+      angle: Number.isFinite(light.angle) ? light.angle : undefined,
+      decay: Number.isFinite(light.decay) ? light.decay : 1,
+    };
+  });
+
+  return {
+    ambient: {
+      color: [ambientColor.r, ambientColor.g, ambientColor.b],
+      intensity: Number.isFinite(state.ambient?.intensity) ? state.ambient.intensity : 0,
+    },
+    directional,
+  };
+}
+
+function postPathTracingModels(paths) {
+  if (!pathTracingFrame || !pathTracingFrame.contentWindow) return;
+  pathTracingFrame.contentWindow.postMessage({
+    type: 'openmfd-pathtracing-models',
+    modelPaths: paths,
+  }, window.location.origin);
+}
+
+function postPathTracingCamera() {
+  if (!pathTracingFrame || !pathTracingFrame.contentWindow) return;
+  const cameraState = getPathTracingCameraState();
+  if (!cameraState) return;
+  pathTracingFrame.contentWindow.postMessage({
+    type: 'openmfd-pathtracing-camera',
+    camera: cameraState,
+  }, window.location.origin);
+}
+
+function postPathTracingLights() {
+  if (!pathTracingFrame || !pathTracingFrame.contentWindow) return;
+  const lightsState = getPathTracingLightState();
+  if (!lightsState) return;
+  pathTracingFrame.contentWindow.postMessage({
+    type: 'openmfd-pathtracing-lights',
+    lights: lightsState,
+  }, window.location.origin);
+}
+
+function sendPathTracingState() {
+  const paths = getPathTracingModelPaths();
+  if (!paths.length) return false;
+  postPathTracingModels(paths);
+  postPathTracingCamera();
+  postPathTracingLights();
+  return true;
+}
+
+async function ensurePathTracingReady() {
+  if (!pathTracingFrame) {
+    throw new Error('Path tracing renderer is unavailable.');
+  }
+  if (pathTracingFrameReady && pathTracingFrame.contentWindow?.openmfdPathTracing?.requestRender) {
+    return;
+  }
+
+  await new Promise((resolve) => {
+    const onLoad = () => {
+      pathTracingFrameReady = true;
+      pathTracingFrame.removeEventListener('load', onLoad);
+      resolve();
+    };
+    const readyState = pathTracingFrame.contentDocument?.readyState;
+    if (readyState === 'complete' && pathTracingFrame.contentWindow) {
+      pathTracingFrameReady = true;
+      resolve();
+      return;
+    }
+    pathTracingFrame.addEventListener('load', onLoad);
+    pathTracingFrame.src = pathTracingFrame.src;
+  });
+
+  await new Promise((resolve) => {
+    const start = performance.now();
+    const tick = () => {
+      const apiReady = pathTracingFrame.contentWindow?.openmfdPathTracing?.requestRender;
+      if (apiReady) {
+        resolve();
+        return;
+      }
+      if (performance.now() - start > 10000) {
+        resolve();
+        return;
+      }
+      requestAnimationFrame(tick);
+    };
+    tick();
+  });
+}
+
+async function renderPathTracingSnapshot({ width, height, pixelRatio, exposure, samples }) {
+  await ensurePathTracingReady();
+  if (!sendPathTracingState()) {
+    throw new Error('No visible models selected for path tracing.');
+  }
+  const requestRender = pathTracingFrame.contentWindow?.openmfdPathTracing?.requestRender;
+  if (!requestRender) throw new Error('Path tracing renderer is not ready.');
+  return requestRender({
+    width,
+    height,
+    pixelRatio,
+    exposure,
+    samples,
+  });
 }
 
 async function saveBlobAsFile(blob, fileName) {
@@ -493,21 +696,51 @@ async function handleSnapshotSave() {
   uiElements.forEach((el) => el.classList.add('ui-hidden'));
   if (snapshotSaveBtn) snapshotSaveBtn.disabled = true;
   if (snapshotDialogClose) snapshotDialogClose.disabled = true;
-  setSnapshotStatus('Rendering snapshot...');
+  setSnapshotStatus(settings.renderer === 'pathtracing' ? 'Rendering path traced snapshot...' : 'Rendering snapshot...');
   cameraSystem.setCameraHelperVisible(false);
 
   try {
     let blob = null;
     const renderWidth = exportWidth;
     const renderHeight = exportHeight;
-    blob = await renderRasterSnapshot({ width: renderWidth, height: renderHeight });
+    let saveHandle = null;
+    if (settings.renderer === 'pathtracing') {
+      if (!window.showSaveFilePicker) {
+        setSnapshotStatus('Path tracing snapshot requires a save file dialog.');
+        return;
+      }
+      saveHandle = await window.showSaveFilePicker({
+        suggestedName: settings.fileName,
+        types: [
+          {
+            description: 'PNG Image',
+            accept: { 'image/png': ['.png'] },
+          },
+        ],
+      });
+      blob = await renderPathTracingSnapshot({
+        width: renderWidth,
+        height: renderHeight,
+        pixelRatio: settings.pathTracing?.pixelRatio ?? 0.8,
+        exposure: settings.pathTracing?.exposure ?? 1,
+        samples: settings.pathTracing?.samples ?? 64,
+      });
+    } else {
+      blob = await renderRasterSnapshot({ width: renderWidth, height: renderHeight });
+    }
 
     if (!blob) {
       setSnapshotStatus('Snapshot failed to render.');
       return;
     }
     setSnapshotStatus('Saving...');
-    await saveBlobAsFile(blob, settings.fileName);
+    if (saveHandle) {
+      const writable = await saveHandle.createWritable();
+      await writable.write(blob);
+      await writable.close();
+    } else {
+      await saveBlobAsFile(blob, settings.fileName);
+    }
     closeSnapshotDialog();
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Snapshot failed.';
@@ -558,7 +791,8 @@ async function handleAnimationExport() {
     setAnimationExportStatus('Add keyframes before exporting.');
     return;
   }
-  if (!renderer?.domElement?.captureStream || typeof MediaRecorder === 'undefined') {
+  const usePathTracing = settings.renderer === 'pathtracing';
+  if (!usePathTracing && (!renderer?.domElement?.captureStream || typeof MediaRecorder === 'undefined')) {
     setAnimationExportStatus('Recording is not supported in this browser.');
     return;
   }
@@ -592,11 +826,115 @@ async function handleAnimationExport() {
   cameraSystem.setCameraHelperVisible(false);
   animationExportSaveBtn.disabled = true;
   animationExportClose.disabled = true;
-  setAnimationExportStatus('Recording animation...');
+  setAnimationExportStatus(usePathTracing ? 'Rendering path traced frames...' : 'Recording animation...');
 
   try {
     renderer.setPixelRatio(1);
     applyExportCameraSize(exportWidth, exportHeight);
+
+    if (usePathTracing) {
+      if (!window.showSaveFilePicker) {
+        setAnimationExportStatus('Path tracing export requires a save file dialog.');
+        return;
+      }
+      const suggestedName = settings.fileName || `openmfd-animation.${settings.type || 'webm'}`;
+      const saveHandle = await window.showSaveFilePicker({
+        suggestedName,
+        types: [
+          {
+            description: 'Video',
+            accept: {
+              'video/webm': ['.webm'],
+              'video/mp4': ['.mp4'],
+              'video/avi': ['.avi'],
+            },
+          },
+        ],
+      });
+
+      const totalFrames = Math.max(1, Math.ceil((durationMs / 1000) * effectiveFps) + 1);
+
+      const startResp = await fetch('/pathtracing_animation/start', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({}),
+      });
+      if (!startResp.ok) {
+        setAnimationExportStatus('Failed to start path tracing export.');
+        return;
+      }
+      const startData = await startResp.json();
+      const sessionId = startData.session_id;
+      if (!sessionId) {
+        setAnimationExportStatus('Path tracing export session failed.');
+        return;
+      }
+
+      for (let i = 0; i < totalFrames; i += 1) {
+        const timeMs = Math.min(durationMs, (i / effectiveFps) * 1000);
+        keyframeSystem.applyAtTime(timeMs);
+        cameraSystem.setCameraHelperVisible(false);
+
+        const blob = await renderPathTracingSnapshot({
+          width: exportWidth,
+          height: exportHeight,
+          pixelRatio: settings.pathTracing?.pixelRatio ?? 0.8,
+          exposure: settings.pathTracing?.exposure ?? 1,
+          samples: settings.pathTracing?.samples ?? 32,
+        });
+
+        if (!blob) {
+          setAnimationExportStatus('Path tracing frame failed to render.');
+          return;
+        }
+
+        const form = new FormData();
+        form.append('session_id', sessionId);
+        form.append('index', String(i));
+        form.append('frame', blob, `frame_${String(i).padStart(4, '0')}.png`);
+
+        const uploadResp = await fetch('/pathtracing_animation/frame', {
+          method: 'POST',
+          body: form,
+        });
+        if (!uploadResp.ok) {
+          setAnimationExportStatus('Failed to upload path tracing frame.');
+          return;
+        }
+
+        if (i % Math.max(1, Math.floor(effectiveFps)) === 0) {
+          const pct = Math.round((i / totalFrames) * 100);
+          setAnimationExportStatus(`Rendering path traced frames... ${pct}%`);
+        }
+      }
+
+      const finishResp = await fetch('/pathtracing_animation/finish', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          session_id: sessionId,
+          fps: effectiveFps,
+          type: settings.type,
+          quality: settings.quality,
+          filename: settings.fileName,
+        }),
+      });
+      if (!finishResp.ok) {
+        setAnimationExportStatus('Failed to encode path traced animation.');
+        return;
+      }
+      const videoBlob = await finishResp.blob();
+      if (!videoBlob.size) {
+        setAnimationExportStatus('Path traced animation failed to render.');
+        return;
+      }
+      setAnimationExportStatus('Saving...');
+      const writable = await saveHandle.createWritable();
+      await writable.write(videoBlob);
+      await writable.close();
+      closeAnimationExportDialog();
+      return;
+    }
 
     let mimeType = '';
     let videoBitsPerSecond = 12000000;
@@ -636,6 +974,8 @@ async function handleAnimationExport() {
     }
 
     const exportCanvas = document.createElement('canvas');
+    exportCanvas.width = exportWidth;
+    exportCanvas.height = exportHeight;
     exportRenderer = new THREE.WebGLRenderer({ canvas: exportCanvas, antialias: true, preserveDrawingBuffer: false });
     exportRenderer.setSize(exportWidth, exportHeight, false);
     exportRenderer.setPixelRatio(1);
@@ -1710,6 +2050,13 @@ async function init() {
     });
   }
 
+  if (snapshotRendererSelect) {
+    snapshotRendererSelect.addEventListener('change', updatePathTracingOptionVisibility);
+  }
+  if (animationRendererSelect) {
+    animationRendererSelect.addEventListener('change', updatePathTracingOptionVisibility);
+  }
+
   if (snapshotSaveBtn) {
     snapshotSaveBtn.addEventListener('click', async () => {
       await handleSnapshotSave();
@@ -1865,6 +2212,7 @@ async function init() {
   }
 
   syncAnimationExportTypeForQuality();
+  updatePathTracingOptionVisibility();
 
   if (defaultControlTypeSelect) {
     const savedType = localStorage.getItem(DEFAULT_CONTROLS_TYPE_STORAGE_KEY) || 'orbit';

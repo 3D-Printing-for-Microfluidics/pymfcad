@@ -1,7 +1,7 @@
 import * as THREE from '../lib/three/three.module.js';
 
 export function createLightSystem({ scene, world, cameraSystem, previewSystem, getModelCenterModel }) {
-  const ambientLight = new THREE.AmbientLight(0xffffff, 1.0);
+  const ambientLight = new THREE.AmbientLight(0xffffff, 1.5);
   world.add(ambientLight);
 
   const directionalLights = [];
@@ -147,7 +147,7 @@ export function createLightSystem({ scene, world, cameraSystem, previewSystem, g
   function ensureDefaultLight() {
     if (defaultLightInitialized) return;
     defaultLightInitialized = true;
-    addDirectionalLight({ offset: new THREE.Vector3(10, 10, 10) });
+    addDirectionalLight({ offset: new THREE.Vector3(10, 10, 10), intensity: 1.5 });
   }
 
   function toHexColor(color) {
@@ -721,7 +721,7 @@ export function createLightSystem({ scene, world, cameraSystem, previewSystem, g
     const modelCenter = getModelCenterModel();
     const dirList = Array.isArray(state.directional) ? state.directional : [];
     if (dirList.length === 0) {
-      addDirectionalLight({ offset: new THREE.Vector3(10, 10, 10) });
+      addDirectionalLight({ offset: new THREE.Vector3(10, 10, 10), intensity: 1.5 });
     } else {
       dirList.forEach((item) => {
         const offset = item?.offset || { x: 10, y: 10, z: 10 };
@@ -747,7 +747,7 @@ export function createLightSystem({ scene, world, cameraSystem, previewSystem, g
     ambientLight.color.set(0xffffff);
     ambientLight.intensity = 1.0;
     clearDirectionalLights();
-    addDirectionalLight({ offset: new THREE.Vector3(10, 10, 10) });
+    addDirectionalLight({ offset: new THREE.Vector3(10, 10, 10), intensity: 1.5 });
     syncLightInputs();
   }
 
