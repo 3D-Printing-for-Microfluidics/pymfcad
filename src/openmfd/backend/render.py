@@ -348,30 +348,31 @@ def _component_to_manifold(
 
         # Iterate subcomponents.
         for sub in comp.subcomponents.values():
-            bbox = sub.get_bounding_box(comp._px_size, comp._layer_size)
-            from . import Cube
+            if sub._subtract_bounding_box:
+                bbox = sub.get_bounding_box(comp._px_size, comp._layer_size)
+                from . import Cube
 
-            bbox_cube = Cube(
-                size=(
-                    (bbox[3] - bbox[0]) - comp._px_size * 0.1,
-                    (bbox[4] - bbox[1]) - comp._px_size * 0.1,
-                    (bbox[5] - bbox[2]) - comp._layer_size * 0.1,
-                ),
-                center=False,
-            ).translate(
-                (
-                    bbox[0] + comp._px_size * 0.05,
-                    bbox[1] + comp._px_size * 0.05,
-                    bbox[2] + comp._layer_size * 0.05,
+                bbox_cube = Cube(
+                    size=(
+                        (bbox[3] - bbox[0]) - comp._px_size * 0.1,
+                        (bbox[4] - bbox[1]) - comp._px_size * 0.1,
+                        (bbox[5] - bbox[2]) - comp._layer_size * 0.1,
+                    ),
+                    center=False,
+                ).translate(
+                    (
+                        bbox[0] + comp._px_size * 0.05,
+                        bbox[1] + comp._px_size * 0.05,
+                        bbox[2] + comp._layer_size * 0.05,
+                    )
                 )
-            )
-            bbox_cube._object = bbox_cube._object.scale(
-                [comp._px_size, comp._px_size, comp._layer_size]
-            )
-            if comp_cubes is None:
-                comp_cubes = [bbox_cube]
-            else:
-                comp_cubes.append(bbox_cube)
+                bbox_cube._object = bbox_cube._object.scale(
+                    [comp._px_size, comp._px_size, comp._layer_size]
+                )
+                if comp_cubes is None:
+                    comp_cubes = [bbox_cube]
+                else:
+                    comp_cubes.append(bbox_cube)
 
             if not sub.hide_in_render:
                 _bulks = accumulate_bulk_shape(sub)

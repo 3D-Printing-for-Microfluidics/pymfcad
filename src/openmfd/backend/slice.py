@@ -234,22 +234,23 @@ def slice_component(
     # Accumulate subcomponent bounding boxes and recursively process subcomponents.
     bbox_cubes = []
     for sub in device.subcomponents.values():
-        bbox = sub.get_bounding_box(device._px_size, device._layer_size)
-        bbox_cube = Cube(
-            size=(
-                (bbox[3] - bbox[0]) - device._px_size * 0.1,
-                (bbox[4] - bbox[1]) - device._px_size * 0.1,
-                (bbox[5] - bbox[2]) - device._layer_size * 0.1,
-            ),
-            center=False,
-        ).translate(
-            (
-                bbox[0] + device._px_size * 0.05,
-                bbox[1] + device._px_size * 0.05,
-                bbox[2] + device._layer_size * 0.05,
+        if sub._subtract_bounding_box:
+            bbox = sub.get_bounding_box(device._px_size, device._layer_size)
+            bbox_cube = Cube(
+                size=(
+                    (bbox[3] - bbox[0]) - device._px_size * 0.1,
+                    (bbox[4] - bbox[1]) - device._px_size * 0.1,
+                    (bbox[5] - bbox[2]) - device._layer_size * 0.1,
+                ),
+                center=False,
+            ).translate(
+                (
+                    bbox[0] + device._px_size * 0.05,
+                    bbox[1] + device._px_size * 0.05,
+                    bbox[2] + device._layer_size * 0.05,
+                )
             )
-        )
-        bbox_cubes.append(bbox_cube)
+            bbox_cubes.append(bbox_cube)
 
         slice_component(
             sub,

@@ -349,6 +349,7 @@ class Component(_InstantiationTrackerMixin):
         self._layer_size = layer_size
         self.hide_in_render = hide_in_render
         self.quiet = quiet
+        self._subtract_bounding_box = True
         self._translations = [0, 0, 0]
         self._rotation = 0
         self._mirroring = [False, False]
@@ -670,7 +671,7 @@ class Component(_InstantiationTrackerMixin):
         self.ports[name] = port
 
     def add_subcomponent(
-        self, name: str, component: Component, hide_in_render: bool = False
+        self, name: str, component: Component, subtract_bounding_box: bool = True, hide_in_render: bool = False
     ):
         """
         Add a subcomponent to the component.
@@ -679,6 +680,8 @@ class Component(_InstantiationTrackerMixin):
 
         - name (str): The name of the subcomponent (must be a unique python identifier).
         - component (Component): The subcomponent to be added.
+        - subtract_bounding_box (bool): Whether to subtract the bounding box of the subcomponent from the parent component's shapes. Default is True.
+        - hide_in_render (bool): Whether to hide the subcomponent in renders. Default is False.
         """
         self._validate_name(name)
         if component._parent is not None:
@@ -688,6 +691,7 @@ class Component(_InstantiationTrackerMixin):
 
         component._name = name
         component._parent = self
+        component._subtract_bounding_box = subtract_bounding_box
         component.run_translate()
 
         def update_labels(comp: Component, prefix: str = None, parent_labels: dict = None):

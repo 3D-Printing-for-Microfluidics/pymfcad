@@ -63,7 +63,7 @@ Transforms (components):
 
 Add to component:
 
-- `component.add_subcomponent(name, subcomponent)`
+- `component.add_subcomponent(name, subcomponent, subtract_bounding_box, hide_in_render)`
 
 Relabeling:
 
