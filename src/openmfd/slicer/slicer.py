@@ -275,8 +275,8 @@ class Slicer:
                     + translate_y_um
                 )
 
-                device.default_exposure_settings.image_x_offset = base_offset_x_um
-                device.default_exposure_settings.image_y_offset = base_offset_y_um
+                device.default_exposure_settings.image_x_offset = round(base_offset_x_um, 1)
+                device.default_exposure_settings.image_y_offset = round(base_offset_y_um, 1)
 
                 expanded_slices = []
                 for slice_info in info["slices"]:
@@ -295,14 +295,14 @@ class Slicer:
                             tile_slice["image_data"] = rle_encode_packed(tile)
 
                             exposure_settings = device.default_exposure_settings.copy()
-                            exposure_settings.image_x_offset = (
+                            exposure_settings.image_x_offset = round(
                                 base_offset_x_um
                                 + _px_to_um(tx * step_x, device._px_size)
-                            )
-                            exposure_settings.image_y_offset = (
+                            , 1)
+                            exposure_settings.image_y_offset = round(
                                 base_offset_y_um
                                 + _px_to_um(ty * step_y, device._px_size)
-                            )
+                            , 1)
                             exposure_settings.light_engine = le.name
 
                             tile_slice["exposure_settings"] = exposure_settings
@@ -320,8 +320,8 @@ class Slicer:
                 device.default_exposure_settings.wavelength,
             )
             device.default_exposure_settings.light_engine = le.name
-            device.default_exposure_settings.image_x_offset = device_offset_x_um
-            device.default_exposure_settings.image_y_offset = device_offset_y_um
+            device.default_exposure_settings.image_x_offset = round(device_offset_x_um,1)
+            device.default_exposure_settings.image_y_offset = round(device_offset_y_um,1)
         else:
             device.default_exposure_settings.light_engine = (
                 device._parent.default_exposure_settings.light_engine
@@ -432,170 +432,84 @@ class Slicer:
             return x_mm, y_mm, z_mm
 
         embedded_devices = []
+        info_by_id = {id(dev): info for dev, info in zip(sliced_devices, sliced_devices_data)}
+
         for device, info in zip(reversed(sliced_devices), reversed(sliced_devices_data)):
             print(f"\tEmbedding {device.get_fully_qualified_name()}...")
+
+            slice_list = []
+            slice_list.extend(info.get("slices", []))
+            slice_list.extend(info.get("membrane_slices", []))
+            slice_list.extend(info.get("secondary_slices", []))
+            slice_list.extend(info.get("exposure_slices", []))
+
             # If its a device, just copy the images from sliced_devices_data into the folder
             if isinstance(device, Device):
-                embedded_devices.append((device, info))
-
-                slice_list = []
-                slice_list.extend(info.get("slices", []))
-                slice_list.extend(info.get("membrane_slices", []))
-                slice_list.extend(info.get("secondary_slices", []))
-                slice_list.extend(info.get("exposure_slices", []))
                 info["slices"] = slice_list
-
+                embedded_devices.append((device, info))
+                
             # If its a component, we need to insert its slices into its parent components (relabeling if necessary)
             else:
                 positions = info["positions"]
                 # get list of unique devices (not hashable) from positions
                 unique_devices = []
+                seen_parents = set()
                 for pos in positions:
-                    if pos[0] is not None and pos[0] not in unique_devices:
-                        unique_devices.append(pos[0])
-                        # print(f"APPEND UNIQUE {pos[0]}")
+                    parent = pos[0]
+                    if parent is not None and id(parent) not in seen_parents:
+                        unique_devices.append(parent)
+                        seen_parents.add(id(parent))
                 # copy slices from component into image the size of the device (translated correctly)
                 for parent_device in unique_devices:
                     resolution = (
                         int(parent_device.get_size()[0]),
                         int(parent_device.get_size()[1]),
                     )
-
-                    # aggregate slices from info once per parent_device
-                    slice_list = []
-                    slice_list.extend(info.get("slices", []))
-                    slice_list.extend(info.get("membrane_slices", []))
-                    slice_list.extend(info.get("secondary_slices", []))
-                    slice_list.extend(info.get("exposure_slices", []))
-
                     # build list of positions belonging to this parent_device
                     positions_for_parent = [
                         pos for pos in positions if pos[0] == parent_device
                     ]
+                    for pos in positions_for_parent:
+                        for slice_index, slice in enumerate(slice_list):
+                            # Load the base slice image once (if it exists)
+                            slice_path = (
+                                temp_directory
+                                / device.get_fully_qualified_name()
+                                / slice["image_name"]
+                            )
+                            slice_img = slice["image_data"]
+                            slice_img2 = rle_decode_packed(*slice_img)
+                            # For each position for this parent_device we create a separate slice image
+                        
+                            parent_info = info_by_id.get(id(parent_device))
+                            if parent_info is None:
+                                continue
+                            parent_info.setdefault("slices", [])
 
-                    # # z indexes for this device (unique)
-                    # z_indexes = []
-                    # for pos in positions_for_parent:
-                    #     if pos[3] not in z_indexes:
-                    #         z_indexes.append(pos[3])
-
-                    for slice_index, slice in enumerate(slice_list):
-                        # Load the base slice image once (if it exists)
-                        # print(
-                        #     temp_directory,
-                        #     device,
-                        #     device.get_fully_qualified_name(),
-                        #     slice["image_name"],
-                        # )
-                        slice_path = (
-                            temp_directory
-                            / device.get_fully_qualified_name()
-                            / slice["image_name"]
-                        )
-                        slice_img = slice["image_data"]
-                        slice_img2 = rle_decode_packed(*slice_img)
-                        # slice_img = None
-                        # if slice_path.exists():
-                        #     slice_img = cv2.imread(str(slice_path), cv2.IMREAD_UNCHANGED)
-
-                        # if slice_img is None:
-                        #     print(f"Warning: Slice image {slice_path} not found.")
-                        #     continue
-
-                        # For each position for this parent_device we create a separate slice image
-                        for pos in positions_for_parent:
-                            parent_index = sliced_devices.index(parent_device)
                             if isinstance(parent_device, Device):
-                                use_native_resolution = (
-                                    device._px_size != parent_device._px_size
-                                    or device._layer_size != parent_device._layer_size
+                                parent_info["slices"].append(
+                                    {
+                                        "image_name": slice["image_name"],
+                                        "parent": parent_device,
+                                        "image_data": slice_img,
+                                        "device": device,
+                                        "position": (round(pos[1]), round(pos[2])),
+                                        "layer_position": (
+                                            round(
+                                                slice["layer_position"]
+                                                + round(pos[3], 4) * 1000,
+                                                1,
+                                            )
+                                        ),
+                                        "exposure_settings": slice.get(
+                                            "exposure_settings"
+                                        ),
+                                        "position_settings": slice.get(
+                                            "position_settings"
+                                        ),
+                                    }
                                 )
-                                # print(
-                                #     f"\r\t\tDelaying embedding {slice['image_name']} to save memory",
-                                #     end="",
-                                #     flush=True,
-                                # )
-                                if use_native_resolution:
-                                    origin_x_mm, origin_y_mm, origin_z_mm = (
-                                        _relative_origin_mm(device, parent_device)
-                                    )
-                                    parent_w_mm = (
-                                        parent_device._size[0]
-                                        * parent_device._px_size
-                                    )
-                                    parent_h_mm = (
-                                        parent_device._size[1]
-                                        * parent_device._px_size
-                                    )
-                                    child_w_mm = device._size[0] * device._px_size
-                                    child_h_mm = device._size[1] * device._px_size
-
-                                    child_center_offset_x_um = (
-                                        (origin_x_mm + child_w_mm / 2 - parent_w_mm / 2)
-                                        * 1000
-                                    )
-                                    child_center_offset_y_um = (
-                                        (origin_y_mm + child_h_mm / 2 - parent_h_mm / 2)
-                                        * 1000
-                                    )
-
-                                    exposure_settings = (
-                                        parent_device.default_exposure_settings.copy()
-                                    )
-                                    exposure_settings.image_x_offset = (
-                                        parent_device.default_exposure_settings.image_x_offset
-                                        + child_center_offset_x_um
-                                    )
-                                    exposure_settings.image_y_offset = (
-                                        parent_device.default_exposure_settings.image_y_offset
-                                        + child_center_offset_y_um
-                                    )
-
-                                    sliced_devices_data[parent_index]["slices"].append(
-                                        {
-                                            "image_name": slice["image_name"],
-                                            "parent": None,
-                                            "image_data": slice_img,
-                                            "device": device,
-                                            "position": None,
-                                            "layer_position": (
-                                                round(
-                                                    slice["layer_position"]
-                                                    + round(origin_z_mm, 4) * 1000,
-                                                    1,
-                                                )
-                                            ),
-                                            "exposure_settings": exposure_settings,
-                                            "position_settings": slice.get(
-                                                "position_settings"
-                                            ),
-                                        }
-                                    )
-                                else:
-                                    sliced_devices_data[parent_index]["slices"].append(
-                                        {
-                                            "image_name": slice["image_name"],
-                                            "parent": parent_device,
-                                            "image_data": slice_img,
-                                            "device": device,
-                                            "position": (round(pos[1]), round(pos[2])),
-                                            "layer_position": (
-                                                round(
-                                                    slice["layer_position"]
-                                                    + round(pos[3], 4) * 1000,
-                                                    1,
-                                                )
-                                            ),
-                                            "exposure_settings": slice.get(
-                                                "exposure_settings"
-                                            ),
-                                            "position_settings": slice.get(
-                                                "position_settings"
-                                            ),
-                                        }
-                                    )
-                            else:
-
+                            else: # if parent is not a device (subcomponents' subcomponents)
                                 x = pos[1]
                                 y = pos[2]
                                 z = round(pos[3], 4)
@@ -605,6 +519,9 @@ class Slicer:
                                     slice_img2,
                                     parent_device.get_fully_qualified_name(),
                                 )
+                                # if save_temp_files:
+                                #     debug_path = temp_directory / parent_device.get_fully_qualified_name() / f"{x}_{y}_{slice['image_name']}"
+                                #     cv2.imwrite(str(debug_path), embedded_slice_image)
 
                                 # Build a unique filename including z (and keep original name suffix)
                                 # Example: original 'slice_01.png' -> 'slice_01_z10.png' (or use get_unique_path)
@@ -640,7 +557,7 @@ class Slicer:
                                     end="",
                                     flush=True,
                                 )
-                                sliced_devices_data[parent_index]["slices"].append(
+                                parent_info["slices"].append(
                                     {
                                         "image_name": slice_image_path.name,
                                         "parent": None,
@@ -836,6 +753,9 @@ class Slicer:
         for image, exp in zip(images, exposure_times):
             if type(image) is dict:
                 img = image_from_dict(image)
+                # if save_temp_files:
+                #     debug_path = temp_directory / (image["parent"].get_fully_qualified_name() if image.get("parent") is not None else "no_parent") / f"{image['position']}_{image['image_name']}"
+                #     cv2.imwrite(str(debug_path), img)
             else:
                 img = image
             exposure_sum[img == 255] += exp
@@ -906,6 +826,8 @@ class Slicer:
 
                 device_index = sliced_devices.index(device)
                 for name, (_, settings) in device.regional_settings.items():
+                    if settings is None:
+                        continue
                     masks_subdirectory = (
                         temp_directory / "masks" / device.get_fully_qualified_name() / name
                     )
@@ -978,15 +900,12 @@ class Slicer:
             )
 
             # print le
-            for device, info in embedded_devices:
-                print(
-                    f"\tDevice {device.get_fully_qualified_name()} uses light engine: {device.default_exposure_settings.light_engine}"
-                )
-
-            # embedded_devices = []
-            # for device, info in zip(sliced_devices, sliced_devices_data):
-            #     if isinstance(device, Device):
-            #         embedded_devices.append((device, info))
+            # for device, info in embedded_devices:
+            #     print(
+            #         f"\tDevice {device.get_fully_qualified_name()} uses light engine: {device.default_exposure_settings.light_engine}"
+            #     )
+            #     for slice_info in info["slices"]:
+            #         print(f"\t\t{slice_info['image_name']} with settings: {slice_info['exposure_settings'].__dict__}")
 
             # Make json file
             

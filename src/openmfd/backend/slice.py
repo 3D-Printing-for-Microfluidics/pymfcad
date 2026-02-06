@@ -228,6 +228,8 @@ def slice_component(
         device_subdirectory.mkdir(parents=True)
 
     # Start by unioning this component's bulk shapes.
+    if len(list(device.bulk_shapes.values())) == 0:
+        raise RuntimeError("Tried to slice component without bulk shape")
     composite_shape = Shape._batch_boolean_add(list(device.bulk_shapes.values()))
     
 
@@ -260,14 +262,15 @@ def slice_component(
         )
 
     # Accumulate this component's shapes (e.g., voids or cutouts) and bbox cubes.
-    local_shapes = Shape._batch_boolean_add(list(device.shapes.values()) + bbox_cubes)
+    if len(list(device.shapes.values()) + bbox_cubes) > 0:
+        local_shapes = Shape._batch_boolean_add(list(device.shapes.values()) + bbox_cubes)
     
 
-    # Subtract this component's shapes (e.g., voids or cutouts).
-    if local_shapes is not None and composite_shape is None:
-        raise RuntimeError("Tried to subtract without bulk")
-    elif local_shapes is not None:
-        composite_shape = composite_shape - local_shapes
+        # Subtract this component's shapes (e.g., voids or cutouts).
+        if local_shapes is not None and composite_shape is None:
+            raise RuntimeError("Tried to subtract without bulk")
+        elif local_shapes is not None:
+            composite_shape = composite_shape - local_shapes
 
     # Slice the device.
     _slice(
@@ -280,6 +283,8 @@ def slice_component(
 
     # Slice the device's masks.
     for key, (mask, settings) in device.regional_settings.items():
+        if settings is None:
+            continue
         masks_subdirectory = None
         if temp_directory is not None:
             masks_subdirectory = (

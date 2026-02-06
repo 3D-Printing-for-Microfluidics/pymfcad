@@ -56,6 +56,11 @@ Add to component:
 
 ## Subcomponents
 
+Copying:
+
+- copy()
+- Must be done before adding as subcomponent
+
 Transforms (components):
 
 - `translate((x,y,z))`, `rotate((rx,ry,rz))`, `mirror((x,y))`
@@ -137,9 +142,9 @@ Special techniques:
 
 Device‑level defaults:
 
-- `device.add_default_position_settings(PositionSettings(...))`
-- `device.add_default_exposure_settings(ExposureSettings(...))`
-- `device.set_burn_in_exposure([t1, t2, ...])`
+- `device.add_default_position_settings(PositionSettings(...), label)`
+- `device.add_default_exposure_settings(ExposureSettings(...), label)`
+- `device.set_burn_in_exposure([t1, t2, ...], label)`
 
 Slicer:
 

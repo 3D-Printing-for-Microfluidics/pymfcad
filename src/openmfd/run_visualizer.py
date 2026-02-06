@@ -85,6 +85,24 @@ def start_server():
                     elif name.startswith("secondary_dose_settings_"):
                         name = name[24:].capitalize()
                         type_str = "regional secondary dose"
+                    elif name.startswith("default_exposure_settings_"):
+                        name = name[26:].capitalize()
+                        name = name.replace("._default_", "").replace("_default_", "")
+                        if name == "":
+                            name = "Top-level"
+                        type_str = "regional default exposure settings"
+                    elif name.startswith("default_position_settings_"):
+                        name = name[26:].capitalize()
+                        name = name.replace("._default_", "").replace("_default_", "")
+                        if name == "":
+                            name = "Top-level"
+                        type_str = "regional default position settings"
+                    elif name.startswith("burnin_"):
+                        name = name[7:].capitalize()
+                        name = name.replace("._default_", "").replace("_default_", "")
+                        if name == "":
+                            name = "Top-level"
+                        type_str = "regional burn-in settings"
                     else:
                         name = name.capitalize()
                         type_str = "regional"

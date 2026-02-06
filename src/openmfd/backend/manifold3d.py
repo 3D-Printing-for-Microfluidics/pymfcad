@@ -85,6 +85,11 @@ class Shape:
         - self (Shape): The resulting combined shape.
         """
 
+        if len(others) == 0:
+            raise ValueError("No shapes provided for batch boolean add.")
+        elif len(others) == 1:
+            return others[0].copy(_internal=True)
+
         c = cls()
 
         c._object = Manifold.batch_boolean(
@@ -112,6 +117,11 @@ class Shape:
 
         - self (Shape): The resulting shape after subtraction.
         """
+
+        if len(others) == 0:
+            raise ValueError("No shapes provided for batch boolean subtract.")
+        elif len(others) == 1:
+            return others[0].copy(_internal=True)
 
         c = cls()
 
@@ -141,6 +151,11 @@ class Shape:
 
         - self (Shape): The resulting shape after addition and subtraction.
         """
+
+        if len(additions) == 0:
+            raise ValueError("No shapes provided for batch boolean add.")
+        elif len(additions) == 1 and len(subtractions) == 0:
+            return additions[0].copy(_internal=True)
 
         c = cls()
 

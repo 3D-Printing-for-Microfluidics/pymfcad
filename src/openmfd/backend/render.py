@@ -274,8 +274,8 @@ def _component_to_manifold(
 
     Returns:
 
-        - tuple[dict[str, Shape], dict[str, Shape], dict[str, Shape], Shape | None, list[tuple[Port, Component]]]:
-            Manifolds, bulk manifolds, regional manifolds, bulk diff, and ports to draw.
+    - tuple[dict[str, Shape], dict[str, Shape], dict[str, Shape], Shape | None, list[tuple[Port, Component]]]:
+        Manifolds, bulk manifolds, regional manifolds, bulk diff, and ports to draw.
 
     Raises:
 
@@ -316,7 +316,8 @@ def _component_to_manifold(
         if _top_level:
             # Merge shapes of the same key.
             for key, shape_list in manifolds.items():
-                manifolds[key] = Shape._batch_boolean_add(shape_list)
+                if len(shape_list) > 0:
+                    manifolds[key] = Shape._batch_boolean_add(shape_list)
 
     def accumulate_bulk_shape(comp: "Component") -> dict[str, "Shape"]:
         """
@@ -334,6 +335,12 @@ def _component_to_manifold(
         bulks = {}
         comp_cubes = None
         comp_bulks = {}
+
+        if len(comp.bulk_shapes) == 0:
+            raise ValueError(
+                f"Component {comp._name} has no bulk shapes to render."
+            )
+
         for bulk in comp.bulk_shapes.values():
             # key = str(bulk._color)
             key = str(bulk._label)
@@ -384,10 +391,15 @@ def _component_to_manifold(
 
         comp_cubes = Shape._batch_boolean_add(comp_cubes) if comp_cubes is not None else None
         for key, bulk in bulks.items():
+            if len(bulk) == 0:
+                continue
             bulks[key] = Shape._batch_boolean_add(bulk)
             bulks[key] = bulks[key] - comp_cubes if comp_cubes is not None else bulks[key]
             if key in comp_bulks.keys():
                 bulks[key] = Shape._batch_boolean_add([bulks[key]] + comp_bulks[key])
+        for key, bulk in comp_bulks.items():
+            if key not in bulks.keys():
+                bulks[key] = Shape._batch_boolean_add(comp_bulks[key])
         return bulks
 
     def accumulate_regional_settings(comp: "Component", _top_level: bool = True) -> None:
@@ -400,7 +412,18 @@ def _component_to_manifold(
         - _top_level (bool): Whether this is the top-level component.
         """
         for shape, setting in comp.regional_settings.values():
-            if type(setting).__name__ == "MembraneSettings":
+            if setting is None:
+                if shape._name == "default_exposure_settings_region":
+                    prefix = "default_exposure_settings_"
+                elif shape._name == "default_position_settings_region":
+                    prefix = "default_position_settings_"
+                elif shape._name == "burnin_region":
+                    prefix = "burnin_"
+                else:
+                    raise ValueError(
+                        f"Regional setting for shape with name/label ({shape._name}, {shape._label}) is None."
+                    )
+            elif type(setting).__name__ == "MembraneSettings":
                 prefix = "membrane_settings_"
             elif type(setting).__name__ == "PositionSettings":
                 prefix = "position_settings_"
@@ -429,7 +452,8 @@ def _component_to_manifold(
         if _top_level:
             # Merge shapes of the same key.
             for key, shape_list in regional_manifolds.items():
-                regional_manifolds[key] = Shape._batch_boolean_add(shape_list)
+                if len(shape_list) > 0:
+                    regional_manifolds[key] = Shape._batch_boolean_add(shape_list)
 
     def get_unconnected_ports(comp: "Component") -> None:
         """

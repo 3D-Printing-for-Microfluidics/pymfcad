@@ -363,6 +363,19 @@ class Component(_InstantiationTrackerMixin):
         self.regional_settings = {}
         self.burnin_settings = []
         self.labels = {}
+        self._locked = False
+
+    def _ensure_unlocked(self, action: str):
+        if self._locked:
+            raise ValueError(
+                f"Cannot {action} after component has been added to a parent and locked. "
+                "Make changes before add_subcomponent()."
+            )
+
+    def _lock_recursive(self):
+        self._locked = True
+        for subcomponent in self.subcomponents.values():
+            subcomponent._lock_recursive()
 
     def __eq__(self, other):
         # """
@@ -401,6 +414,76 @@ class Component(_InstantiationTrackerMixin):
         if name in self.ports:
             return self.ports[name]
         raise AttributeError(f"'{type(self).__name__}' object has no attribute '{name}'")
+    
+    def copy(self) -> "Component":
+        """
+        Create a copy of the component.
+
+        Returns:
+        - Component: A new instance of the component with the same attributes.
+        """
+        if self._parent is not None:
+            raise ValueError("Cannot copy component that has already been added to a parent component.")
+        self._ensure_unlocked("copy component")
+        
+        # create new instance of the same class
+        kwargs = self.init_kwargs if hasattr(self, 'init_kwargs') else {}
+        try:
+            init_sig = inspect.signature(type(self).__init__)
+            allowed_params = {
+                name
+                for name, param in init_sig.parameters.items()
+                if name != "self"
+                and param.kind
+                in (inspect.Parameter.POSITIONAL_OR_KEYWORD, inspect.Parameter.KEYWORD_ONLY)
+            }
+            filtered_kwargs = {k: v for k, v in kwargs.items() if k in allowed_params}
+        except (ValueError, TypeError):
+            filtered_kwargs = kwargs
+        comp_copy = type(self)(
+            **filtered_kwargs,
+        )
+
+        comp_copy._parent = None
+        comp_copy._name = None
+        comp_copy._subtract_bounding_box = None
+        
+        comp_copy._translations = self._translations.copy()
+        comp_copy._rotation = self._rotation
+        comp_copy._mirroring = self._mirroring.copy()
+        comp_copy.burnin_settings = self.burnin_settings.copy()
+
+        # deep copies of dict attributes
+        for key, color in self.labels.items():
+            comp_copy.labels[key] = Color(*color._to_rgba())
+        comp_copy.shapes = {}
+        for key, shape in self.shapes.items():
+            comp_copy.shapes[key] = shape.copy()
+            comp_copy.shapes[key]._color = comp_copy.labels.get(key, shape._color)
+        comp_copy.bulk_shapes = {}
+        for key, shape in self.bulk_shapes.items():
+            comp_copy.bulk_shapes[key] = shape.copy()
+            comp_copy.bulk_shapes[key]._color = comp_copy.labels.get(key, shape._color)
+        comp_copy.ports = {}
+        for key, port in self.ports.items():
+            comp_copy.ports[key] = port.copy()
+        comp_copy.connected_ports = []
+        for port in self.connected_ports:
+            comp_copy.connected_ports.append(comp_copy.ports[port._name])
+        comp_copy.subcomponents = {}
+        for key, subcomp in self.subcomponents.items():
+            comp_copy.subcomponents[key] = subcomp.copy()
+        comp_copy.default_exposure_settings = None if self.default_exposure_settings is None else self.default_exposure_settings.copy()
+        comp_copy.default_position_settings = None if self.default_position_settings is None else self.default_position_settings.copy()
+        comp_copy.regional_settings = {}
+        for key, (shape, settings) in self.regional_settings.items():
+            new_shape = shape.copy()
+            new_shape._color = comp_copy.labels.get(key, shape._color) 
+            comp_copy.regional_settings[key] = (new_shape, settings.copy())
+        comp_copy.labels = {}
+        
+
+        return comp_copy
 
     def get_fully_qualified_name(self):
         # """Get the fully qualified name of the component, including all parent components names."""
@@ -593,6 +676,7 @@ class Component(_InstantiationTrackerMixin):
         - name (str): The name of the label (must be a unique python identifier).
         - color (Color): The color of the label, which can be a Color object or a tuple of RGBA values.
         """
+        self._ensure_unlocked("add label")
         self._validate_name(name)
         self.labels[name] = color
 
@@ -604,6 +688,7 @@ class Component(_InstantiationTrackerMixin):
 
         - mapping (dict[str, Color]): A dictionary mapping label names to their colors.
         """
+        self._ensure_unlocked("add labels")
         for name, color in mapping.items():
             self.add_label(name, color)
 
@@ -617,6 +702,7 @@ class Component(_InstantiationTrackerMixin):
         - shape (Shape): The shape to be added.
         - label (str): The label for the shape, which should be a key in the component's labels dictionary.
         """
+        self._ensure_unlocked("add void")
         self._validate_name(name)
         if shape._parent is not None:
             raise ValueError(
@@ -639,6 +725,7 @@ class Component(_InstantiationTrackerMixin):
         - shape (Shape): The bulk shape to be added.
         - label (str): The label for the bulk shape, which should be a key in the component's labels dictionary.
         """
+        self._ensure_unlocked("add bulk")
         self._validate_name(name)
         if shape._parent is not None:
             raise ValueError(
@@ -660,6 +747,7 @@ class Component(_InstantiationTrackerMixin):
         - name (str): The name of the port (must be a unique python identifier).
         - port (Port): The port to be added.
         """
+        self._ensure_unlocked("add port")
         self._validate_name(name)
         if port._parent is not None:
             raise ValueError(
@@ -683,6 +771,7 @@ class Component(_InstantiationTrackerMixin):
         - subtract_bounding_box (bool): Whether to subtract the bounding box of the subcomponent from the parent component's shapes. Default is True.
         - hide_in_render (bool): Whether to hide the subcomponent in renders. Default is False.
         """
+        self._ensure_unlocked("add subcomponent")
         self._validate_name(name)
         if component._parent is not None:
             raise ValueError(
@@ -714,12 +803,15 @@ class Component(_InstantiationTrackerMixin):
 
         self.subcomponents[name] = component
 
+        component._lock_recursive()
+
         if hide_in_render:
             component.hide_in_render = True
 
     def add_default_exposure_settings(
         self,
         settings: ExposureSettings,
+        label: str = "_default_",
     ):
         """
         Add default exposure settings to the component.
@@ -727,12 +819,29 @@ class Component(_InstantiationTrackerMixin):
         Parameters:
 
         - settings (ExposureSettings): The exposure settings to be added.
+        - label (str): The label associated with the default exposure settings region. If not provided, it will create a new label with this name and a default color (red).
         """
+        self._ensure_unlocked("add default exposure settings")
         self.default_exposure_settings = settings
+        if label == "_default_" and label not in self.labels:
+            self.add_label(
+                name=label,
+                color=Color.from_name("red", 127),
+            )
+        # shape need to be taller for variablelayerthicknesscomponent (uses greatest common factor of layer sizes)
+        self.add_regional_settings(
+            name="default_exposure_settings_region",
+            shape=Cube(
+                size=self.get_size()
+            ),
+            settings=None,
+            label=label,
+        )
 
     def add_default_position_settings(
         self,
         settings: PositionSettings,
+        label: str = "_default_",
     ):
         """
         Add default position settings to the component.
@@ -740,8 +849,23 @@ class Component(_InstantiationTrackerMixin):
         Parameters:
 
         - settings (PositionSettings): The position settings to be added.
+        - label (str): The label associated with the default position settings region. If not provided, it will create a new label with this name and a default color (red).
         """
+        self._ensure_unlocked("add default position settings")
         self.default_position_settings = settings
+        if label == "_default_" and label not in self.labels:
+            self.add_label(
+                name=label,
+                color=Color.from_name("red", 127),
+            )
+        self.add_regional_settings(
+            name="default_position_settings_region",
+            shape=Cube(
+                size=self.get_size()
+            ),
+            settings=None,
+            label=label,
+        )
 
     def add_regional_settings(
         self,
@@ -765,6 +889,7 @@ class Component(_InstantiationTrackerMixin):
         - settings (Union[PositionSettings, ExposureSettings, MembraneSettings, SecondaryDoseSettings]): The settings to be applied in the shape.
         - label (str): The label for the regional settings, which should be a key in the component's labels dictionary.
         """
+        self._ensure_unlocked("add regional settings")
         self._validate_name(name)
         if shape._parent is not None:
             raise ValueError(
@@ -777,30 +902,46 @@ class Component(_InstantiationTrackerMixin):
         shape._label = label
 
         # check for collisions with other settings
-        for existing_name, (
-            existing_shape,
-            existing_settings,
-        ) in self.regional_settings.items():
-            combined_shape = shape.copy() & existing_shape.copy()
-            if (
-                type(settings) == type(existing_settings)
-                and not combined_shape._object.is_empty()
-            ):
-                raise ValueError(
-                    f"Regional settings '{name}' collides with existing settings '{existing_name}' in component {self._name}"
-                )
+        if settings is not None:
+            for existing_name, (
+                existing_shape,
+                existing_settings,
+            ) in self.regional_settings.items():
+                combined_shape = shape.copy() & existing_shape.copy()
+                if (
+                    type(settings) == type(existing_settings)
+                    and not combined_shape._object.is_empty()
+                ):
+                    raise ValueError(
+                        f"Regional settings '{name}' collides with existing settings '{existing_name}' in component {self._name}"
+                    )
 
         self.regional_settings[name] = (shape, settings)
 
-    def set_burn_in_exposure(self, exposure_times: list[float]):
+    def set_burn_in_exposure(self, exposure_times: list[float], label: str = "_default_"):
         """
         Set burn-in exposure times for the component.
 
         Parameters:
 
         - exposure_times (list[float]): List of exposure times in seconds for the burn-in process.
+        - label (str): The label associated with the burn-in region. If not provided, it will create a new label with this name and a default color (red).
         """
+        self._ensure_unlocked("set burn-in exposure")
         self.burnin_settings = exposure_times
+        if label == "_default_" and label not in self.labels:
+            self.add_label(
+                name=label,
+                color=Color.from_name("red", 127),
+            )
+        self.add_regional_settings(
+            name="burnin_region",
+            shape=Cube(
+                size=(self._size[0], self._size[1], len(exposure_times)),
+            ),
+            settings=None,
+            label=label,
+        )
 
     def relabel(self, mapping: dict[Union[Component, Shape, str], str], recursive = False, _color_mapping: dict[str, Color] = None):
         """
@@ -928,7 +1069,10 @@ class Component(_InstantiationTrackerMixin):
             self.connected_ports.append(port)
 
     def translate(
-        self, translation: tuple[int, int, int], _internal: bool = False
+        self,
+        translation: tuple[int, int, int],
+        _internal: bool = False,
+        _bypass_lock: bool = False,
     ) -> Component:
         """
         Translate the component by a given translation vector.
@@ -937,11 +1081,14 @@ class Component(_InstantiationTrackerMixin):
 
         - translation (tuple[int, int, int]): The translation vector in parent pixels/layers (dx, dy, dz) to apply to the component.
         - _internal (bool): If True, the translation uses the component's pixels/layers for internal calculations and opperates immediatly. Default is False.
+        - _bypass_lock (bool): If True, bypasses lock checks for parent-driven transformations. Default is False.
         
         Returns:
 
         - self: The translated component.
         """
+        if not _bypass_lock:
+            self._ensure_unlocked("translate")
         if self._parent is None and not _internal:
             self._translations[0] += translation[0]
             self._translations[1] += translation[1]
@@ -954,7 +1101,7 @@ class Component(_InstantiationTrackerMixin):
                     round(translation[2] / self._layer_size * self._parent._layer_size, 3),
                 )
             for component in self.subcomponents.values():
-                component.translate(translation)
+                component.translate(translation, _internal=True, _bypass_lock=True)
             for shape in self.shapes.values():
                 shape.translate(translation)
             for bulk_shape in self.bulk_shapes.values():
@@ -976,6 +1123,7 @@ class Component(_InstantiationTrackerMixin):
         return self
 
     def run_translate(self) -> Component:
+        self._ensure_unlocked("run translate")
         translation = (
             round(self._translations[0] / self._px_size * self._parent._px_size, 3),
             round(self._translations[1] / self._px_size * self._parent._px_size, 3),
@@ -983,7 +1131,7 @@ class Component(_InstantiationTrackerMixin):
         )
 
         for component in self.subcomponents.values():
-            component.translate(translation)
+            component.translate(translation, _bypass_lock=True)
         for shape in self.shapes.values():
             shape.translate(translation)
         for bulk_shape in self.bulk_shapes.values():
@@ -1003,7 +1151,12 @@ class Component(_InstantiationTrackerMixin):
             self._position[2] + translation[2],
         )
 
-    def rotate(self, rotation: int, in_place: bool = False) -> Component:
+    def rotate(
+        self,
+        rotation: int,
+        in_place: bool = False,
+        _bypass_lock: bool = False,
+    ) -> Component:
         """
         Rotate the component around the Z axis by a given angle.
         
@@ -1011,11 +1164,14 @@ class Component(_InstantiationTrackerMixin):
 
         - rotation (int): The angle in degrees to rotate the component. Must be a multiple of 90.
         - in_place (bool): If True, the component is rotated in place. Default is False.
+        - _bypass_lock (bool): If True, bypasses lock checks for parent-driven transformations. Default is False.
         
         Returns:
 
         - self: The rotated component.
         """
+        if not _bypass_lock:
+            self._ensure_unlocked("rotate")
         if rotation % 90 != 0:
             raise ValueError("Rotation must be a multiple of 90 degrees")
 
@@ -1027,10 +1183,11 @@ class Component(_InstantiationTrackerMixin):
             self.translate(
                 (-self._position[0], -self._position[1], -self._position[2]),
                 _internal=True,
+                _bypass_lock=True,
             )
 
         for component in self.subcomponents.values():
-            component.rotate(rotation)
+            component.rotate(rotation, _bypass_lock=True)
 
         for shape in self.shapes.values():
             shape.rotate((0, 0, rotation))
@@ -1118,6 +1275,7 @@ class Component(_InstantiationTrackerMixin):
                         original_position[2],
                     ),
                     _internal=True,
+                    _bypass_lock=True
                 )
             elif rot == 180:
                 self.translate(
@@ -1127,6 +1285,7 @@ class Component(_InstantiationTrackerMixin):
                         original_position[2],
                     ),
                     _internal=True,
+                    _bypass_lock=True
                 )
             elif rot == 270:
                 self.translate(
@@ -1136,6 +1295,7 @@ class Component(_InstantiationTrackerMixin):
                         original_position[2],
                     ),
                     _internal=True,
+                    _bypass_lock=True
                 )
 
             if rot in (90, 270):
@@ -1166,7 +1326,11 @@ class Component(_InstantiationTrackerMixin):
         return self
 
     def mirror(
-        self, mirror_x: bool = False, mirror_y: bool = False, in_place: bool = False
+        self,
+        mirror_x: bool = False,
+        mirror_y: bool = False,
+        in_place: bool = False,
+        _bypass_lock: bool = False,
     ) -> Component:
         """
         Mirror the component along the X and/or Y axes.
@@ -1176,16 +1340,19 @@ class Component(_InstantiationTrackerMixin):
         - mirror_x (bool): If True, mirrors the component along the X axis. Default is False.
         - mirror_y (bool): If True, mirrors the component along the Y axis. Default is False.
         - in_place (bool): If True, performs the mirroring in place. Default is False.
+        - _bypass_lock (bool): If True, bypasses lock checks for parent-driven transformations. Default is False.
         
         Returns:
 
         - self: The mirrored component.
         """
+        if not _bypass_lock:
+            self._ensure_unlocked("mirror")
         if not mirror_x and not mirror_y:
             return self  # No mirroring requested
 
         if mirror_x and mirror_y:
-            return self.rotate(180, in_place=in_place)
+            return self.rotate(180, in_place=in_place, _bypass_lock=_bypass_lock)
 
         self._mirroring = [mirror_x ^ self._mirroring[0], mirror_y ^ self._mirroring[1]]
 
@@ -1195,10 +1362,11 @@ class Component(_InstantiationTrackerMixin):
             self.translate(
                 (-self._position[0], -self._position[1], -self._position[2]),
                 _internal=True,
+                _bypass_lock=True
             )
 
         for component in self.subcomponents.values():
-            component.mirror(mirror_x, mirror_y)
+            component.mirror(mirror_x, mirror_y, _bypass_lock=True)
 
         for shape in self.shapes.values():
             shape.mirror((mirror_x, mirror_y, False))
@@ -1259,6 +1427,7 @@ class Component(_InstantiationTrackerMixin):
                         original_position[2],
                     ),
                     _internal=True,
+                    _bypass_lock=True
                 )
             elif not mirror_x and mirror_y:
                 self.translate(
@@ -1268,6 +1437,7 @@ class Component(_InstantiationTrackerMixin):
                         original_position[2],
                     ),
                     _internal=True,
+                    _bypass_lock=True
                 )
         else:
             # Update position for non in-place mirroring (position is negative-negative corner)
@@ -1443,78 +1613,18 @@ class VariableLayerThicknessComponent(Component):
             print(
                 "\t\tFor best results, component height should be an integer multiple of parent component layers."
             )
-        super().__init__(size, position, px_size, layer_size, quiet=quiet)
+        
+        # compute new size z
+        self.expanded_sizes = []
+        for i, s in self._layer_sizes:
+            self.expanded_sizes.extend([s] * i)
+        sum_layer_size = sum(self.expanded_sizes)
+        z_height = sum_layer_size / layer_size
+        super().__init__((size[0], size[1], z_height), position, px_size, layer_size, quiet=quiet)
 
     def _expand_layer_sizes(self) -> list[float]:
         """Expand the layer sizes into a list of heights for each layer."""
-        expanded_sizes = []
-        for count, size in self._layer_sizes:
-            expanded_sizes.extend([size] * count)
-        return expanded_sizes
-
-    def _get_device_height(self) -> float:
-        """Get the height of the device in mm based on the layer sizes."""
-        return sum(
-            self._layer_sizes[i][0] * self._layer_sizes[i][1]
-            for i in range(len(self._layer_sizes))
-        )
-
-    def get_bounding_box(
-        self, px_size: float = None, layer_size: float = None
-    ) -> tuple[int, int, int, int, int, int]:
-        # """
-        # Get the bounding box of the component.
-
-        # The bounding box is defined by the position and size of the component.
-
-        # Parameters:
-
-        # - px_size (float, optional): The pixel size in mm. If not provided, uses the component's pixel size.
-        # - layer_size (float, optional): The layer size in mm. If not provided, uses the component's layer size.
-
-        # Returns:
-
-        # - A tuple of six integers representing the bounding box coordinates:
-        # """
-        _px_size = self._px_size if px_size is None else px_size
-        _layer_size = self._layer_size if layer_size is None else layer_size
-
-        min_x = round(self._position[0] * self._px_size / _px_size, 3)
-        max_x = round(
-            (self._position[0] + self._size[0]) * self._px_size / _px_size, 3
-        )
-        min_y = round(self._position[1] * self._px_size / _px_size, 3)
-        max_y = round(
-            (self._position[1] + self._size[1]) * self._px_size / _px_size, 3
-        )
-        min_z = round(self._position[2] * self._layer_size / _layer_size, 3)
-        max_z = round(
-            (self._position[2] + self._size[2]) * self._layer_size / _layer_size, 3
-        )
-        return (min_x, min_y, min_z, max_x, max_y, max_z)
-
-    def get_size(
-        self, px_size: float = None, layer_size: float = None
-    ) -> tuple[int, int, int]:
-        # """
-        # Get the size of the component.
-
-        # Parameters:
-
-        # - px_size (float, optional): The pixel size in mm. If not provided, uses the component's pixel size.
-        # - layer_size (float, optional): The layer size in mm. If not provided, uses the component's layer size.
-
-        # Returns:
-
-        # - A tuple of three integers representing the size of the component (width, height, depth).
-        # """
-        _px_size = self._px_size if px_size is None else px_size
-        _layer_size = self._layer_size if layer_size is None else layer_size
-        return (
-            round(self._size[0] * self._px_size / _px_size, 3),
-            round(self._size[1] * self._px_size / _px_size, 3),
-            round(self._get_device_height() / _layer_size, 3),
-        )
+        return self.expanded_sizes
 
 
 class Device(Component):
