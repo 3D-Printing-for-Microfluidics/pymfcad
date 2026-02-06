@@ -1,7 +1,7 @@
 import * as THREE from '../lib/three/three.module.js';
 
 const CAMERA_STORAGE_KEY = 'openmfd_cameras_v1';
-const CAMERA_DEFAULT_COUNT = 3;
+const CAMERA_DEFAULT_COUNT = 0;
 
 export function createCameraSystem({
   scene,
