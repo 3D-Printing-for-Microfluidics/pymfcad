@@ -1229,28 +1229,6 @@ class TPMS(Shape):
     """
 
     @njit
-    def gyroid(x: float, y: float, z: float) -> float:
-        """
-        Gyroid TPMS function (uses @njit decorator for performance).
-
-        Parameters:
-
-        - x (float): X coordinate.
-        - y (float): Y coordinate.
-        - z (float): Z coordinate.
-
-        Returns:
-
-        - float: Level set value.
-        """
-        a = np.radians(360)
-        return (
-            np.cos(a * x) * np.sin(a * y)
-            + np.cos(a * y) * np.sin(a * z)
-            + np.cos(a * z) * np.sin(a * x)
-        )
-
-    @njit
     def diamond(x: float, y: float, z: float) -> float:
         """
         Diamond TPMS function (uses @njit decorator for performance).
@@ -1272,6 +1250,124 @@ class TPMS(Shape):
             + np.cos(a * x) * np.sin(a * y) * np.cos(a * z)
             + np.cos(a * x) * np.cos(a * y) * np.sin(a * z)
         )
+    
+    @njit
+    def gyroid(x: float, y: float, z: float) -> float:
+        """
+        Gyroid TPMS function (uses @njit decorator for performance).
+
+        Parameters:
+
+        - x (float): X coordinate.
+        - y (float): Y coordinate.
+        - z (float): Z coordinate.
+
+        Returns:
+
+        - float: Level set value.
+        """
+        a = np.radians(360)
+        return (
+            np.cos(a * x) * np.sin(a * y)
+            + np.cos(a * y) * np.sin(a * z)
+            + np.cos(a * z) * np.sin(a * x)
+        )
+    
+    @njit
+    def schwarz_p(x: float, y: float, z: float) -> float:
+        """
+        Schwarz P TPMS function (uses @njit decorator for performance).
+
+        Parameters:
+
+        - x (float): X coordinate.
+        - y (float): Y coordinate.
+        - z (float): Z coordinate.
+
+        Returns:
+
+        - float: Level set value.
+        """
+        a = np.radians(360)
+        return (
+            np.cos(a*x) + np.cos(a*y) + np.cos(a*z)
+        )
+    
+    @njit
+    def fischer_koch_s(x: float, y: float, z: float) -> float:
+        """
+        Fischer-Koch S TPMS function (uses @njit decorator for performance).
+
+        Parameters:
+
+        - x (float): X coordinate.
+        - y (float): Y coordinate.
+        - z (float): Z coordinate.
+
+        Returns:
+
+        - float: Level set value.
+        """
+        a = np.radians(360)
+        return (
+            np.cos(a*2*x) * np.sin(a*y) * np.cos(a*x)
+            + np.cos(a*2*y) * np.sin(a*z) * np.cos(a*x)
+            + np.cos(a*2*z) * np.sin(a*x) * np.cos(a*y)
+        )
+    
+    @njit
+    def double_diamond(x: float, y: float, z: float) -> float:
+        """
+        Double Diamond TPMS function (uses @njit decorator for performance).
+
+        Parameters:
+
+        - x (float): X coordinate.
+        - y (float): Y coordinate.
+        - z (float): Z coordinate.
+
+        Returns:
+
+        - float: Level set value.
+        """
+        a = np.radians(360)
+        return (
+            (
+                np.sin(2*a*x) * np.sin(2*a*y) 
+                + np.sin(2*a*y) * np.sin(2*a*z) 
+                + np.sin(2*a*x) * np.sin(2*a*z)
+            ) + (
+                np.cos(2*a*y) * np.cos(2*a*z) * np.cos(2*a*x)
+            )
+        )
+    
+    @njit
+    def double_gyroid(x: float, y: float, z: float) -> float:
+        """
+        Double Gyroid TPMS function (uses @njit decorator for performance).
+
+        Parameters:
+
+        - x (float): X coordinate.
+        - y (float): Y coordinate.
+        - z (float): Z coordinate.
+
+        Returns:
+
+        - float: Level set value.
+        """
+        a = np.radians(360)
+        return (
+            2.75*(
+                np.sin(2*a*x) * np.sin(a*z) * np.cos(a*y) 
+                + np.sin(2*a*y) * np.sin(a*x) * np.cos(a*z) 
+                + np.sin(2*a*z) * np.sin(a*y) * np.cos(a*x)
+            ) - 1*(
+                np.cos(2*a*x) * np.cos(2*a*y) 
+                + np.cos(2*a*y) * np.cos(2*a*z) 
+                + np.cos(2*a*z) * np.cos(2*a*x)
+            )
+        )
 
     def __init__(
         self,
@@ -1289,7 +1385,7 @@ class TPMS(Shape):
 
         - size (tuple[int, int, int]): Size of the TPMS unit cell in px/layer space.
         - cells (tuple[int, int, int]): Number of unit cells in each dimension.
-        - func (Callable[[float, float, float], float]): Function defining the TPMS shape. Can use gyroid, diamond, or a custom function.
+        - func (Callable[[float, float, float], float]): Function defining the TPMS shape. Can use gyroid, diamond, schwarz_p, fischer_koch_s, double_diamond, double_gyroid, or a custom function.
         - fill (float): Level set value for the TPMS shape ranges from -1 to 1 (isosurface at 0).
         - refinement (int): Number of subdivisions for the level set grid.
         - quiet (bool): If True, suppresses informational output.

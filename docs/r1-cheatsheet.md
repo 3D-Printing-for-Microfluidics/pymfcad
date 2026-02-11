@@ -29,7 +29,7 @@ Primitives and key parameters:
 - `RoundedCube(size, radius, quiet=False)`
 - `TextExtrusion(text, height, font_size, quiet=False)`
 - `ImportModel(path, scale, rotation, quiet=False)`
-- `TPMS(size, function, period, threshold, quiet=False)`
+- `TPMS(size, function, period, threshold, quiet=False) available functions include gyroid, diamond, schwarz_p, fischer_koch_s, double_diamond and double_gyroid`
 
 Transforms (shapes):
 
