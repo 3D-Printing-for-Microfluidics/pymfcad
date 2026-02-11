@@ -54,6 +54,8 @@ build:
 serve:
 	set -e; \
 	$(ENSURE_UV_VENV) \
+	$(UV) run mkdocs build; \
+	$(MAKE) web-build; \
 	$(UV) run omfd
 
 mem-profile:
