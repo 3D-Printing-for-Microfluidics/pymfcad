@@ -2030,7 +2030,11 @@ async function handleModelRefresh() {
   }
 
   if (result.filesChanged) {
-    await modelManager.loadAllModels();
+    if (Array.isArray(result.changedEntries) && result.changedEntries.length > 0) {
+      await modelManager.reloadModels(result.changedEntries);
+    } else {
+      await modelManager.loadAllModels();
+    }
     lightSystem.ensureDefaultLight();
     lightSystem.updateDirectionalLightTargets();
     settingsSystem?.refreshPreviewInfo();

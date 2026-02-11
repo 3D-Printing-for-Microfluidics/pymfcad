@@ -64,7 +64,14 @@ export function createModelManager({ scene, world }) {
   }
 
   function computeSignature(list) {
-    return JSON.stringify(list || []);
+    const normalized = (list || []).map((item) => ({
+      file: item?.file,
+      version: item?.version,
+      base_name: item?.base_name,
+      name: item?.name,
+      type: item?.type,
+    }));
+    return JSON.stringify(normalized);
   }
 
   function getListSignature() {
@@ -74,8 +81,33 @@ export function createModelManager({ scene, world }) {
   function setModelList(list) {
     glbFiles = Array.isArray(list) ? list : [];
     listSignature = computeSignature(glbFiles);
-    lastModifieds = Array(glbFiles.length).fill(null);
+    lastModifieds = glbFiles.map((item) => (item && item.mtime != null ? item.mtime : null));
     modelEntries = buildModelEntries(glbFiles);
+  }
+
+  function updateModelListMtimes(list) {
+    glbFiles = Array.isArray(list) ? list : [];
+    lastModifieds = glbFiles.map((item) => (item && item.mtime != null ? item.mtime : null));
+    const mtimeByFile = new Map();
+    glbFiles.forEach((item) => {
+      if (!item || !item.file) return;
+      mtimeByFile.set(item.file, item.mtime != null ? item.mtime : null);
+    });
+    const changedEntries = [];
+    modelEntries.forEach((entry, idx) => {
+      let changed = false;
+      entry.versions.forEach((ver) => {
+        if (!ver.file) return;
+        const next = mtimeByFile.get(ver.file);
+        if (next == null) return;
+        if (ver.mtime != null && ver.mtime !== next) {
+          changed = true;
+        }
+        ver.mtime = next;
+      });
+      if (changed) changedEntries.push(idx);
+    });
+    return changedEntries;
   }
 
   function getModelList() {
@@ -136,6 +168,7 @@ export function createModelManager({ scene, world }) {
         id: versionId,
         label: versionId === 'v0' ? 'V0' : versionId.toUpperCase(),
         file: glb.file,
+        mtime: glb.mtime != null ? glb.mtime : null,
       });
     });
 
@@ -176,72 +209,97 @@ export function createModelManager({ scene, world }) {
   }
 
 
+  async function loadModelEntry(entry, idx) {
+    const versionScenes = new Map();
+    const versionLoads = entry.versions.map((ver) =>
+      new Promise((resolve) => {
+        const cacheBuster = ver.mtime != null ? `?cb=${ver.mtime}` : '';
+        if (!ver.file) {
+          resolve({ id: ver.id, scene: null });
+          return;
+        }
+        loader.load(
+          ver.file + cacheBuster,
+          (gltf) => resolve({ id: ver.id, scene: gltf.scene }),
+          undefined,
+          () => resolve({ id: ver.id, scene: null })
+        );
+      })
+    );
+    const results = await Promise.all(versionLoads);
+    results.forEach(({ id, scene }) => {
+      if (!scene) return;
+      scene.traverse((child) => {
+        if (child.isMesh) {
+          const mat = child.material;
+          mat.metalness = 0.01;
+          mat.transparent = true;
+          mat.side = THREE.FrontSide;
+          if (Array.isArray(mat)) {
+            mat.forEach((m) => {
+              if (m && m.userData && m.userData.baseOpacity === undefined) {
+                m.userData.baseOpacity = Number.isFinite(m.opacity) ? m.opacity : 1;
+              }
+            });
+          } else if (mat && mat.userData && mat.userData.baseOpacity === undefined) {
+            mat.userData.baseOpacity = Number.isFinite(mat.opacity) ? mat.opacity : 1;
+          }
+        }
+      });
+      versionScenes.set(id, scene);
+    });
+
+    const wrapper = new THREE.Group();
+    const activeId = entry.versionId;
+    versionScenes.forEach((scene, id) => {
+      scene.visible = id === activeId;
+      wrapper.add(scene);
+    });
+    wrapper.visible = getVisibility(idx);
+    modelGroups[idx] = wrapper;
+    modelVersionScenes[idx] = versionScenes;
+    const activeScene = versionScenes.get(activeId) || versionScenes.values().next().value || null;
+    models[idx] = activeScene || null;
+    world.add(wrapper);
+    return wrapper;
+  }
+
   async function loadAllModels() {
     isLoadingModels = true;
     modelGroups.forEach((group) => disposeGroup(group));
     models = [];
     modelGroups = [];
     modelVersionScenes = [];
-    lastModifieds = Array(glbFiles.length).fill(null);
+    // Preserve modified times from the model list to avoid redundant refreshes.
 
     try {
       const loadedScenes = await Promise.all(
-        modelEntries.map(async (entry, idx) => {
-          const versionScenes = new Map();
-          const versionLoads = entry.versions.map((ver) =>
-            new Promise((resolve) => {
-              const cacheBuster = `?cb=${Date.now()}`;
-              if (!ver.file) {
-                resolve({ id: ver.id, scene: null });
-                return;
-              }
-              loader.load(
-                ver.file + cacheBuster,
-                (gltf) => resolve({ id: ver.id, scene: gltf.scene }),
-                undefined,
-                () => resolve({ id: ver.id, scene: null })
-              );
-            })
-          );
-          const results = await Promise.all(versionLoads);
-          results.forEach(({ id, scene }) => {
-            if (!scene) return;
-            scene.traverse((child) => {
-              if (child.isMesh) {
-                const mat = child.material;
-                mat.metalness = 0.01;
-                mat.transparent = true;
-                mat.side = THREE.FrontSide;
-                if (Array.isArray(mat)) {
-                  mat.forEach((m) => {
-                    if (m && m.userData && m.userData.baseOpacity === undefined) {
-                      m.userData.baseOpacity = Number.isFinite(m.opacity) ? m.opacity : 1;
-                    }
-                  });
-                } else if (mat && mat.userData && mat.userData.baseOpacity === undefined) {
-                  mat.userData.baseOpacity = Number.isFinite(mat.opacity) ? mat.opacity : 1;
-                }
-              }
-            });
-            versionScenes.set(id, scene);
-          });
-
-          const wrapper = new THREE.Group();
-          const activeId = entry.versionId;
-          versionScenes.forEach((scene, id) => {
-            scene.visible = id === activeId;
-            wrapper.add(scene);
-          });
-          wrapper.visible = getVisibility(idx);
-          modelGroups[idx] = wrapper;
-          modelVersionScenes[idx] = versionScenes;
-          const activeScene = versionScenes.get(activeId) || versionScenes.values().next().value || null;
-          models[idx] = activeScene || null;
-          world.add(wrapper);
-          return wrapper;
-        })
+        modelEntries.map((entry, idx) => loadModelEntry(entry, idx))
       );
       return loadedScenes;
+    } finally {
+      isLoadingModels = false;
+    }
+  }
+
+  async function reloadModels(indices = []) {
+    const unique = Array.from(new Set(indices))
+      .filter((idx) => Number.isInteger(idx) && idx >= 0 && idx < modelEntries.length);
+    if (!unique.length) return [];
+    isLoadingModels = true;
+    try {
+      const loaded = await Promise.all(
+        unique.map(async (idx) => {
+          disposeGroup(modelGroups[idx]);
+          modelGroups[idx] = null;
+          modelVersionScenes[idx] = null;
+          models[idx] = null;
+          const entry = modelEntries[idx];
+          if (!entry) return null;
+          return loadModelEntry(entry, idx);
+        })
+      );
+      return loaded;
     } finally {
       isLoadingModels = false;
     }
@@ -440,21 +498,8 @@ export function createModelManager({ scene, world }) {
       return { listChanged: true, list: newList, signature: newSignature };
     }
 
-    for (let i = 0; i < glbFiles.length; i += 1) {
-      try {
-        const response = await fetch(glbFiles[i].file, { method: 'HEAD', cache: 'no-store' });
-        const newModified = response.headers.get('Last-Modified');
-        if (lastModifieds[i] && newModified && newModified !== lastModifieds[i]) {
-          lastModifieds[i] = newModified;
-          return { listChanged: false, filesChanged: true };
-        }
-        if (!lastModifieds[i]) lastModifieds[i] = newModified;
-      } catch (e) {
-        // ignore
-      }
-    }
-
-    return { listChanged: false, filesChanged: false };
+    const changedEntries = updateModelListMtimes(newList);
+    return { listChanged: false, filesChanged: changedEntries.length > 0, changedEntries };
   }
 
   return {
@@ -466,6 +511,7 @@ export function createModelManager({ scene, world }) {
     applyDefaultVersionStrategy,
     getVersionSelections,
     loadAllModels,
+    reloadModels,
     updateVisibility,
     checkForUpdates,
     getBoundingBoxScene,

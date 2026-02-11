@@ -57,6 +57,7 @@ def start_server():
         glb_list = []
         for path in sorted(preview_dir.iterdir(), key=lambda p: p.name.lower()):
             if path.is_file() and path.suffix.lower() == ".glb":
+                stat = path.stat()
                 stem = path.stem
                 version = "v0"
                 base_name = stem
@@ -130,6 +131,8 @@ def start_server():
                         "file": path.as_posix(),
                         "version": version,
                         "base_name": base_name,
+                        "mtime": stat.st_mtime,
+                        "size": stat.st_size,
                     }
                 )
 
