@@ -34,17 +34,17 @@ nav:
       - "Custom Component Template": r3-component_template.md
       - "JSON Print File Reference": r4-json_print_file_reference.md
   - "API Reference":
-          - "Core": api/core.md
-          - "Component/Device": api/component.md
-          - "Color": api/color.md
-          - "Shape": api/shapes.md
-          - "Port": api/port.md
-          - "Polychannel": api/polychannels.md
-          - "Router": api/router.md
-          - "Settings": api/settings.md
-          - "Special Techniques": api/special_techniques.md
-          - "Slicer": api/slicer.md
-          - "Component Library": api/component_library.md
+      - "Core": api/core.md
+      - "Component/Device": api/component.md
+      - "Color": api/color.md
+      - "Shape": api/shapes.md
+      - "Port": api/port.md
+      - "Polychannel": api/polychannels.md
+      - "Router": api/router.md
+      - "Settings": api/settings.md
+      - "Special Techniques": api/special_techniques.md
+      - "Slicer": api/slicer.md
+      - "Component Library": api/component_library.md
 
 
 theme: readthedocs
