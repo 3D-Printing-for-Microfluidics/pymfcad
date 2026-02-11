@@ -78,6 +78,19 @@ let edgeSharpenSpeed = 0.05;
 
 let exportRequest = null;
 let exportRestore = null;
+let exportProgressLast = -1;
+
+function postPathTracingProgress(current, total)
+{
+	if (window.parent && window.parent !== window)
+	{
+		window.parent.postMessage({
+			type: 'openmfd-pathtracing-progress',
+			current,
+			total,
+		}, window.location.origin);
+	}
+}
 
 let gui;
 let ableToEngagePointerLock = true;
@@ -383,6 +396,8 @@ function requestPathTracingRender(options)
 				sampleCounter = 1.0;
 				frameCounter = 1.0;
 				exportRequest = { targetSamples: samples, resolve };
+				exportProgressLast = -1;
+				postPathTracingProgress(0, samples);
 				return;
 			}
 			if (performance.now() - start > 10000)
@@ -1108,6 +1123,16 @@ function animate()
 	pathTracingUniforms.uFrameCounter.value = frameCounter;
 	pathTracingUniforms.uRandomVec2.value.set(Math.random(), Math.random());
 
+	if (exportRequest)
+	{
+		const currentSamples = Math.max(0, Math.floor(sampleCounter));
+		if (currentSamples !== exportProgressLast)
+		{
+			exportProgressLast = currentSamples;
+			postPathTracingProgress(currentSamples, exportRequest.targetSamples);
+		}
+	}
+
 	// CAMERA
 
 	cameraControlsObject.updateMatrixWorld(true);
@@ -1144,6 +1169,7 @@ function animate()
 	if (exportRequest && sampleCounter >= exportRequest.targetSamples)
 	{
 		const resolve = exportRequest.resolve;
+		postPathTracingProgress(exportRequest.targetSamples, exportRequest.targetSamples);
 		exportRequest = null;
 		renderer.domElement.toBlob((blob) =>
 		{
@@ -1167,3 +1193,8 @@ function animate()
 window.openmfdPathTracing = window.openmfdPathTracing || {};
 window.openmfdPathTracing.requestRender = requestPathTracingRender;
 window.openmfdPathTracing.setRenderSize = setRenderSize;
+
+if (window.parent && window.parent !== window)
+{
+	window.parent.postMessage({ type: 'openmfd-pathtracing-ready' }, window.location.origin);
+}

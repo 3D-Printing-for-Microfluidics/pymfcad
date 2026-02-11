@@ -429,6 +429,10 @@
 					</div>
 				</div>
 				<div id="snapshotProgress" class="snapshot-progress"></div>
+				<div id="snapshotPathTracingProgress" class="snapshot-progress" style="display:none;">
+					<div>Samples: <span id="snapshotPathTracingLabel">0 / 0</span></div>
+					<div class="progress-bar"><div id="snapshotPathTracingFill" class="progress-bar-fill"></div></div>
+				</div>
 				<div class="row-actions" style="gap:0.5rem;flex-wrap:wrap;">
 					<button id="snapshotSaveBtn" class="control-btn" type="button">Save Snapshot</button>
 				</div>
@@ -494,6 +498,10 @@
 					</div>
 				</div>
 				<div id="animationExportProgress" class="snapshot-progress"></div>
+				<div id="animationPathTracingProgress" class="snapshot-progress" style="display:none;">
+					<div>Samples: <span id="animationPathTracingLabel">0 / 0</span></div>
+					<div class="progress-bar"><div id="animationPathTracingFill" class="progress-bar-fill"></div></div>
+				</div>
 				<div class="row-actions" style="gap:0.5rem;flex-wrap:wrap;">
 					<button id="animationExportSaveBtn" class="control-btn" type="button">Export Animation</button>
 				</div>
@@ -506,7 +514,7 @@
 		src="/static/lib/pathTracing/GLTF_Model_Viewer.html"
 		title="Path Tracing Renderer"
 		referrerpolicy="no-referrer"
-		style="display:none;"
+		style="position:fixed;left:-10000px;top:0;width:64px;height:64px;opacity:0;pointer-events:none;border:0;"
 	></iframe>
 
 	<script type="module" src="static/js/app.js"></script>

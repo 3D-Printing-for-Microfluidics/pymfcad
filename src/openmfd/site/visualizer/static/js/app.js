@@ -240,6 +240,9 @@ const snapshotDialogClose = document.getElementById('snapshotDialogClose');
 const snapshotSaveBtn = document.getElementById('snapshotSaveBtn');
 const snapshotResolutionSelect = document.getElementById('snapshotResolution');
 const snapshotProgress = document.getElementById('snapshotProgress');
+const snapshotPathTracingProgress = document.getElementById('snapshotPathTracingProgress');
+const snapshotPathTracingLabel = document.getElementById('snapshotPathTracingLabel');
+const snapshotPathTracingFill = document.getElementById('snapshotPathTracingFill');
 const snapshotRendererSelect = document.getElementById('snapshotRenderer');
 const snapshotPathTracingOptions = document.getElementById('snapshotPathTracingOptions');
 const snapshotPtPixelRatio = document.getElementById('snapshotPtPixelRatio');
@@ -253,6 +256,9 @@ const animationExportQualitySelect = document.getElementById('animationExportQua
 const animationExportTypeSelect = document.getElementById('animationExportType');
 const animationExportSaveBtn = document.getElementById('animationExportSaveBtn');
 const animationExportProgress = document.getElementById('animationExportProgress');
+const animationPathTracingProgress = document.getElementById('animationPathTracingProgress');
+const animationPathTracingLabel = document.getElementById('animationPathTracingLabel');
+const animationPathTracingFill = document.getElementById('animationPathTracingFill');
 const pathTracingFrame = document.getElementById('pathTracingFrame');
 let pathTracingFrameReady = false;
 const animationRendererSelect = document.getElementById('animationRenderer');
@@ -261,6 +267,15 @@ const animationPtPixelRatio = document.getElementById('animationPtPixelRatio');
 const animationPtExposure = document.getElementById('animationPtExposure');
 const animationPtSamples = document.getElementById('animationPtSamples');
 
+function resetPathTracingFrame() {
+  if (!pathTracingFrame) return;
+  pathTracingFrameReady = false;
+  updatePathTracingProgress(0, 1);
+  const currentSrc = pathTracingFrame.getAttribute('src') || pathTracingFrame.src;
+  if (!currentSrc) return;
+  pathTracingFrame.src = currentSrc;
+}
+
 let settingsSystem = null;
 let themeManager = null;
 let pendingSettingsList = null;
@@ -268,6 +283,47 @@ const previewSettingsCustomFiles = new Map();
 const previewSettingsCustomOrder = [];
 let suppressLocalPersistence = false;
 let skipBeforeUnloadSave = false;
+
+if (pathTracingFrame) {
+  pathTracingFrame.style.display = 'block';
+  pathTracingFrame.style.position = 'fixed';
+  pathTracingFrame.style.left = '-10000px';
+  pathTracingFrame.style.top = '0';
+  pathTracingFrame.style.width = '64px';
+  pathTracingFrame.style.height = '64px';
+  pathTracingFrame.style.opacity = '0';
+  pathTracingFrame.style.pointerEvents = 'none';
+  pathTracingFrame.style.border = '0';
+}
+
+window.addEventListener('message', (event) => {
+  if (event.origin !== window.location.origin) return;
+  const payload = event.data || {};
+  if (payload.type === 'openmfd-pathtracing-ready') {
+    pathTracingFrameReady = true;
+  }
+  if (payload.type === 'openmfd-pathtracing-progress') {
+    updatePathTracingProgress(payload.current, payload.total);
+  }
+});
+
+function updatePathTracingProgress(current, total) {
+  const safeTotal = Math.max(1, Number.isFinite(total) ? total : 1);
+  const safeCurrent = Math.max(0, Number.isFinite(current) ? current : 0);
+  const pct = Math.min(100, Math.round((safeCurrent / safeTotal) * 100));
+  if (snapshotPathTracingLabel) {
+    snapshotPathTracingLabel.textContent = `${safeCurrent} / ${safeTotal}`;
+  }
+  if (snapshotPathTracingFill) {
+    snapshotPathTracingFill.style.width = `${pct}%`;
+  }
+  if (animationPathTracingLabel) {
+    animationPathTracingLabel.textContent = `${safeCurrent} / ${safeTotal}`;
+  }
+  if (animationPathTracingFill) {
+    animationPathTracingFill.style.width = `${pct}%`;
+  }
+}
 
 function saveLightState() {
   if (suppressLocalPersistence || !lightSystem?.getLightState) return;
@@ -392,9 +448,9 @@ function getSnapshotSettings() {
     baseHeight,
     renderer: snapshotRendererSelect?.value || 'raster',
     pathTracing: {
-      pixelRatio: Number.parseFloat(snapshotPtPixelRatio?.value || '0.8') || 0.8,
+      pixelRatio: Math.min(1, Number.parseFloat(snapshotPtPixelRatio?.value || '0.8') || 0.8),
       exposure: Number.parseFloat(snapshotPtExposure?.value || '1.5') || 1.5,
-      samples: Number.parseInt(snapshotPtSamples?.value || '64', 10) || 64,
+      samples: Math.min(1024, Number.parseInt(snapshotPtSamples?.value || '64', 10) || 64),
     },
   };
 }
@@ -435,9 +491,9 @@ function getAnimationExportSettings() {
     fileName,
     renderer: animationRendererSelect?.value || 'raster',
     pathTracing: {
-      pixelRatio: Number.parseFloat(animationPtPixelRatio?.value || '0.8') || 0.8,
+      pixelRatio: Math.min(1, Number.parseFloat(animationPtPixelRatio?.value || '0.8') || 0.8),
       exposure: Number.parseFloat(animationPtExposure?.value || '1.5') || 1.5,
-      samples: Number.parseInt(animationPtSamples?.value || '32', 10) || 32,
+      samples: Math.min(1024, Number.parseInt(animationPtSamples?.value || '32', 10) || 32),
     },
   };
 }
@@ -461,9 +517,15 @@ function updatePathTracingOptionVisibility() {
   if (snapshotPathTracingOptions) {
     snapshotPathTracingOptions.style.display = snapshotMode === 'pathtracing' ? '' : 'none';
   }
+  if (snapshotPathTracingProgress) {
+    snapshotPathTracingProgress.style.display = snapshotMode === 'pathtracing' ? '' : 'none';
+  }
   const animationMode = animationRendererSelect?.value || 'raster';
   if (animationPathTracingOptions) {
     animationPathTracingOptions.style.display = animationMode === 'pathtracing' ? '' : 'none';
+  }
+  if (animationPathTracingProgress) {
+    animationPathTracingProgress.style.display = animationMode === 'pathtracing' ? '' : 'none';
   }
 }
 
@@ -506,6 +568,7 @@ function getPathTracingModelPaths() {
   const snapshot = modelSelector.getSelectionSnapshot();
   const paths = [];
   entries.forEach((entry, idx) => {
+    if ((entry?.type || '').toLowerCase() === 'bounding box') return;
     if (!modelSelector.getModelVisibility(idx)) return;
     const versionKey = `glb_ver_${idx}`;
     const versionId = snapshot?.versions?.[versionKey] || entry.versionId;
@@ -628,7 +691,9 @@ async function ensurePathTracingReady() {
       return;
     }
     pathTracingFrame.addEventListener('load', onLoad);
-    pathTracingFrame.src = pathTracingFrame.src;
+    if (!pathTracingFrame.contentWindow) {
+      pathTracingFrame.src = pathTracingFrame.src;
+    }
   });
 
   await new Promise((resolve) => {
@@ -758,7 +823,11 @@ async function handleSnapshotSave() {
   uiElements.forEach((el) => el.classList.add('ui-hidden'));
   if (snapshotSaveBtn) snapshotSaveBtn.disabled = true;
   if (snapshotDialogClose) snapshotDialogClose.disabled = true;
-  setSnapshotStatus(settings.renderer === 'pathtracing' ? 'Rendering path traced snapshot...' : 'Rendering snapshot...');
+  if (settings.renderer === 'pathtracing' && settings.pathTracing?.samples > 300) {
+    setSnapshotStatus('High sample count may cause GPU reset. If it fails, lower samples or resolution.');
+  } else {
+    setSnapshotStatus(settings.renderer === 'pathtracing' ? 'Rendering path traced snapshot...' : 'Rendering snapshot...');
+  }
   cameraSystem.setCameraHelperVisible(false);
 
   try {
@@ -785,6 +854,7 @@ async function handleSnapshotSave() {
         exposure: settings.pathTracing?.exposure ?? 1.5,
         samples: settings.pathTracing?.samples ?? 64,
       });
+      resetPathTracingFrame();
     } else {
       blob = await renderRasterSnapshot({ width: renderWidth, height: renderHeight });
     }
@@ -803,8 +873,12 @@ async function handleSnapshotSave() {
     }
     closeSnapshotDialog();
   } catch (err) {
+    console.log('Snapshot save error:', err);
     const message = err instanceof Error ? err.message : 'Snapshot failed.';
     setSnapshotStatus(message);
+    if (settings.renderer === 'pathtracing') {
+      resetPathTracingFrame();
+    }
   } finally {
     uiElements.forEach((el) => el.classList.remove('ui-hidden'));
     if (snapshotSaveBtn) snapshotSaveBtn.disabled = false;
@@ -986,6 +1060,7 @@ async function handleAnimationExport() {
         setAnimationExportStatus('Path traced animation failed to render.');
         return;
       }
+      resetPathTracingFrame();
       setAnimationExportStatus('Saving...');
       if (saveHandle) {
         const writable = await saveHandle.createWritable();
