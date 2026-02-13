@@ -848,7 +848,7 @@ class ExposureSettings:
         # """Convert exposure settings to a dictionary."""
         temp_dict = {
             "Image file": self.image_file,
-            "Do light grayscale correction": self.grayscale_correction,
+            "Do grayscale correction": self.grayscale_correction,
             "Image x offset (um)": self.image_x_offset,
             "Image y offset (um)": self.image_y_offset,
             "Layer exposure multiplier": self.bulk_exposure_multiplier,
@@ -909,7 +909,7 @@ class ExposureSettings:
     def to_print_dict(self, resin: "ResinType") -> dict:
         temp_dict = {
             "Image file": self.image_file,
-            "Do light grayscale correction": self.grayscale_correction,
+            "Do grayscale correction": self.grayscale_correction,
             "Image x offset (um)": self.image_x_offset,
             "Image y offset (um)": self.image_y_offset,
             "Layer exposure time (ms)": self.get_exposure_time(resin),
