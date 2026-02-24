@@ -54,8 +54,8 @@ dev = [
 ]
 
 [project.urls]
-repository = ""
-documentation = ""
+repository = "https://github.com/3D-Printing-for-Microfluidics/openmfd"
+documentation = "https://openmfd.readthedocs.io"
 
 [project.scripts]
 mfd-serve = "openmfd.run_visualizer:main"
