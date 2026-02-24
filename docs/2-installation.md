@@ -83,6 +83,7 @@ If you are working from the repository, use the Makefile targets below (requires
 - `make build` — builds the docs, Vite site, and packages with uv
 - `make serve` — updates docs, builds the Vite site, and serves the OpenMFD webpage
 - `make test` — activates the virtual environment and runs all PyTest test cases
+- `make test-coverage` —  activates the virtual environment and runs all PyTest test cases. Outputs code coverage in htmlcov
 - `make run <python file>` — activates the virtual environment and runs a Python file
 - `make mem-profile <python file>` — activates the virtual environment and runs a Python file with heaptrack
 - `make py-profile <python file>` — activates the virtual environment and runs a Python file with cProfile
