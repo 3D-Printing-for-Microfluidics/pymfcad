@@ -33,7 +33,7 @@ FILE := $(word 2,$(MAKECMDGOALS))
 $(eval $(FILE):;@:)
 endif
 
-.PHONY: init build serve mem-profile py-profile run web-install web-build
+.PHONY: init build serve mem-profile py-profile run web-install web-build test
 
 init:
 	set -euo pipefail; \
@@ -86,3 +86,8 @@ web-install:
 web-build:
 	set -e; \
 	npm --prefix src/openmfd/site run build
+
+test:
+	set -e; \
+	$(ENSURE_UV_VENV) \
+	$(UV) run pytest -v
