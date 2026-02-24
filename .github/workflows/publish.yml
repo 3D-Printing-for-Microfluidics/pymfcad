@@ -1,0 +1,64 @@
+name: Publish to PyPI and RTD
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: read
+
+jobs:
+  release-build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      - name: Set up Python
+        run: uv python install "3.x"
+
+      - name: Build release distributions
+        # This replaces the generic build commands with your specific Make logic
+        run: |
+          make init
+          make build
+
+      - name: Upload distributions
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-dists
+          path: dist/
+
+  pypi-publish:
+    runs-on: ubuntu-latest
+    needs: release-build
+    permissions:
+      id-token: write
+    environment:
+      name: pypi
+      # Optional: url: https://pypi.org/p/YOUR_PROJECT_NAME
+    steps:
+      - name: Retrieve release distributions
+        uses: actions/download-artifact@v4
+        with:
+          name: release-dists
+          path: dist/
+
+      - name: Publish to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+
+  rtd-publish:
+    runs-on: ubuntu-latest
+    needs: pypi-publish # Only trigger docs update if PyPI upload succeeds
+    steps:
+      - name: Trigger Read the Docs
+        # We use a POST request to the RTD API to trigger a build for the specific tag
+        run: |
+          curl -X POST \
+          -d "branches=${{ github.event.release.tag_name }}" \
+          -d "token=${{ secrets.RTD_TOKEN }}" \
+          ${{ secrets.RTD_WEBHOOK_URL }}
