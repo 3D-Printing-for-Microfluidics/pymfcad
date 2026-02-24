@@ -1,0 +1,12 @@
+{
+  "vertex_count": 8,
+  "face_count": 12,
+  "bounds": [
+    [-0.5, -1.0, -1.5],
+    [0.5, 1.0, 1.5]
+  ],
+  "volume": 6.0,
+  "area": 22.0,
+  "is_watertight": true,
+  "euler_number": 2
+}
