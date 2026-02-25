@@ -15,7 +15,7 @@ OpenMFD is available on PyPI. The recommended installation method uses [uv](http
 
 ## Python versions
 
-Our core dependency (manifold3d) currently supports Python 3.8–3.13.
+Our dependencies currently support Python 3.10–3.13.
 
 ---
 
@@ -82,11 +82,11 @@ If you are working from the repository, use the Makefile targets below (requires
 - `make init` — creates the virtual environment, installs Python packages, and installs JS dependencies
 - `make build` — builds the docs, Vite site, and packages with uv
 - `make serve` — updates docs, builds the Vite site, and serves the OpenMFD webpage
-- `make test` — activates the virtual environment and runs all PyTest test cases
-- `make test-coverage` —  activates the virtual environment and runs all PyTest test cases. Outputs code coverage in htmlcov
-- `make run <python file>` — activates the virtual environment and runs a Python file
-- `make mem-profile <python file>` — activates the virtual environment and runs a Python file with heaptrack
-- `make py-profile <python file>` — activates the virtual environment and runs a Python file with cProfile
+- `make test` — runs all PyTest test cases
+- `make test-coverage` —  runs all PyTest test cases. Outputs code coverage in htmlcov
+- `make run <python file>` — runs a Python file
+- `make mem-profile <python file>` — runs a Python file with heaptrack
+- `make py-profile <python file>` — runs a Python file with cProfile
 - `make web-install` — installs JS dependencies
 - `make web-build` — builds the Vite site
 
@@ -98,7 +98,7 @@ If you are working from the repository, use the Makefile targets below (requires
 
 **Issue:** `pip install openmfd` fails while building the `manifold3d` wheel.
 
-**Fix:** Verify your Python version is supported (Python 3.8–3.13).
+**Fix:** Verify your Python version is supported (Python 3.10–3.13).
 
 
 ---

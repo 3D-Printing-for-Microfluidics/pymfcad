@@ -25,7 +25,7 @@ This guide is a **step-by-step learning path**. It focuses on concepts and workf
 
 ## Mental Model (30‑second version)
 
-- **Component**: a reusable block made of **bulk** (solid) and **void** (channels).
+- **Component**: a reusable block made of **bulk** material (solid) and negative features/**voids** (channels).
 - **Device**: a printable assembly tied to a printer’s resolution.
 - **Labels**: named colors used to group geometry and settings for visualization purposes.
 - **Ports + routing**: define connections between components.
