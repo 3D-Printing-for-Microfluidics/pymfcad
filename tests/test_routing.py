@@ -6,7 +6,7 @@ import pytest
 
 from openmfd import Component, Port, Router
 from openmfd.backend import Color, Cube
-from openmfd import PolychannelShape
+from openmfd import PolychannelShape, BezierCurveShape
 from tests.utils.mesh_metrics import compute_mesh_metrics, load_mesh
 
 
@@ -149,3 +149,38 @@ def test_routing_autoroute_render(tmp_path):
     assert route_name in comp.shapes
 
     _render_and_validate(comp, tmp_path / "routing_autoroute.glb")
+
+
+def test_polychannel():
+    shape = PolychannelShape(
+        "cube",
+        position=(20, 8, 6),
+        size=(4, 4, 4),
+        absolute_position=True,
+    )
+    assert shape != "not_a_shape"
+    assert shape == shape
+
+    bad_shape = PolychannelShape(
+        "cube",
+        position=("20", False, []),
+        size=(4, 4, 4),
+        absolute_position=True,
+    )
+    assert shape != bad_shape
+
+    bezier_shape = BezierCurveShape(
+        control_points=[(0,0,0)],
+        bezier_segments=5,
+    )
+    assert bezier_shape != "not_a_shape"
+    assert bezier_shape == bezier_shape
+
+    bad_bezier_shape = BezierCurveShape(
+        control_points=[("20",False,[])],
+        bezier_segments=5,
+    )
+    assert bezier_shape != bad_bezier_shape
+
+    
+    

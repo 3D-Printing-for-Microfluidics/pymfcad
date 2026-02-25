@@ -21,7 +21,7 @@ from tests.utils.mesh_metrics import compute_mesh_metrics, load_mesh
 
 
 def _build_component_with_bulk(shape: Shape, *, size=(30, 30, 30)) -> Component:
-    comp = Component(size=size, position=(0, 0, 0), quiet=True)
+    comp = Component(size=size, position=(0, 0, 0), quiet=False)
     comp.add_label("bulk", Color.from_name("blue", 255))
     comp.add_bulk("shape", shape, "bulk")
     return comp
@@ -69,26 +69,26 @@ def _assert_bbox(
     [
         {
             "name": "cube",
-            "shape": lambda: Cube(size=(4, 6, 8), center=False, quiet=True),
+            "shape": lambda: Cube(size=(4, 6, 8), center=False, quiet=False),
             "extent": (4, 6, 8),
             "min": (0, 0, 0),
         },
         {
             "name": "cube_center",
-            "shape": lambda: Cube(size=(4, 6, 8), center=True, quiet=True),
+            "shape": lambda: Cube(size=(4, 6, 8), center=True, quiet=False),
             "extent": (4, 6, 8),
             "center": (0, 0, 0),
         },
         {
             "name": "cube_zero",
-            "shape": lambda: Cube(size=(0, 6, 8), center=False, quiet=True),
+            "shape": lambda: Cube(size=(0, 6, 8), center=False, quiet=False),
             "extent": (0.0001, 6, 8),
             "min": (0, 0, 0),
         },
         {
             "name": "cylinder_center",
             "shape": lambda: Cylinder(
-                height=6, radius=2.0, center_xy=True, center_z=True, fn=12, quiet=True
+                height=6, radius=2.0, center_xy=True, center_z=True, fn=12, quiet=False
             ),
             "extent": (4, 4, 6),
             "center": (0, 0, 0),
@@ -102,7 +102,7 @@ def _assert_bbox(
                 center_xy=False,
                 center_z=False,
                 fn=100,
-                quiet=True,
+                quiet=False,
             ),
             "extent": (3, 3, 6),
             "min": (0, 0, 0),
@@ -110,14 +110,14 @@ def _assert_bbox(
         {
             "name": "sphere_center",
             "shape": lambda: Sphere(
-                size=(5, 4, 3), center=True, fn=8, quiet=True, _no_validation=True
+                size=(5, 4, 3), center=True, fn=8, quiet=False, _no_validation=True
             ),
             "extent": (5, 4, 3),
             "center": (0, 0, 0),
         },
         {
             "name": "sphere_offset",
-            "shape": lambda: Sphere(size=(5, 4, 3), center=False, fn=-1, quiet=True),
+            "shape": lambda: Sphere(size=(5, 4, 3), center=False, fn=-1, quiet=False),
             "extent": (5, 4, 3),
             "min": (0, 0, 0),
         },
@@ -128,16 +128,29 @@ def _assert_bbox(
                 radius=(0, 1.0, 1.0),
                 center=True,
                 fn=8,
-                quiet=True,
+                quiet=False,
                 _no_validation=True,
             ),
             "extent": (6, 6, 4),
             "center": (0, 0, 0),
         },
         {
+            "name": "rounded_cube_offset",
+            "shape": lambda: RoundedCube(
+                size=(6, 6, 4),
+                radius=(0, 1.0, 1.0),
+                center=False,
+                fn=8,
+                quiet=False,                
+                _no_validation=True,
+            ),
+            "extent": (6, 6, 4),
+            "min": (0, 0, 0),
+        },
+        {
             "name": "text_extrusion",
             "shape": lambda: TextExtrusion(
-                text="AB", height=2, font="arial", font_size=12, quiet=True
+                text="AB", height=2, font="arial", font_size=12, quiet=False
             ),
             "extent": None,
             "center": None,
@@ -151,7 +164,7 @@ def _assert_bbox(
                 func=TPMS.gyroid,
                 fill=0.0,
                 refinement=4,
-                quiet=True,
+                quiet=False,
             ),
             "extent": (3, 3, 3),
             "min": (0, 0, 0),
@@ -166,6 +179,7 @@ def _assert_bbox(
         "sphere_center",
         "sphere_offset",
         "rounded_cube",
+        "rounded_cube_offset",
         "text_extrusion",
         "tpms",
     ],
@@ -197,7 +211,7 @@ def test_import_model_constructor_render(tmp_path):
     mesh_path = tmp_path / "box.stl"
     mesh.export(mesh_path)
 
-    shape = ImportModel(filename=str(mesh_path), auto_repair=False, quiet=True)
+    shape = ImportModel(filename=str(mesh_path), auto_repair=False, quiet=False)
     _assert_bbox(shape, expected_extent=(1.0, 2.0, 3.0), expected_center=(0, 0, 0))
     component = _build_component_with_bulk(shape)
     _render_and_validate(component, tmp_path / "ImportModel.glb")
@@ -209,8 +223,8 @@ def _bbox_min_max(shape: Shape):
 
 
 def test_shape_ops_add_sub_and_hull_copy():
-    a = Cube(size=(6, 6, 6), center=True, quiet=True)
-    b = Cube(size=(6, 6, 6), center=True, quiet=True).translate((1, 0, 0))
+    a = Cube(size=(6, 6, 6), center=True, quiet=False)
+    b = Cube(size=(6, 6, 6), center=True, quiet=False).translate((1, 0, 0))
 
     add_shape = a.copy()
     add_shape + b.copy()
@@ -242,7 +256,7 @@ def test_shape_ops_add_sub_and_hull_copy():
 
 
 def test_shape_ops_translate_rotate_mirror_resize():
-    shape = Cube(size=(4, 6, 8), center=False, quiet=True)
+    shape = Cube(size=(4, 6, 8), center=False, quiet=False)
     min_x, min_y, min_z, max_x, max_y, max_z = _bbox_min_max(shape)
 
     shape.translate((2, 3, 4))
@@ -269,3 +283,79 @@ def test_shape_ops_translate_rotate_mirror_resize():
     assert s_max_x - s_min_x == pytest.approx(10)
     assert s_max_y - s_min_y == pytest.approx(12)
     assert s_max_z - s_min_z == pytest.approx(14)
+
+    shape.resize((0,0,0))
+    s_min_x, s_min_y, s_min_z, s_max_x, s_max_y, s_max_z = _bbox_min_max(shape)
+    assert s_max_x - s_min_x == pytest.approx(0.0001)
+    assert s_max_y - s_min_y == pytest.approx(0.0001)
+    assert s_max_z - s_min_z == pytest.approx(0.0001)
+
+def test_batch_boolean():
+    with pytest.raises(ValueError):
+        Shape._batch_boolean_add([])
+    with pytest.raises(ValueError):
+        Shape._batch_boolean_subtract([])
+    with pytest.raises(ValueError):
+        Shape._batch_boolean_add_then_subtract([], [])
+
+def test_cube():
+    shape = Cube(size=(1, 1, 1), center=True, quiet=False)
+    assert _bbox_min_max(shape) == pytest.approx((0, 0, 0, 1, 1, 1))
+    shape = Cube(size=(0, 0, 0), center=False, quiet=False)
+    assert _bbox_min_max(shape) == pytest.approx((0, 0, 0, 0.0001, 0.0001, 0.0001))
+
+def test_cylinder():
+    with pytest.raises(ValueError):
+        Cylinder(height=1, radius=0.25, center_xy=True, center_z=True, fn=20, quiet=False)
+    with pytest.raises(ValueError):
+        Cylinder(height=1, bottom_r=0.25, top_r=1, center_xy=True, center_z=True, fn=20, quiet=False)
+    with pytest.raises(ValueError):
+        Cylinder(height=1, bottom_r=1, top_r=0.25, center_xy=True, center_z=True, fn=20, quiet=False)
+    with pytest.raises(ValueError):
+        Cylinder(height=1, top_r=1, center_xy=True, center_z=True, fn=20, quiet=False)
+    with pytest.raises(ValueError):
+        Cylinder(height=1, bottom_r=1, top_r=2, center_xy=True, center_z=True, fn=20, quiet=False)
+    with pytest.raises(ValueError):
+        Cylinder(height=1, bottom_r=2, top_r=1, center_xy=True, center_z=True, fn=20, quiet=False)
+    shape = Cylinder(height=1, radius=0.5, center_xy=True, center_z=True, fn=20, quiet=False)
+    assert _bbox_min_max(shape) == pytest.approx((0, 0, 0, 1, 1, 1))
+    shape = Cylinder(height=0, radius=1, center_xy=True, center_z=True, fn=20, quiet=False)
+    assert _bbox_min_max(shape) == pytest.approx((-1, -1, -0.00005, 1, 1, 0.00005))
+
+def test_sphere():
+    shape = Sphere(size=(1, 1, 1), center=True, fn=8, quiet=False)
+    assert _bbox_min_max(shape) == pytest.approx((0, 0, 0, 1, 1, 1))
+    shape = Sphere(size=(0, 0, 0), center=False, fn=8, quiet=False)
+    assert _bbox_min_max(shape) == pytest.approx((0, 0, 0, 0.0001, 0.0001, 0.0001))
+
+def test_rounded_cube():
+    shape = RoundedCube(
+        size=(11, 11, 11),
+        radius=(0, 0, 0),
+        center=True,
+        fn=8,
+        quiet=False
+    )
+    assert _bbox_min_max(shape) == pytest.approx((-5, -5, -5, 6, 6, 6))
+    shape = RoundedCube(
+        size=(0, 0, 0),
+        radius=(0, 0, 0),
+        center=False,  
+        fn=None,   
+        quiet=False
+    )
+    assert _bbox_min_max(shape) == pytest.approx((0, 0, 0, 0.0001, 0.0001, 0.0001))
+
+def test_text():
+    shape = TextExtrusion(text=" ", height=1, font="arial", font_size=12, quiet=False)
+    assert _bbox_min_max(shape) == pytest.approx((float('inf'), float('inf'), float('inf'), float('-inf'), float('-inf'), float('-inf')))
+    shape = TextExtrusion(text="AB", height=0, font="arial", font_size=12, quiet=False)
+    z_min, z_max = _bbox_min_max(shape)[2], _bbox_min_max(shape)[5]
+    assert z_max - z_min == pytest.approx(0.0001)
+
+def test_import():
+    with pytest.raises(ValueError):
+        ImportModel(filename="tests/golden_meshes/BAD_cube.stl", auto_repair=False, quiet=False)
+    ImportModel(filename="tests/golden_meshes/BAD_cube.stl", auto_repair=True, quiet=False)
+    with pytest.raises(ValueError):
+        ImportModel(filename="tests/golden_meshes/empty_stl.stl", auto_repair=True, quiet=False)
