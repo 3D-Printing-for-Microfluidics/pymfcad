@@ -100,7 +100,7 @@ test-coverage:
 clean:
 	set -e; \
 	rm -rf .pytest_cache .coverage htmlcov dist; \
-	rm -rf src/openmfd/site/dist src/openmfd/site/docs src/openmfd/site/node_modules; \
+	rm -rf src/openmfd/site/dist src/openmfd/site/docs; \
 	find . -type d -name "__pycache__" -prune -exec rm -rf {} +; \
 	find . -type d -name "*_cache" -prune -exec rm -rf {} +; \
 	find . -type f -name "*.pyc" -delete

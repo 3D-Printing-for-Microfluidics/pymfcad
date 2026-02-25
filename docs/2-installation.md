@@ -89,6 +89,7 @@ If you are working from the repository, use the Makefile targets below (requires
 - `make py-profile <python file>` — runs a Python file with cProfile
 - `make web-install` — installs JS dependencies
 - `make web-build` — builds the Vite site
+- `make clean` — removes all build products
 
 ## Troubleshooting
 
