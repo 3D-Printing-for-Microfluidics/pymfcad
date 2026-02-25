@@ -207,19 +207,6 @@ class Color:
         a = int(hex_code[6:8], 16) if len(hex_code) == 8 else alpha
         return cls(r, g, b, a)
 
-    def _change_to_color(self, color: Color) -> None:
-        """
-        Change the color to another color.
-
-        Parameters:
-
-        - color (Color): The color to change to.
-        """
-        self._r = color._r
-        self._g = color._g
-        self._b = color._b
-        self._a = color._a
-
     def _to_rgba(self) -> tuple[int, int, int, int]:
         """
         Convert the color to a tuple of 4 integers.
