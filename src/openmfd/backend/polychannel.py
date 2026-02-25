@@ -187,22 +187,40 @@ class BezierCurveShape:
         self._no_validation = _no_validation
 
     def __eq__(self, other: object) -> bool:
-        if isinstance(other, BezierCurveShape):
-            return (
-                self._shape_type == other._shape_type
-                and self._size == other._size
-                and self._rounded_cube_radius == other._rounded_cube_radius
-                and self._position == other._position
-                and self._rotation == other._rotation
-                and self._absolute_position == other._absolute_position
-                and self._corner_radius == other._corner_radius
-                and self._corner_segments == other._corner_segments
-                and self._control_points == other._control_points
-                and self._bezier_segments == other._bezier_segments
-                and self._fn == other._fn
-                and self._no_validation == other._no_validation
-            )
-        return False
+        if not isinstance(other, BezierCurveShape):
+            return False
+
+        def _eq_field(a: object, b: object) -> bool:
+            # Compare numpy arrays or array-like objects properly
+            if isinstance(a, np.ndarray) and isinstance(b, np.ndarray):
+                return np.array_equal(a, b)
+            # Compare tuples/lists of numbers (possibly from numpy)
+            if isinstance(a, (tuple, list, np.ndarray)) and isinstance(
+                b, (tuple, list, np.ndarray)
+            ):
+                try:
+                    print(f"Comparing {a} and {b} with allclose")
+                    print(f"np.array(a) = {np.array(a)}, np.array(b) = {np.array(b)}")
+                    print(f"allclose result: {np.allclose(np.array(a), np.array(b))}")
+                    return np.allclose(np.array(a), np.array(b))
+                except Exception:
+                    return a == b
+            return a == b
+
+        return (
+            self._shape_type == other._shape_type
+            and _eq_field(self._size, other._size)
+            and _eq_field(self._rounded_cube_radius, other._rounded_cube_radius)
+            and _eq_field(self._position, other._position)
+            and _eq_field(self._rotation, other._rotation)
+            and self._absolute_position == other._absolute_position
+            and self._corner_radius == other._corner_radius
+            and self._corner_segments == other._corner_segments
+            and _eq_field(self._control_points, other._control_points)
+            and self._bezier_segments == other._bezier_segments
+            and self._fn == other._fn
+            and self._no_validation == other._no_validation
+        )
 
     def __ne__(self, other: object) -> bool:
         return not self.__eq__(other)
