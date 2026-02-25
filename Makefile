@@ -95,4 +95,4 @@ test:
 test-coverage:
 	set -e; \
 	$(ENSURE_UV_VENV) \
-	$(UV) run pytest --cov=pymfd --cov-report=html
+	$(UV) run pytest -v --cov=openmfd --cov-report=html
