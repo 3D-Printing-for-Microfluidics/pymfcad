@@ -76,9 +76,16 @@ url = "https://pypi.org/simple/"
 publish-url = "https://upload.pypi.org/legacy/"
 explicit = true
 
+[tool.pytest]
+testpaths = ["tests"]
+markers = [
+    "mesh: mesh-related tests",
+    "slow: long-running tests",
+    "integration: full integration tests",
+]
+
 [tool.coverage.run]
 omit = [
     "src/openmfd/component_library/*",
-    "src/openmfd/run_visualizer.py",
-    "src/openmfd/openmfd_generator.py"
+    "src/openmfd/run_visualizer.py"
     ]
