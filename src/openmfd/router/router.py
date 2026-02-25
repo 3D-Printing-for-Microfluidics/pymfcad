@@ -639,7 +639,7 @@ class Router:
             if self._component._name is not None:
                 file_name = self._component._name
             else:
-                file_name = type(self._component).__name__ + "_" + id(self._component)
+                file_name = type(self._component).__name__
         else:
             file_name = type(self._component).__name__
         cache_file = (
@@ -837,7 +837,7 @@ class Router:
             if self._component._name is not None:
                 file_name = self._component._name
             else:
-                file_name = type(self._component).__name__ + "_" + id(self._component)
+                file_name = type(self._component).__name__
         else:
             file_name = type(self._component).__name__
         cache_file = (
