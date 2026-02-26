@@ -1,4 +1,5 @@
 site_name: OpenMFD Documentation
+site_url: https://openmfd.readthedocs.io/latest/
 docs_dir: docs
 site_dir: src/openmfd/site/docs
 use_directory_urls: false
