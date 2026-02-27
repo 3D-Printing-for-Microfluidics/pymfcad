@@ -4,7 +4,7 @@ build-backend = "uv_build"
 
 [project]
 name = "pymfcad"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
     "freetype-py>=2.5.1",
     "flask>=3.0.0",
