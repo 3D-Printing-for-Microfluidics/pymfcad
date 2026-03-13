@@ -78,4 +78,4 @@ def plot_glyph(char, font_path="Arial.ttf", scale=1.0 / 64.0):
 
 
 # Example usage
-plot_glyph("B", font_path=get_pymfcad_env_dir() / "backend" / "fonts" / "arial.ttf")
+plot_glyph("B", font_path=get_pymfcad_env_dir() / "backend" / "fonts" / "OpenSans-Medium.ttf")

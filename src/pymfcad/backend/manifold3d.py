@@ -29,6 +29,43 @@ def get_pymfcad_env_dir() -> Path | None:
     return None
 
 
+def _resolve_font_path(font: str) -> Path:
+    """
+    Resolve a font name or path to a font file.
+
+    Parameters:
+
+    - font (str): Font name (without extension) from embedded fonts or a path to a .ttf/.otf file.
+
+    Returns:
+
+    - Path: Resolved font file path.
+
+    Raises:
+
+    - FileNotFoundError: If the font cannot be resolved.
+    """
+    font_path = Path(font).expanduser()
+
+    if font_path.suffix.lower() in {".ttf", ".otf"} and font_path.is_file():
+        return font_path
+
+    # Try embedded fonts directory by name (with .ttf extension).
+    package_dir = get_pymfcad_env_dir()
+    if package_dir is not None:
+        embedded = package_dir / "backend" / "fonts" / f"{font}.ttf"
+        if embedded.is_file():
+            return embedded
+
+    # Try relative/absolute path without extension.
+    if font_path.is_file():
+        return font_path
+
+    raise FileNotFoundError(
+        f"Font not found. Provide a valid .ttf/.otf path or embedded font name. Got: {font}"
+    )
+
+
 def _is_integer(val: float) -> bool:
     """
     Check if a float value is close to an integer.
@@ -933,7 +970,7 @@ class TextExtrusion(Shape):
         self,
         text: str,
         height: int = 1,
-        font: str = "arial",
+        font: str = "OpenSans-Medium",
         font_size: int = 10,
         quiet: bool = False,
     ) -> None:
@@ -944,7 +981,8 @@ class TextExtrusion(Shape):
 
         - text (str): The text to extrude.
         - height (int): Height of the extrusion in layer space.
-        - font (str): Font name to use for the text.
+        - font (str): Embedded font name or a path to a .ttf/.otf font file.
+            Available embedded fonts: OpenSans-Medium, Inconsolata-Medium.
         - font_size (int): Font size in px.
         - quiet (bool): If True, suppresses informational output.
         """
@@ -1023,7 +1061,7 @@ class TextExtrusion(Shape):
 
         def text_to_manifold(
             text: str,
-            font_path: str = "Arial.ttf",
+            font_path: str = "",
             font_size: int = 50,
             height: float = 1.0,
             spacing: float = 1.1,
@@ -1093,11 +1131,12 @@ class TextExtrusion(Shape):
         if height == 0:
             height = 0.0001
 
+        resolved_font_path = _resolve_font_path(font)
         self._object = text_to_manifold(
             text,
             height=height,
             font_size=font_size,
-            font_path=str(get_pymfcad_env_dir() / "backend" / "fonts" / f"{font}.ttf"),
+            font_path=str(resolved_font_path),
         )
         self._add_bbox_to_keepout(self._object.bounding_box())
 

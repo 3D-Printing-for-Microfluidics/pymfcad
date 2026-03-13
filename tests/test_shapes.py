@@ -150,7 +150,7 @@ def _assert_bbox(
         {
             "name": "text_extrusion",
             "shape": lambda: TextExtrusion(
-                text="AB", height=2, font="arial", font_size=12, quiet=False
+                text="AB", height=2, font_size=12, quiet=False
             ),
             "extent": None,
             "center": None,
@@ -347,9 +347,9 @@ def test_rounded_cube():
     assert _bbox_min_max(shape) == pytest.approx((0, 0, 0, 0.0001, 0.0001, 0.0001))
 
 def test_text():
-    shape = TextExtrusion(text=" ", height=1, font="arial", font_size=12, quiet=False)
+    shape = TextExtrusion(text=" ", height=1, font_size=12, quiet=False)
     assert _bbox_min_max(shape) == pytest.approx((float('inf'), float('inf'), float('inf'), float('-inf'), float('-inf'), float('-inf')))
-    shape = TextExtrusion(text="AB", height=0, font="arial", font_size=12, quiet=False)
+    shape = TextExtrusion(text="AB", height=0, font_size=12, quiet=False)
     z_min, z_max = _bbox_min_max(shape)[2], _bbox_min_max(shape)[5]
     assert z_max - z_min == pytest.approx(0.0001)
 
