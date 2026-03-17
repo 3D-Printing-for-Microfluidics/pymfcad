@@ -303,7 +303,7 @@ export function createModelManager({ scene, world }) {
         }
       });
       ensureDeviceBackfaces(scene, idx);
-      applyRenderOrderToScene(scene, idx, 1);
+      applyOpacityToScene(scene, 1, idx);
       versionScenes.set(id, scene);
     });
 
@@ -423,10 +423,19 @@ export function createModelManager({ scene, world }) {
         if (m.userData.baseOpacity === undefined) {
           m.userData.baseOpacity = Number.isFinite(m.opacity) ? m.opacity : 1;
         }
+        const isBackface = child.userData && child.userData.isBackface;
+        const effectiveOpacity = m.userData.baseOpacity * value;
+        const isEffectivelyOpaque = effectiveOpacity >= 0.999;
         m.transparent = true;
-        m.depthWrite = child.userData && child.userData.isBackface ? false : value >= 0.999;
-        m.depthTest = child.userData && child.userData.isBackface ? false : true;
-        m.opacity = m.userData.baseOpacity * value;
+        if (isBackface && isEffectivelyOpaque) {
+          m.opacity = 0;
+          m.depthWrite = false;
+          m.depthTest = false;
+        } else {
+          m.depthWrite = isBackface ? false : isEffectivelyOpaque;
+          m.depthTest = isBackface ? false : true;
+          m.opacity = effectiveOpacity;
+        }
         m.needsUpdate = true;
       };
       if (Array.isArray(mat)) {
