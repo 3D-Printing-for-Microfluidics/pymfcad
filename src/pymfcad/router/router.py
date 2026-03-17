@@ -676,6 +676,12 @@ class Router:
         if route_info["route_type"] != cached_info["route_type"]:
             return False
 
+        # validate autoroute parameters
+        if route_info["route_type"] == "autoroute":
+            cached_direction = cached_info.get("direction_preference", ())
+            if tuple(cached_direction) != tuple(route_info.get("direction_preference", ())):
+                return False
+
         # validate input and output locations
         if tuple(cached_info["input"]) != tuple(
             input_port.get_origin(self._component._px_size, self._component._layer_size)
@@ -859,6 +865,10 @@ class Router:
                     ),
                     "_path": route_info["_path"],
                 }
+                if route_info["route_type"] == "autoroute":
+                    save_dict["direction_preference"] = route_info.get(
+                        "direction_preference"
+                    )
                 save_routes[name] = save_dict
         # combine nonrouted and routed keepouts
         keepouts = {
