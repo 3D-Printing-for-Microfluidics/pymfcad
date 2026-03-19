@@ -3,7 +3,9 @@
 
 Prev: [Part 2: Installation](2-installation.md)
 
-PyMFCAD includes a browser-based visualizer for inspecting and validating devices. You will use it throughout the tutorial to confirm geometry, labeling, ports, and routing.
+PyMFCAD includes a browser‑based visualizer for inspecting and validating devices. You will use it throughout the tutorial to confirm geometry, labeling, ports, and routing.
+
+Goal: get comfortable navigating the preview so you can validate every step later.
 
 ## Step 1 — Launch the visualizer
 
@@ -19,11 +21,11 @@ Or, if using uv:
 uv run pymfcad
 ```
 
-This command starts a local web server. If the page does not open automatically, go to [http://127.0.0.1:8000/](http://127.0.0.1:8000/) in your browser. To stop the server, press Enter in the terminal where it is running.
+This command starts a local web server. If the page does not open automatically, go to [http://127.0.0.1:8000/](http://127.0.0.1:8000/) in your browser. Keep this terminal running while you preview models. To stop the server, press Enter in the terminal where it is running.
 
 ---
 
-## Step 2 — Load Settings dialog (first screen)
+## Step 2 — Load Settings dialog (first launch)
 
 When the visualizer opens, you will see the **Load Settings** dialog. This controls what data is loaded and how the preview is prepared.
 
@@ -31,11 +33,13 @@ When the visualizer opens, you will see the **Load Settings** dialog. This contr
 
 At a high level, this dialog lets you:
 
-- Load settings from model and/or from seperate settings file
+- Load settings from the model and/or a separate settings file
 - Control what settings are loaded into the scene from each file
 - **Load Selected** settings
 
-When finish, the settings dialog can be closed with the **Close** button, or by clicking off the pane.
+When finished, the settings dialog can be closed with the **Close** button, or by clicking off the pane.
+
+Tip: If your model doesn’t appear after loading, toggle **Auto Reload** in the bottom‑right.
 
 ---
 
@@ -44,9 +48,9 @@ When finish, the settings dialog can be closed with the **Close** button, or by 
 The visualizer layout is organized around four main regions:
 
 - **Toolbar** (bottom center) — common actions like snapshots and camera controls
-- **View cube** (top right) — tool for quick orientation allowing snaping to faces, edges, or corners
+- **View cube** (top right) — quick orientation with snapping to faces, edges, or corners
 - **Model selector** (top right) — visibility and category controls for models and overlays
-- **Auto Reload button** (bottom right) — enables or disables auto reloading of models
+- **Auto Reload button** (bottom right) — enables or disables auto‑reloading of models
 
 ![Layout overview](resources/3/overview.png)
 
@@ -57,7 +61,7 @@ The visualizer layout is organized around four main regions:
 The visualizer supports two control styles: **Orbit** and **Trackball** (selectable in Settings → Camera). Common controls:
 
 - **F11** — toggle fullscreen in the browser.
-- **Double‑click** the model — sets the camera target to the clicked surface (raycast to visible geometry).
+- **Double‑click** the model — set the camera target to the clicked surface (raycast to visible geometry).
 
 ### Orbit controls
 
@@ -85,13 +89,13 @@ The visualizer supports two control styles: **Orbit** and **Trackball** (selecta
 
 ## Step 5 — Model selector (overview)
 
-The **Model Selector** controls visibility for the main geometry and overlays. Each group has a master toggle (e.g., `Device`) and may have more sub-toggles for specific content.
+The **Model Selector** controls visibility for the main geometry and overlays. Each group has a master toggle (Device) and may include sub‑toggles for specific content.
 
 ![Model selector](resources/3/model_selector.png)
 
 ### Device
 
-- **Device** — final bulk-minus-void geometry, used for export and slicing
+- **Device** — final bulk‑minus‑void geometry, used for export and slicing
 
 ![Device toggle](resources/3/device_ms.png)
 
@@ -184,7 +188,7 @@ The visualizer includes detailed settings panels for rendering and navigation. T
 
 ---
 
-## Quick checks before moving on
+## Checkpoint
 
 - You can open the Load Settings dialog and load a preview.
 - You can identify the overview, toolbar, view cube, model selector, and reload controls.

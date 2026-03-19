@@ -2,7 +2,9 @@
 
 Prev: [Part 1: Introduction](1-introduction.md)
 
-PyMFCAD is available on PyPI. The recommended installation method uses [uv](https://github.com/astral-sh/uv), but legacy venv/pip instructions are also provided.
+PyMFCAD is available on PyPI. The recommended installation method uses [uv](https://github.com/astral-sh/uv), with legacy venv/pip instructions provided for compatibility.
+
+Choose one path below. If you already have an active environment, skip directly to the install step.
 
 **Why use uv?**
 
@@ -15,11 +17,11 @@ PyMFCAD is available on PyPI. The recommended installation method uses [uv](http
 
 ## Python versions
 
-Our dependencies currently support Python 3.10–3.13.
+PyMFCAD supports Python 3.10–3.13.
 
 ---
 
-## Recommended: Install with uv
+## Option A — Install with uv (recommended)
 
 1. (Optional) Create a new project directory:
 ```bash
@@ -34,14 +36,14 @@ mkdir my-mf-project && cd my-mf-project
     uv venv
     uv pip install pymfcad
     ```
-4. Quick verification:
+4. Quick verification (runs a built‑in demo):
     ```bash
     uv run python -m examples.full_test
     ```
 
 ---
 
-## Legacy: Install with venv and pip
+## Option B — Install with venv and pip
 
 1. Create and activate a virtual environment:
     - macOS/Linux:
@@ -64,10 +66,16 @@ mkdir my-mf-project && cd my-mf-project
     ```bash
     pip install pymfcad
     ```
-3. Quick verification:
+3. Quick verification (runs a built‑in demo):
     ```bash
     python -m examples.full_test
     ```
+
+## Quick check
+
+You should be able to run a demo without errors and see the visualizer open.
+
+---
 
 ## Developing from source
 
@@ -83,7 +91,7 @@ If you are working from the repository, use the Makefile targets below (requires
 - `make build` — builds the docs, Vite site, and packages with uv
 - `make serve` — updates docs, builds the Vite site, and serves the PyMFCAD webpage
 - `make test` — runs all PyTest test cases
-- `make test-coverage` —  runs all PyTest test cases. Outputs code coverage in htmlcov
+- `make test-coverage` — runs all PyTest test cases and outputs code coverage in htmlcov
 - `make run <python file>` — runs a Python file
 - `make mem-profile <python file>` — runs a Python file with heaptrack
 - `make py-profile <python file>` — runs a Python file with cProfile

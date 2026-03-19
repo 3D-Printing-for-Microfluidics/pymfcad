@@ -1,5 +1,5 @@
 # Customizing Labels and Colors
-Prev: [Part 14: Configuring Regional Settings](12-regional_settings.md)
+Prev: [Part 15: Slicing Process](15-slicing-process.md)
 
 This section explains how to **relabel** shapes and labels so colors are consistent across a full device, including nested subcomponents.
 

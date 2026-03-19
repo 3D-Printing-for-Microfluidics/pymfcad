@@ -21,7 +21,7 @@ The **General** tab includes settings that affect the viewing experience:
 - **Save and Load Settings** — save the current visualizer settings to a file or manually open the Load Settings dialog.
 
 
-![General tab (placeholder)](resources/e7/settings_general.png)
+![General tab (placeholder)](resources/e-7/settings_general.png)
 
 ### Appearance tab
 
@@ -31,7 +31,7 @@ The **Appearance** tab is helpful for consistent screenshots and presentations:
 - Choose a **Theme** (Dark, Light, or Custom).
 - Customize background, panel, and text colors; then save or reset the theme.
 
-![Appearance tab (placeholder)](resources/e7/settings_apperance.png)
+![Appearance tab (placeholder)](resources/e-7/settings_apperance.png)
 
 ### Camera tab
 
@@ -47,7 +47,7 @@ The **Camera** tab provides a precise way to position and store cameras.
 
 Tip: When the **Camera** tab is open, double‑clicking in the preview pane sets the camera target to the clicked surface point.
 
-![Camera tab](resources/e7/settings_camera.png)
+![Camera tab](resources/e-7/settings_camera.png)
 
 ### Lights tab
 
@@ -61,13 +61,13 @@ The **Lights** tab manages ambient light plus any number of directional or spot 
 
 Tip: When the **Lights** tab is open, double‑clicking in the preview pane sets the active light target to the clicked surface point.
 
-![Lights tab (placeholder)](resources/e7/settings_lights.png)
+![Lights tab (placeholder)](resources/e-7/settings_lights.png)
 
 ## Loading multiple versions of models
 
 The visualizer supports **versioned models**. If a model has multiple versions, the **Model Selector** shows a version dropdown next to its name. When multiple models share common versions, a **Set all versions** selector appears at the top.
 
-![Model version selector (placeholder)](resources/e7/model_versions.png)
+![Model version selector (placeholder)](resources/e-7/model_versions.png)
 
 Key points:
 
@@ -80,7 +80,7 @@ Key points:
 
 The **Animation** panel builds camera fly‑throughs and repeatable inspections using keyframes.
 
-![Animation panel (placeholder)](resources/e7/animations.png)
+![Animation panel (placeholder)](resources/e-7/animations.png)
 
 ### Keyframes
 
@@ -105,7 +105,7 @@ Notes:
 - **Camera mode** (Perspective/Orthographic) and **light structure** (add/remove/type) can only be changed in **Keyframe 1**. Later keyframes can still adjust positions and values.
 - Model version changes can cross‑fade during transitions.
 
-![Keyframe transitions (placeholder)](resources/e7/animation_transitions.png)
+![Keyframe transitions (placeholder)](resources/e-7/animation_transitions.png)
 
 ### Playback and export
 
@@ -113,7 +113,7 @@ Notes:
 - **From Start** starts playback from keyframe 1.
 - **Export** opens the export dialog with renderer, resolution, FPS, and quality controls.
 
-![Animation export dialog (placeholder)](resources/e7/animation_export.png)
+![Animation export dialog (placeholder)](resources/e-7/animation_export.png)
 
 ---
 

@@ -22,3 +22,11 @@
 ::: pymfcad.ExposureSettings
     options:
       heading_level: 3
+
+::: pymfcad.MembraneSettings
+    options:
+      heading_level: 3
+
+::: pymfcad.SecondaryDoseSettings
+    options:
+      heading_level: 3

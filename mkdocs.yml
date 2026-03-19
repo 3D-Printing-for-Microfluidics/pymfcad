@@ -8,21 +8,24 @@ dev_addr: '127.0.0.1:5000'
 
 nav:
   - "Home": index.md
-  - "Main Tutorial":
+  - "Getting Started":
       - "Part 1: Introduction": 1-introduction.md
       - "Part 2: Installation": 2-installation.md
       - "Part 3: Using the Visualizer": 3-visualizer.md
       - "Part 4: Hello World Component": 4-building_first_component.md
-      - "Part 5: Shapes and Operations": 5-shapes_operations.md
-      - "Part 6: Parametric Design": 6-parametric_design.md
-      - "Part 7: Working with Polychannels": 5-polychannel.md
-      - "Part 8: Integrating Subcomponents": 6-subcomponents.md
-      - "Part 9: Routing": 7-routing.md
-      - "Part 10: Designing Custom Subcomponents": 8-making_subcomponent.md
-      - "Part 11: Creating Your First Slicable Device": 9-slicer_settings.md
-      - "Part 12: Slicing Process": 10-slicing.md
-      - "Part 13: Interpreting Slicer Output": 11-slicer_output.md
-      - "Part 14: Configuring Regional Settings": 12-regional_settings.md
+  - "Modeling with PyMFCAD":
+    - "Part 5: Modeling Introduction": 5-modeling-introduction.md
+    - "Part 6: Modeling Bulks, Voids, and Shapes": 6-modeling-bulks-voids-shapes.md
+    - "Part 7: Modeling Microfluidics": 7-modeling-microfluidics.md
+    - "Part 8: Reusable Components": 8-reusable-components.md
+    - "Part 9: Routing with Fractional Paths": 9-routing-fractional.md
+    - "Part 10: Using Components in a Device": 10-using-components.md
+    - "Part 11: Full Device Assembly": 11-full-device.md
+  - "Slicing with PyMFCAD":
+    - "Part 12: Slicing Introduction": 12-slicing-introduction.md
+    - "Part 13: Slicing Settings": 13-slicing-settings.md
+    - "Part 14: Regional Settings": 14-regional-settings.md
+    - "Part 15: Slicing Process": 15-slicing-process.md
   - "Advanced Topics":
       - "Extra 1: Customizing Subcomponent Labels and Colors": e1-recoloring_components.md
       - "Extra 2: Variable Layer Thickness Components": e2-variable_layer_thickness_components.md

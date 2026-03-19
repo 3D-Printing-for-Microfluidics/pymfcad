@@ -1,41 +1,52 @@
 # Introduction
 
+PyMFCAD is a Python package for rapidly designing and fabricating 3D‑printed microfluidic devices. It targets DLP‑SLA 3D printing workflows while remaining accessible to anyone who wants to prototype microfluidic systems with modern additive manufacturing.
 
-PyMFCAD is a Python package for the rapid design and prototyping of 3D-printed microfluidic devices. It is designed for researchers, engineers, and anyone interested in building complex microfluidic systems using modern additive manufacturing techniques.
+This guide is a **step‑by‑step learning path**. Each part builds on earlier concepts so you can progress from first principles to a complete, printable device. The API reference is kept separate so the tutorial can stay focused and beginner‑friendly.
 
-This guide is a **step-by-step learning path**. It focuses on concepts and workflows first, with the API reference as a separate resource.
+## How to use this guide
 
-## Key Features
+- Follow the steps in order; each part depends on the last.
+- Run the example code as you go to validate geometry and settings.
+- Use the visualizer early and often to catch issues before slicing.
 
-- **Component-based design:** Build devices from reusable, modular parts (components and subcomponents), making it easy to share and standardize designs.
-- **Flexible geometry:** Create a wide range of shapes, including cubes, spheres, rounded cubes, text extrusions, and advanced structures like polychannels and Bézier curves.
-- **Pixel/layer precision:** All designs are specified in pixels and layers, matching the resolution of high-end 3D printers for maximum fidelity.
-- **Automatic routing:** Tools for connecting ports and features with fully automatic or manual routing, supporting complex device layouts.
-- **Rendering and visualization:** Preview your designs interactively before printing, and export to standard 3D formats for further processing or slicing.
-- **Slicing support:** Convert your designs into printer-ready slices (currently optimized for custom 3D printers).
-- **Extensible:** Import community or custom component libraries, and create your own reusable features.
+## Prerequisites
 
-## Typical Workflow
+- Python 3.10+ and basic Python scripting comfort
+- Knowledge of your printer’s pixel size and layer thickness
+- A basic understanding of DLP‑SLA 3D printing (exposure, layers)
+
+## Key features
+
+- **Component‑based design:** Build microfluidic models—called "devices"—from reusable parts (components and subcomponents) to share and standardize designs.
+- **Flexible geometry:** Create and combine shapes such as cubes, spheres, rounded cubes, and text extrusions. Advanced structures like polychannels and Bézier curves are also easily accessible.
+- **Pixel/layer precision:** Specify geometry in pixels and layers to match DLP‑SLA 3D print resolution.
+- **Routing tools:** Connect ports and features using manual or automatic routing for complex layouts.
+- **Interactive visualization:** Preview designs, validate labels and ports, and export for fabrication.
+- **Slicing support:** Generate printer‑ready slices (optimized for custom DLP‑SLA workflows).
+- **Extensible:** Import external component libraries or build your own.
+
+## Typical workflow
 
 1. **Define components:** Create basic building blocks using shapes and labels.
-2. **Assemble devices:** Combine components and subcomponents into complete devices, positioning and transforming as needed.
+2. **Assemble devices:** Combine components and subcomponents, positioning and transforming as needed.
 3. **Add connections:** Use routing tools to connect ports and features.
-4. **Preview and render:** Visualize your device in 3D, check for errors, and export models.
-5. **Slice and print:** Generate printer-ready files for fabrication.
+4. **Preview and validate:** Inspect geometry, labels, and ports before fabrication.
+5. **Slice and print:** Generate printer‑ready outputs for your DLP‑SLA process.
 
-## Mental Model (30‑second version)
+## Mental model (30‑second version)
 
-- **Component**: a reusable block made of **bulk** material (solid) and negative features/**voids** (channels).
-- **Device**: a printable assembly tied to a printer’s resolution.
-- **Labels**: named colors used to group geometry and settings for visualization purposes.
-- **Ports + routing**: define connections between components.
-- **Slicer**: turns the device into a JSON print job + image stack.
+- **Component**: a reusable block made of **bulk** material (solid) and negative **voids** (channels).
+- **Device**: a printable assembly bound to a printer’s pixel/layer resolution.
+- **Labels**: named color groups used to organize geometry and visualization.
+- **Ports + routing**: define and connect fluidic interfaces between components.
+- **Slicer**: converts the device into a JSON print job plus an image stack.
 
-You will build up this model gradually throughout the tutorial.
+You will gain a greater understanding of this mental model throughout the tutorial.
 
 ## What you will learn
 
-By the end of Part 14, you will be able to:
+By the end of Part 15, you will be able to:
 
 - Design and preview components
 - Assemble devices and connect ports
@@ -43,12 +54,12 @@ By the end of Part 14, you will be able to:
 - Generate print files and inspect outputs
 - Apply regional settings (membranes, secondary dose, etc.)
 
-## Who Should Use PyMFCAD?
+## Who should use PyMFCAD?
 
 PyMFCAD is ideal for:
 
 - Researchers developing new microfluidic devices
-- Engineers prototyping lab-on-a-chip systems
+- Engineers prototyping lab‑on‑a‑chip systems
 - Educators teaching microfluidics or digital fabrication
 - Anyone interested in rapid, reproducible microfluidic design
 

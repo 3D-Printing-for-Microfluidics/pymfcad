@@ -4,6 +4,8 @@ Prev: [Part 3: Using the Visualizer](3-visualizer.md)
 
 This quick “hello world” tutorial builds a minimal component and previews it in the visualizer.
 
+Goal: create a component, label it, and confirm that it renders.
+
 ---
 
 ## Step 1 — Import PyMFCAD
@@ -16,14 +18,14 @@ import pymfcad
 
 ## Step 2 — Create a component
 
-Components are sized in **pixels (x/y)** and **layers (z)**. You also define the physical resolution: `px_size` and `layer_size` in mm.
+Components are sized in **pixels (x/y)** and **layers (z)**. You also define the physical resolution with `px_size` and `layer_size` (mm).
 
 ```python
 component = pymfcad.Component(
-	size=(100, 100, 20),
-	position=(0, 0, 0),
-	px_size=0.0076,
-	layer_size=0.01,
+    size=(120, 40, 10), # X pixel count, Y pixel count, Z layer count
+    position=(0, 0, 0),
+    px_size=0.0076,
+    layer_size=0.01,
 )
 ```
 
@@ -44,7 +46,7 @@ component.add_label("bulk", pymfcad.Color.from_name("aqua", 127))
 
 ```python
 hello = pymfcad.TextExtrusion("Hello World!", height=1, font_size=15)
-hello.translate((5, 5, 19))
+hello.translate((5, 5, 9))
 component.add_void("hello", hello, label="default")
 ```
 
@@ -53,8 +55,8 @@ component.add_void("hello", hello, label="default")
 ## Step 5 — Add bulk
 
 ```python
-bulk_cube = pymfcad.Cube((100, 100, 20))
-component.add_bulk("bulk", bulk_cube, label="bulk")
+bulk_cube = pymfcad.Cube((120, 40, 10))
+component.add_bulk("bulk_shape", bulk_cube, label="bulk")
 ```
 
 ---
@@ -67,11 +69,16 @@ component.preview()
 
 You should see a solid block with the “Hello World” void cut out.
 
-![visualizer-difference](resources/4-1.png)
+![visualizer-difference](resources/4/4-1.png)
 
 ---
 
+## Checkpoint
+Ensure that:
+- You can preview the component without errors.
+- You can see the text void in the visualizer.
+
 ## Next
 
-Next: [Part 5: Shapes and Operations](5-shapes_operations.md)
+Next: [Part 5: Modeling Introduction](5-modeling-introduction.md)
 
