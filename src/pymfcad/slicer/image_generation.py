@@ -31,10 +31,13 @@ def get_slice(
 ) -> dict | None:
     image = slice_data.get("image_data")
     if image is not None:
-        if invert_check and not rle_is_all_non_zeros(image[0]):
-            return rle_decode_packed(*image)
-        elif not invert_check and not rle_is_all_zeros(image[0]):
-            return rle_decode_packed(*image)
+        decoded = rle_decode_packed(*image)
+        if invert_check is None:
+            return decoded
+        if invert_check and not rle_is_all_non_zeros(decoded):
+            return decoded
+        elif not invert_check and not rle_is_all_zeros(decoded):
+            return decoded
     return None
 
 def get_mask_from_masks_data(
@@ -44,8 +47,9 @@ def get_mask_from_masks_data(
     """Get mask from slice data."""
     for mask_info in masks_data:
         if mask_info["image_name"] == image_name:
-            if not rle_is_all_zeros(mask_info["image_data"][0]):
-                return rle_decode_packed(*mask_info["image_data"])
+            decoded = rle_decode_packed(*mask_info["image_data"])
+            if not rle_is_all_zeros(decoded):
+                return decoded
     return None
 
 def generate_position_images_from_folders(
@@ -155,7 +159,9 @@ def generate_membrane_images_from_folders(
             )
             if abs(delta_z - membrane_thickness_um) < 0.01:  # 0.01 um tolerance
                 break
-        if abs(delta_z - membrane_thickness_um) > 0.01:  # 0.01 um tolerance
+        if i == 0:
+            prev_image_index = -1
+        elif abs(delta_z - membrane_thickness_um) > 0.01:  # 0.01 um tolerance
             continue
 
         # make images
@@ -165,22 +171,32 @@ def generate_membrane_images_from_folders(
             mask = get_mask_from_masks_data(masks, curr_name)
             if mask is None:
                 continue
-            image = get_slice(slices[j])
+            image = get_slice(slices[j]) # checks if all zeros
             if image is None:
                 continue
 
             if prev_image_index < 0:
                 prev_image = np.zeros_like(image, dtype=np.uint8)
             else:
-                prev_image = get_slice(slices[prev_image_index], invert_check=True)
-                if prev_image is None:
+                prev_image = get_slice(slices[prev_image_index], invert_check=True) # checks if all ones
+                if prev_image is None and prev_image_index >= 0: # if all ones and mask is not all zeros, skip (no membrane)
+                    if get_mask_from_masks_data(masks, slices[prev_image_index]["image_name"]) is not None:
+                        continue
+                    else:
+                        prev_image = get_slice(slices[prev_image_index], invert_check=None)
+                elif prev_image is None:
                     continue
 
             if next_image_index >= len(slices):
                 next_image = np.zeros_like(image, dtype=np.uint8)
             else:
                 next_image = get_slice(slices[next_image_index], invert_check=True)
-                if next_image is None:
+                if next_image is None and next_image_index < len(slices): # if all ones and mask is not all zeros, skip (no membrane)
+                    if get_mask_from_masks_data(masks, slices[next_image_index]["image_name"]) is not None:
+                        continue
+                    else:
+                        next_image = get_slice(slices[next_image_index], invert_check=None)
+                elif next_image is None:
                     continue
             
             # make mask where both prev and next images are black and mask is white
@@ -300,11 +316,9 @@ def generate_secondary_images_from_folders(
 
         # Add membrane images back before doing morphological operations
         membrane_images = [
-            info
-            for info in data.get("membrane_slices", [])
-            if re.search(
-                rf"^{re.escape(Path(name).stem)}_membrane.*\.png$", info["image_name"]
-            )
+            a
+            for a in data.get("membrane_slices", [])
+            if a.get("layer_position") == meta["layer_position"]
         ]
         membranes = np.zeros_like(image, dtype=np.uint8)
         if len(membrane_images) > 0:
@@ -315,7 +329,7 @@ def generate_secondary_images_from_folders(
                     cv2.MORPH_RECT,
                     (membrane_dilation_kernel_size, membrane_dilation_kernel_size),
                 )
-                membrane = membrane_image["image_data"]
+                membrane = rle_decode_packed(*membrane_image["image_data"])
                 og_membrane = cv2.erode(membrane, membrane_dilation_kernel)
                 membranes = cv2.bitwise_or(membranes, og_membrane)
 
