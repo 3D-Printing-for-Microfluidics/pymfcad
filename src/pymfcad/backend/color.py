@@ -3,23 +3,11 @@ from typing import Union
 from pathlib import Path
 import importlib.util
 
-CWD = Path.cwd()
 
 
-def get_pymfcad_env_dir() -> Path | None:
-    """
-    Return the absolute path to the pymfcad package directory.
-
-    Returns:
-
-    - Path | None: The resolved package directory, or None if not found.
-    """
-    spec = importlib.util.find_spec("pymfcad")
-    if spec and spec.origin:
-        package_path = Path(spec.origin).parent
-        return package_path.relative_to(CWD)
-    print("\tpymfcad package not found in sys.path")
-    return None
+def _get_colors_dir() -> Path:
+    """Return the absolute path to the bundled colors directory."""
+    return Path(__file__).resolve().parent / "colors"
 
 
 def parse_colors_from_text(
@@ -53,21 +41,13 @@ def parse_colors_from_text(
 
 
 # Load bundled color tables once.
-BASE_COLORS = parse_colors_from_text(
-    get_pymfcad_env_dir() / "backend" / "colors" / "base_colors.csv"
-)
-TAB_COLORS = parse_colors_from_text(
-    get_pymfcad_env_dir() / "backend" / "colors" / "tableau_colors.csv", "tab:"
-)
-OPEN_COLORS = parse_colors_from_text(
-    get_pymfcad_env_dir() / "backend" / "colors" / "open_colors.csv"
-)
-X11_COLORS = parse_colors_from_text(
-    get_pymfcad_env_dir() / "backend" / "colors" / "x11_colors.csv"
-)
-XKCD_COLORS = parse_colors_from_text(
-    get_pymfcad_env_dir() / "backend" / "colors" / "xkcd_colors.csv", "xkcd:"
-)
+_COLORS_DIR = _get_colors_dir()
+
+BASE_COLORS = parse_colors_from_text(_COLORS_DIR / "base_colors.csv")
+TAB_COLORS = parse_colors_from_text(_COLORS_DIR / "tableau_colors.csv", "tab:")
+OPEN_COLORS = parse_colors_from_text(_COLORS_DIR / "open_colors.csv")
+X11_COLORS = parse_colors_from_text(_COLORS_DIR / "x11_colors.csv")
+XKCD_COLORS = parse_colors_from_text(_COLORS_DIR / "xkcd_colors.csv", "xkcd:")
 
 
 class Color:

@@ -12,23 +12,6 @@ from pathlib import Path
 from collections.abc import Callable
 from manifold3d import set_circular_segments, Manifold, Mesh, CrossSection, OpType
 
-
-def get_pymfcad_env_dir() -> Path | None:
-    """
-    Return the absolute path to the pymfcad package directory.
-
-    Returns:
-
-    - Path | None: The relative package path, or None if not found.
-    """
-    spec = importlib.util.find_spec("pymfcad")
-    if spec and spec.origin:
-        package_path = Path(spec.origin).parent
-        return package_path.relative_to(Path.cwd())
-    print("\tpymfcad package not found in sys.path")
-    return None
-
-
 def _resolve_font_path(font: str) -> Path:
     """
     Resolve a font name or path to a font file.
@@ -51,11 +34,9 @@ def _resolve_font_path(font: str) -> Path:
         return font_path
 
     # Try embedded fonts directory by name (with .ttf extension).
-    package_dir = get_pymfcad_env_dir()
-    if package_dir is not None:
-        embedded = package_dir / "backend" / "fonts" / f"{font}.ttf"
-        if embedded.is_file():
-            return embedded
+    embedded = Path(__file__).resolve().parent / "fonts" / f"{font}.ttf"
+    if embedded.is_file():
+        return embedded
 
     # Try relative/absolute path without extension.
     if font_path.is_file():

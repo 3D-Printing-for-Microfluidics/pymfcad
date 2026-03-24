@@ -10,17 +10,6 @@ import numpy as np
 import importlib.util
 from pathlib import Path
 
-
-def get_pymfcad_env_dir():
-    """Return the absolute path to the pymfcad package directory."""
-    spec = importlib.util.find_spec("pymfcad")
-    if spec and spec.origin:
-        package_path = Path(spec.origin).parent
-        return package_path.relative_to(Path.cwd())
-    print("\tpymfcad package not found in sys.path")
-    return None
-
-
 def glyph_to_polygons(face, char, scale=1.0):
     """
     ###### Convert a glyph to a list of polygons (as numpy arrays) representing its outline.
@@ -78,4 +67,6 @@ def plot_glyph(char, font_path="Arial.ttf", scale=1.0 / 64.0):
 
 
 # Example usage
-plot_glyph("B", font_path=get_pymfcad_env_dir() / "backend" / "fonts" / "OpenSans-Medium.ttf")
+path = Path(__file__).resolve().parent.parent / "src" / "pymfcad" / "backend" / "fonts" / "OpenSans-Medium.ttf"
+print(path)
+plot_glyph("B", font_path=path.as_posix())

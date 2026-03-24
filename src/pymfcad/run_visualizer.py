@@ -12,19 +12,8 @@ from flask import Flask, jsonify, send_from_directory, abort, request, send_file
 PORT = 8000
 CWD = Path.cwd().resolve()
 
-
-def get_pymfcad_env_dir():
-    """Return the absolute path to the pymfcad package directory."""
-    spec = importlib.util.find_spec("pymfcad")
-    if spec and spec.origin:
-        package_path = Path(spec.origin).parent
-        # print(f"\tFound pymfcad package at: {package_path.relative_to(CWD)}")
-        return package_path.relative_to(CWD)
-    print("\tpymfcad package not found in sys.path")
-    return None
-
 def start_server():
-    env_dir = get_pymfcad_env_dir()
+    env_dir = Path(__file__).resolve().parent
     site_root = (env_dir / "site").resolve()
     visualizer_root = (site_root / "visualizer").resolve()
     build_dir = (site_root / "dist").resolve()
