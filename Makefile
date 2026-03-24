@@ -44,15 +44,19 @@ init:
 	echo "Initialized uv venv at $(VENV_DIR)."
 	$(MAKE) web-install
 
+
 build:
 	set -e; \
+	$(PYTHON) utilities/generate_diff2html_identifiers.py; \
 	$(ENSURE_UV_VENV) \
 	$(UV) run mkdocs build; \
 	$(MAKE) web-build; \
 	$(UV) build
 
+
 serve:
 	set -e; \
+	$(PYTHON) utilities/generate_diff2html_identifiers.py; \
 	$(ENSURE_UV_VENV) \
 	$(UV) run mkdocs build; \
 	$(MAKE) web-build; \

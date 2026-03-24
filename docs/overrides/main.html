@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+
+{% block extrahead %}
+  <script>
+    (function () {
+      var theme;
+      try {
+        theme = localStorage.getItem('docs-theme');
+      } catch (e) {
+        theme = null;
+      }
+      if (theme !== 'light' && theme !== 'dark') {
+        theme = (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches)
+          ? 'dark'
+          : 'light';
+      }
+      document.documentElement.setAttribute('data-theme', theme);
+    })();
+  </script>
+  {{ super() }}
+{% endblock %}

@@ -25,25 +25,7 @@ This command starts a local web server. If the page does not open automatically,
 
 ---
 
-## Step 2 — Load Settings dialog (first launch)
-
-When the visualizer opens, you will see the **Load Settings** dialog. This controls what data is loaded and how the preview is prepared.
-
-![Load settings dialog](resources/3/load_settings.png)
-
-At a high level, this dialog lets you:
-
-- Load settings from the model and/or a separate settings file
-- Control what settings are loaded into the scene from each file
-- **Load Selected** settings
-
-When finished, the settings dialog can be closed with the **Close** button, or by clicking off the pane.
-
-Tip: If your model doesn’t appear after loading, toggle **Auto Reload** in the bottom‑right.
-
----
-
-## Step 3 — General layout overview
+## Step 2 — General layout overview
 
 The visualizer layout is organized around four main regions:
 
@@ -56,7 +38,7 @@ The visualizer layout is organized around four main regions:
 
 ---
 
-## Step 4 — Keyboard and mouse controls
+## Step 3 — Keyboard and mouse controls
 
 The visualizer supports two control styles: **Orbit** and **Trackball** (selectable in Settings → Camera). Common controls:
 
@@ -87,7 +69,7 @@ The visualizer supports two control styles: **Orbit** and **Trackball** (selecta
 
 ---
 
-## Step 5 — Model selector (overview)
+## Step 4 — Model selector (overview)
 
 The **Model Selector** controls visibility for the main geometry and overlays. Each group has a master toggle (Device) and may include sub‑toggles for specific content.
 
@@ -150,7 +132,7 @@ The **Model Selector** controls visibility for the main geometry and overlays. E
 
 ---
 
-## Step 6 — Toolbar (overview)
+## Step 5 — Toolbar (overview)
 
 The **Toolbar** is divided into two sections: **Camera Controls** and **Tools**.
 
@@ -177,7 +159,7 @@ The **Toolbar** is divided into two sections: **Camera Controls** and **Tools**.
 
 ---
 
-## Step 7 — Settings panels (advanced topic)
+## Step 6 — Settings panels (advanced topic)
 
 The visualizer includes detailed settings panels for rendering and navigation. These are covered in [Extra 7: Advanced Visualizer Topics](e7-visualizer_advanced.md):
 
@@ -196,4 +178,4 @@ The visualizer includes detailed settings panels for rendering and navigation. T
 
 With this overview, you should be ready to begin designing your own devices.
 
-Next: [Part 4: Creating Your First Component](4-building_first_component.md)
+Next: [Part 4a: Reading Code Examples](4a-reading-code-examples.md)

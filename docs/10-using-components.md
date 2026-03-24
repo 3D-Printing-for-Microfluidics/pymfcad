@@ -26,45 +26,52 @@ These operations make it easy to reuse the same component in multiple orientatio
 
 ## Step 1 — Device context
 
-```python
-import pymfcad
-from pymfcad import Component, Router, Color, Cube
-from pymfcad.component_library import Pinhole
+<div class="diff2html-wrapper">
+    <div class="diff2html"></div>
+    <script type="text/plain" class="diff2html-source">
+diff --git a/example_device.py b/example_device.py
+index 0000000..1111111 100644
+--- a/example_device.py
++++ b/example_device.py
+@@ -0 +1 @@
++import pymfcad
++from pymfcad import Component, Router, Color, Cube
++from pymfcad.component_library import Pinhole
++
++# Import custom components from previous steps
++from y_junction_mixer import YJunctionMixer
++from serpentine_channel import SerpentineChannel
++
++# Make sure the files are named y_junction_mixer.py and serpentine_channel.py and are in the same folder as this script. If you saved them elsewhere, update the import path accordingly.
++
++PX_SIZE = 0.0076
++LAYER_SIZE = 0.01
++
++DEVICE_X = 2560
++DEVICE_Y = 1600
++DEVICE_Z = 300
++
++# Create a new device (final print = bulk minus voids)
++device = pymfcad.Device(
++    name="example_device",
++    position=(0, 0, 0),
++    layers=DEVICE_Z,
++    layer_size=LAYER_SIZE,
++    px_count=(DEVICE_X, DEVICE_Y),
++    px_size=PX_SIZE,
++)
++
++device.add_label("bulk", Color.from_name("aqua", 127))
++device.add_label("void", Color.from_name("red", 255))
++
++device.add_bulk("bulk_shape", Cube(device._size, center=False), label="bulk")
++
++device.preview()
+    </script>
+</div>
 
-# Import custom components from previous steps
-from y_junction_mixer import YJunctionMixer
-from serpentine_channel import SerpentineChannel
+Preview the empty device canvas.
 
-# Make sure the files are named y_junction_mixer.py and serpentine_channel.py and are in the same folder as this script. If you saved them elsewhere, update the import path accordingly.
-
-PX_SIZE = 0.0076
-LAYER_SIZE = 0.01
-
-DEVICE_X = 2560
-DEVICE_Y = 1600
-DEVICE_Z = 300
-
-# Create a new device (final print = bulk minus voids)
-device = pymfcad.Device(
-    name="example_device",
-    position=(0, 0, 0),
-    layers=DEVICE_Z,
-    layer_size=LAYER_SIZE,
-    px_count=(DEVICE_X, DEVICE_Y),
-    px_size=PX_SIZE,
-)
-
-device.add_label("bulk", Color.from_name("aqua", 127))
-device.add_label("void", Color.from_name("red", 255))
-
-device.add_bulk("bulk_shape", Cube(device._size, center=False), label="bulk")
-```
-
-Preview the empty device canvas. **Remove the previous** `device.preview()` call (or keep just one preview at the bottom) when you move to the next step.
-
-```python
-device.preview()
-```
 
 ![Step 1 preview](resources/10/10-1.png)
 
@@ -76,51 +83,59 @@ device.preview()
 
 At this stage you are only placing components in space; the channels that connect them will be routed in the next step.
 
-```python
-# Inlet pinholes (left side, pointing into the device)
-inlet_a = Pinhole()
-inlet_a.translate(
-    (0, 
-    500 - inlet_a._size[1]/2, 
-    DEVICE_Z/2 - inlet_a._size[2]/2
-    )
-)
-inlet_b = Pinhole()
-inlet_b.translate(
-    (0, 
-    (DEVICE_Y - 500) - inlet_b._size[1]/2, 
-    DEVICE_Z/2 - inlet_b._size[2]/2
-    )
-)
-# Y‑junction near the left side
-y = YJunctionMixer()
-y.translate((DEVICE_X/3, DEVICE_Y/2, DEVICE_Z/2 - y._size[2]/2))
+<div class="diff2html-wrapper">
+    <div class="diff2html"></div>
+    <script type="text/plain" class="diff2html-source">
+diff --git a/example_device.py b/example_device.py
+index 0000000..1111111 100644
+--- a/example_device.py
++++ b/example_device.py
+@@ -31 +31 @@
+ device.add_bulk("bulk_shape", Cube(device._size, center=False), label="bulk")
++
++# Inlet pinholes (left side, pointing into the device)
++inlet_a = Pinhole()
++inlet_a.translate(
++    (0, 
++    500 - inlet_a._size[1]/2, 
++    DEVICE_Z/2 - inlet_a._size[2]/2
++    )
++)
++inlet_b = Pinhole()
++inlet_b.translate(
++    (0, 
++    (DEVICE_Y - 500) - inlet_b._size[1]/2, 
++    DEVICE_Z/2 - inlet_b._size[2]/2
++    )
++)
++# Y‑junction near the left side
++y = YJunctionMixer()
++y.translate((DEVICE_X/3, DEVICE_Y/2, DEVICE_Z/2 - y._size[2]/2))
++
++# Serpentine between Y‑junction and outlet
++serp = SerpentineChannel()
++serp.translate((DEVICE_X/2, 800 - serp._size[1]/2, DEVICE_Z/2 - serp._size[2]/2))
++
++# Outlet pinhole on the right side (flip to face inward)
++outlet = Pinhole().rotate(180)
++outlet.translate(
++    (DEVICE_X, 
++    DEVICE_Y/2 + outlet._size[1]/2, 
++    DEVICE_Z/2 - outlet._size[2]/2
++    )
++)
++
++device.add_subcomponent("inlet_a", inlet_a)
++device.add_subcomponent("inlet_b", inlet_b)
++device.add_subcomponent("y", y)
++device.add_subcomponent("serp", serp)
++device.add_subcomponent("outlet", outlet)
+ 
+ device.preview()
+    </script>
+</div>
 
-# Serpentine between Y‑junction and outlet
-serp = SerpentineChannel()
-serp.translate((DEVICE_X/2, 800 - serp._size[1]/2, DEVICE_Z/2 - serp._size[2]/2))
-
-# Outlet pinhole on the right side (flip to face inward)
-outlet = Pinhole().rotate(180)
-outlet.translate(
-    (DEVICE_X, 
-    DEVICE_Y/2 + outlet._size[1]/2, 
-    DEVICE_Z/2 - outlet._size[2]/2
-    )
-)
-
-device.add_subcomponent("inlet_a", inlet_a)
-device.add_subcomponent("inlet_b", inlet_b)
-device.add_subcomponent("y", y)
-device.add_subcomponent("serp", serp)
-device.add_subcomponent("outlet", outlet)
-```
-
-Preview component placement before routing. **Remove the previous** `device.preview()` call (or keep just one preview block) when you proceed.
-
-```python
-device.preview()
-```
+Preview component placement before routing.
 
 ![Step 2 preview](resources/10/10-2.png)
 
@@ -130,55 +145,175 @@ device.preview()
 
 If you don’t need strict control of the path, **autoroute** is faster and cleaner. You can also set a **direction preference** to bias the search (for example, prefer X‑moves before Y‑moves).
 
-```python
-router = Router(device, channel_size=(8, 8, 6), channel_margin=(8, 8, 6))
+<div class="diff2html-wrapper">
+    <div class="diff2html"></div>
+    <script type="text/plain" class="diff2html-source">
+diff --git a/example_device.py b/example_device.py
+index 0000000..1111111 100644
+--- a/example_device.py
++++ b/example_device.py
+@@ -69 +69 @@
+ device.add_subcomponent("outlet", outlet)
++
++router = Router(device, channel_size=(8, 8, 6), channel_margin=(8, 8, 6))
++
++# Inlets into the Y‑junction
++router.autoroute_channel(
++    inlet_a.port,
++    y.inlet1,
++    label="void",
++    direction_preference=("X", "Y", "Z"),
++)
++router.autoroute_channel(
++    inlet_b.port,
++    y.inlet2,
++    label="void",
++    direction_preference=("X", "Y", "Z"),
++)
++
++# Y‑junction to serpentine
++router.autoroute_channel(
++    y.outlet,
++    serp.inlet,
++    label="void",
++    direction_preference=("X", "Y", "Z"),
++)
++
++# Serpentine to outlet pinhole
++router.autoroute_channel(
++    serp.outlet,
++    outlet.port,
++    label="void",
++    direction_preference=("Z", "Y", "X"),
++)
++
++router.finalize_routes()
+ 
+ device.preview()
+    </script>
+</div>
 
-# Inlets into the Y‑junction
-router.autoroute_channel(
-    inlet_a.port,
-    y.inlet1,
-    label="void",
-    direction_preference=("X", "Y", "Z"),
-)
-router.autoroute_channel(
-    inlet_b.port,
-    y.inlet2,
-    label="void",
-    direction_preference=("X", "Y", "Z"),
-)
+Preview the routed device. 
 
-# Y‑junction to serpentine
-router.autoroute_channel(
-    y.outlet,
-    serp.inlet,
-    label="void",
-    direction_preference=("X", "Y", "Z"),
-)
-
-# Serpentine to outlet pinhole
-router.autoroute_channel(
-    serp.outlet,
-    outlet.port,
-    label="void",
-    direction_preference=("Z", "Y", "X"),
-)
-
-router.finalize_routes()
-```
-
-
+![Step 3 preview](resources/10/10-3.png)
 
 ---
 
-## Step 4 — Preview
+## Full example
 
-Preview the routed device. If you already added a preview above, **remove it** so only one preview call remains.
-
-```python
-device.preview()
-```
-
-![Step 3 preview](resources/10/10-3.png)
+<div class="diff2html-wrapper">
+    <div class="diff2html"></div>
+    <script type="text/plain" class="diff2html-source">
+diff --git a/example_device.py b/example_device.py
+index 0000000..1111111 100644
+--- a/example_device.py
++++ b/example_device.py
+@@ -1 +1 @@
+ import pymfcad
+ from pymfcad import Component, Router, Color, Cube
+ from pymfcad.component_library import Pinhole
+ 
+ # Import custom components from previous steps
+ from y_junction_mixer import YJunctionMixer
+ from serpentine_channel import SerpentineChannel
+ 
+ # Make sure the files are named y_junction_mixer.py and serpentine_channel.py and are in the same folder as this script. If you saved them elsewhere, update the import path accordingly.
+ 
+ PX_SIZE = 0.0076
+ LAYER_SIZE = 0.01
+ 
+ DEVICE_X = 2560
+ DEVICE_Y = 1600
+ DEVICE_Z = 300
+ 
+ # Create a new device (final print = bulk minus voids)
+ device = pymfcad.Device(
+     name="example_device",
+     position=(0, 0, 0),
+     layers=DEVICE_Z,
+     layer_size=LAYER_SIZE,
+     px_count=(DEVICE_X, DEVICE_Y),
+     px_size=PX_SIZE,
+ )
+ 
+ device.add_label("bulk", Color.from_name("aqua", 127))
+ device.add_label("void", Color.from_name("red", 255))
+ 
+ device.add_bulk("bulk_shape", Cube(device._size, center=False), label="bulk")
+ 
+ # Inlet pinholes (left side, pointing into the device)
+ inlet_a = Pinhole()
+ inlet_a.translate(
+     (0, 
+     500 - inlet_a._size[1]/2, 
+     DEVICE_Z/2 - inlet_a._size[2]/2
+     )
+ )
+ inlet_b = Pinhole()
+ inlet_b.translate(
+     (0, 
+     (DEVICE_Y - 500) - inlet_b._size[1]/2, 
+    DEVICE_Z/2 - inlet_b._size[2]/2
+    )
+ )
+ # Y‑junction near the left side
+ y = YJunctionMixer()
+ y.translate((DEVICE_X/3, DEVICE_Y/2, DEVICE_Z/2 - y._size[2]/2))
+ 
+ # Serpentine between Y‑junction and outlet
+ serp = SerpentineChannel()
+ serp.translate((DEVICE_X/2, 800 - serp._size[1]/2, DEVICE_Z/2 - serp._size[2]/2))
+ 
+ # Outlet pinhole on the right side (flip to face inward)
+ outlet = Pinhole().rotate(180)
+ outlet.translate(
+     (DEVICE_X, 
+     DEVICE_Y/2 + outlet._size[1]/2, 
+     DEVICE_Z/2 - outlet._size[2]/2
+     )
+ )
+ 
+ device.add_subcomponent("inlet_a", inlet_a)
+ device.add_subcomponent("inlet_b", inlet_b)
+ device.add_subcomponent("y", y)
+ device.add_subcomponent("serp", serp)
+ device.add_subcomponent("outlet", outlet)
+ 
+ router = Router(device, channel_size=(8, 8, 6), channel_margin=(8, 8, 6))
+ 
+ # Inlets into the Y‑junction
+ router.autoroute_channel(
+     inlet_a.port,
+     y.inlet1,
+     label="void",
+     direction_preference=("X", "Y", "Z"),
+ )
+ router.autoroute_channel(
+     inlet_b.port,
+     y.inlet2,
+     label="void",
+     direction_preference=("X", "Y", "Z"),
+ )
+ 
+ # Y‑junction to serpentine
+ router.autoroute_channel(
+     y.outlet,
+     serp.inlet,
+     label="void",
+     direction_preference=("X", "Y", "Z"),
+ )
+ 
+ # Serpentine to outlet pinhole
+ router.autoroute_channel(
+     serp.outlet,
+     outlet.port,
+     label="void",
+     direction_preference=("Z", "Y", "X"),
+ )
+ 
+ device.preview()
+    </script>
+</div>
 
 ---
 

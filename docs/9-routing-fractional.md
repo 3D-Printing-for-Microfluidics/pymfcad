@@ -49,103 +49,161 @@ We’ll build a serpentine channel as a reusable component. This version is **pa
 
 ### 1) Imports + class skeleton
 
-```python
-import inspect
-from pymfcad import Component, Port, Router, Color, Cube
-
-
-class SerpentineChannel(Component):
-    """
-    Simple serpentine channel with two ports.
-    """
-```
+<div class="diff2html-wrapper">
+    <div class="diff2html"></div>
+    <script type="text/plain" class="diff2html-source">
+diff --git a/example_device.py b/example_device.py
+index 0000000..1111111 100644
+--- a/example_device.py
++++ b/example_device.py
+@@ -0 +1 @@
++import inspect
++from pymfcad import Component, Port, Router, Color, Cube
++
++class SerpentineChannel(Component):
++    """
++    Simple serpentine channel with two ports.
++    """
+    </script>
+</div>
 
 ### 2) Initialize, labels, bulk, and ports
 
-```python
-    def __init__(
-        self,
-        channel_size=(8, 8, 6),
-        channel_margin=(16, 16, 6),
-        width=800,
-        loops=11,
-        levels=5,
-        px_size=0.0076,
-        layer_size=0.01,
-        quiet=False,
-    ):
-        frame = inspect.currentframe()
-        args, _, _, values = inspect.getargvalues(frame)
-        self.init_args = [values[arg] for arg in args if arg != "self"]
-        self.init_kwargs = {arg: values[arg] for arg in args if arg != "self"}
-
-        # Overall component dimensions (bulk size)
-        x_dim = channel_size[0] * loops + channel_margin[0] * (loops + 1)
-        y_dim = width
-        z_dim = channel_size[2] + 2 * channel_margin[2]
-
-        super().__init__(
-            size=(x_dim, y_dim, z_dim),
-            position=(0, 0, 0),
-            px_size=px_size,
-            layer_size=layer_size,
-            quiet=quiet,
-        )
-
-        # Labels define which geometry is solid vs. empty
-        self.add_label("bulk", Color.from_name("aqua", 127))
-        self.add_label("void", Color.from_name("red", 255))
-
-        # The device starts as a solid block
-        self.add_bulk("bulk_shape", Cube(self._size, center=False), label="bulk")
-
-        # Ports define where routing starts/ends
-        self.add_port(
-            "inlet",
-            Port(
-                Port.PortType.IN,
-                (0, channel_margin[1], channel_margin[2]),
-                channel_size,
-                Port.SurfaceNormal.NEG_X,
-            ),
-        )
-        self.add_port(
-            "outlet",
-            Port(
-                Port.PortType.OUT,
-                (x_dim, y_dim - 2 * channel_margin[1], channel_margin[2]),
-                channel_size,
-                Port.SurfaceNormal.POS_X,
-            ),
-        )
-```
+<div class="diff2html-wrapper">
+    <div class="diff2html"></div>
+    <script type="text/plain" class="diff2html-source">
+diff --git a/example_device.py b/example_device.py
+index 0000000..1111111 100644
+--- a/example_device.py
++++ b/example_device.py
+@@ -1 +1 @@
+ import inspect
+ from pymfcad import Component, Port, Router, Color, Cube
+ 
+ class SerpentineChannel(Component):
+     """
+     Simple serpentine channel with two ports.
+     """
++    def __init__(
++        self,
++        channel_size=(8, 8, 6),
++        channel_margin=(16, 16, 6),
++        width=800,
++        loops=11,
++        levels=5,
++        px_size=0.0076,
++        layer_size=0.01,
++        quiet=False,
++    ):
++        frame = inspect.currentframe()
++        args, _, _, values = inspect.getargvalues(frame)
++        self.init_args = [values[arg] for arg in args if arg != "self"]
++        self.init_kwargs = {arg: values[arg] for arg in args if arg != "self"}
++ 
++         # Overall component size (bulk)
++         length = channel_size[0] * loops + channel_margin[0] * (loops + 1)
++ 
++        super().__init__(
++            size=(x_dim, y_dim, z_dim),
++            position=(0, 0, 0),
++            px_size=px_size,
++            layer_size=layer_size,
++            quiet=quiet,
++        )
++ 
++        # Labels define which geometry is solid vs. empty
++        self.add_label("bulk", Color.from_name("aqua", 127))
++        self.add_label("void", Color.from_name("red", 255))
++ 
++        # The device starts as a solid block
++        self.add_bulk("bulk_shape", Cube(self._size, center=False), label="bulk")
++ 
++        # Ports define where routing starts/ends
++        self.add_port(
++            "inlet",
++            Port(
++                Port.PortType.IN,
++                (0, channel_margin[1], channel_margin[2]),
++                channel_size,
++                Port.SurfaceNormal.NEG_X,
++            ),
++        )
++        self.add_port(
++            "outlet",
++            Port(
++                Port.PortType.OUT,
++                (x_dim, y_dim - 2 * channel_margin[1], channel_margin[2]),
++                channel_size,
++                Port.SurfaceNormal.POS_X,
++            ),
++        )
+    </script>
+</div>
 
 ### 3) Simple routing first (one easy path)
 
-Start with a very simple route so you can see how fractional steps work. **After you preview this, remove this block** and replace it with the serpentine routing in the next step.
+Start with a very simple route so you can see how fractional steps work.
 
-```python
-        # Router builds the void geometry from a path
-        router = Router(self, channel_size=channel_size, channel_margin=channel_margin)
+<div class="diff2html-wrapper">
+    <div class="diff2html"></div>
+    <script type="text/plain" class="diff2html-source">
+diff --git a/example_device.py b/example_device.py
+index 0000000..1111111 100644
+--- a/example_device.py
++++ b/example_device.py
+@@ -42 +42 @@
+         # Ports define where routing starts/ends
+         self.add_port(
+             "inlet",
+             Port(
+                 Port.PortType.IN,
+                 (0, channel_margin[1], channel_margin[2]),
+                 channel_size,
+                 Port.SurfaceNormal.NEG_X,
+             ),
+         )
+         self.add_port(
+             "outlet",
+             Port(
+                 Port.PortType.OUT,
+                 (x_dim, y_dim - 2 * channel_margin[1], channel_margin[2]),
+                 channel_size,
+                 Port.SurfaceNormal.POS_X,
+             ),
+         )
++        # Router builds the void geometry from a path
++        router = Router(self, channel_size=channel_size, channel_margin=channel_margin)
++
++        # Simple fractional path: go straight in X, then offset in Y, then finish in X
++        # X fractions must sum to 1.0, Y fractions must sum to 1.0, Z fractions to 0.0
++        simple_path = [
++            (0.6, 0.0, 0.0),  # move mostly along X
++            (0.0, 1.0, 0.0),  # shift to the outlet's Y
++            (0.4, 0.0, 0.0),  # finish X to reach the outlet
++        ]
++
++        router.route_with_fractional_path(self.inlet, self.outlet, simple_path, label="void")
++        router.finalize_routes()
+    </script>
+</div>
 
-        # Simple fractional path: go straight in X, then offset in Y, then finish in X
-        # X fractions must sum to 1.0, Y fractions must sum to 1.0, Z fractions to 0.0
-        simple_path = [
-            (0.6, 0.0, 0.0),  # move mostly along X
-            (0.0, 1.0, 0.0),  # shift to the outlet's Y
-            (0.4, 0.0, 0.0),  # finish X to reach the outlet
-        ]
+Preview this simple route before moving on.
 
-        router.route_with_fractional_path(self.inlet, self.outlet, simple_path, label="void")
-        router.finalize_routes()
-```
+<div class="diff2html-wrapper">
+    <div class="diff2html"></div>
+    <script type="text/plain" class="diff2html-source">
+diff --git a/example_device.py b/example_device.py
+index 0000000..1111111 100644
+--- a/example_device.py
++++ b/example_device.py
+@@ -72 +72 @@
+         router.route_with_fractional_path(self.inlet, self.outlet, simple_path, label="void")
+         router.finalize_routes()
 
-Preview this simple route before moving on. **Remove the previous preview** (or keep only one preview block at the bottom) when you proceed to the next step.
-
-```python
-if __name__ == "__main__":
-    SerpentineChannel().preview()
-```
++if __name__ == "__main__":
++    SerpentineChannel().preview()
+    </script>
+</div>
 
 ![Simple Fractional Routing](resources/9/9-1.png)
 
@@ -153,42 +211,57 @@ if __name__ == "__main__":
 
 Now **remove the simple routing block above** and use a **single‑layer** serpentine (no Z moves). This helps you learn the pattern before stacking levels.
 
-```python
+<div class="diff2html-wrapper">
+    <div class="diff2html"></div>
+    <script type="text/plain" class="diff2html-source">
+diff --git a/example_device.py b/example_device.py
+index 0000000..1111111 100644
+--- a/example_device.py
++++ b/example_device.py
+@@ -61 +61 @@
         # Router builds the void geometry from a path
         router = Router(self, channel_size=channel_size, channel_margin=channel_margin)
 
-        # Build a 2D serpentine path (Z stays at 0.0)
-        x_steps = loops * 2 + 1
-        x_step = 1.0 / x_steps
-
-        serpentine = []
-        direction = 1
-        for loop in range(loops):
-            # Move along X into the next segment
-            if loop != 0:
-                serpentine.append((direction * x_step, 0.0, 0.0))
-
-            # Sweep across Y (up/down alternates each loop)
-            y_dir = 1 if loop % 2 == 0 else -1
-            serpentine.append((0.0, direction * y_dir, 0.0))
-
-            # Move along X again to complete the loop
-            if loop != loops - 1:
-                serpentine.append((direction * x_step, 0.0, 0.0))
-
-        # Final X step to land exactly on the outlet
-        serpentine.append((x_step, 0.0, 0.0))
-
-        router.route_with_fractional_path(self.inlet, self.outlet, serpentine, label="void")
+-        # Simple fractional path: go straight in X, then offset in Y, then finish in X
+-        # X fractions must sum to 1.0, Y fractions must sum to 1.0, Z fractions to 0.0
+-        simple_path = [
+-            (0.6, 0.0, 0.0),  # move mostly along X
+-            (0.0, 1.0, 0.0),  # shift to the outlet's Y
+-            (0.4, 0.0, 0.0),  # finish X to reach the outlet
+-        ]
+-
+-        router.route_with_fractional_path(self.inlet, self.outlet, simple_path, label="void")
++        # Build a 2D serpentine path (Z stays at 0.0)
++        x_steps = loops * 2 + 1
++        x_step = 1.0 / x_steps
++
++        serpentine = []
++        direction = 1
++        for loop in range(loops):
++            # Move along X into the next segment
++            if loop != 0:
++                serpentine.append((direction * x_step, 0.0, 0.0))
++
++            # Sweep across Y (up/down alternates each loop)
++            y_dir = 1 if loop % 2 == 0 else -1
++            serpentine.append((0.0, direction * y_dir, 0.0))
++
++            # Move along X again to complete the loop
++            if loop != loops - 1:
++                serpentine.append((direction * x_step, 0.0, 0.0))
++
++        # Final X step to land exactly on the outlet
++        serpentine.append((x_step, 0.0, 0.0))
++
++        router.route_with_fractional_path(self.inlet, self.outlet, serpentine, label="void")
         router.finalize_routes()
-```
 
-Preview the 2D serpentine. **Remove the previous preview** (or keep just one preview block) before you move to the 3D version.
+ if __name__ == "__main__":
+     SerpentineChannel().preview()
+    </script>
+</div>
 
-```python
-if __name__ == "__main__":
-    SerpentineChannel().preview()
-```
+Preview the 2D serpentine.
 
 ![Single Level Serpentine](resources/9/9-2.png)
 
@@ -196,173 +269,201 @@ if __name__ == "__main__":
 
 Now **remove the 2D serpentine above** and add Z steps to stack multiple levels.
 
-```python
+<div class="diff2html-wrapper">
+    <div class="diff2html"></div>
+    <script type="text/plain" class="diff2html-source">
+diff --git a/example_device.py b/example_device.py
+index 0000000..1111111 100644
+--- a/example_device.py
++++ b/example_device.py
+@@ -61 +61 @@
         # Router builds the void geometry from a path
         router = Router(self, channel_size=channel_size, channel_margin=channel_margin)
 
-        # Build a fractional serpentine path.
-        # Each tuple is a fraction of the *total* vector from inlet to outlet.
-        # All X fractions must sum to 1.0, same for Y and Z.
-        total_height = (channel_size[2] + channel_margin[2]) * (levels - 1)
-        layer_step = (channel_size[2] + channel_margin[2]) / total_height if levels > 1 else 0.0
-
-        # We split X into small steps: left/right moves + a final nudge to reach the outlet
-        x_steps = loops * 2 + 1
-        x_step = 1.0 / x_steps
-
-        serpentine = []
-        for layer in range(levels):
-            # Alternate direction each layer (zig-zag)
-            direction = 1 if layer % 2 == 0 else -1
-
-            for loop in range(loops):
-                # Move along X into the next segment
-                if layer == 0 or loop != 0:
-                    serpentine.append((direction * x_step, 0.0, 0.0))
-
-                # Sweep across Y (up/down alternates each loop)
-                y_dir = 1 if loop % 2 == 0 else -1
-                serpentine.append((0.0, direction * y_dir, 0.0))
-
-                # Move along X again to complete the loop
-                if layer == levels - 1 or loop != loops - 1:
-                    serpentine.append((direction * x_step, 0.0, 0.0))
-
-            # Step up in Z between levels (except after the last one)
-            if layer != levels - 1:
-                serpentine.append((0.0, 0.0, layer_step))
-
-        # Final X step to land exactly on the outlet
-        serpentine.append((x_step, 0.0, 0.0))
-
+-        # Build a 2D serpentine path (Z stays at 0.0)
+-        x_steps = loops * 2 + 1
+-        x_step = 1.0 / x_steps
+-
+-        serpentine = []
+-        direction = 1
+-        for loop in range(loops):
+-            # Move along X into the next segment
+-            if loop != 0:
+-                serpentine.append((direction * x_step, 0.0, 0.0))
+-
+-            # Sweep across Y (up/down alternates each loop)
+-            y_dir = 1 if loop % 2 == 0 else -1
+-            serpentine.append((0.0, direction * y_dir, 0.0))
+-
+-            # Move along X again to complete the loop
+-            if loop != loops - 1:
+-                serpentine.append((direction * x_step, 0.0, 0.0))
+-
+-        # Final X step to land exactly on the outlet
+-        serpentine.append((x_step, 0.0, 0.0))
++        # Build a fractional serpentine path.
++        # Each tuple is a fraction of the *total* vector from inlet to outlet.
++        # All X fractions must sum to 1.0, same for Y and Z.
++        total_height = (channel_size[2] + channel_margin[2]) * (levels - 1)
++        layer_step = (channel_size[2] + channel_margin[2]) / total_height if levels > 1 else 0.0
++
++        # We split X into small steps: left/right moves + a final nudge to reach the outlet
++        x_steps = loops * 2 + 1
++        x_step = 1.0 / x_steps
++
++        serpentine = []
++        for layer in range(levels):
++            # Alternate direction each layer (zig-zag)
++            direction = 1 if layer % 2 == 0 else -1
++
++            for loop in range(loops):
++                # Move along X into the next segment
++                if layer == 0 or loop != 0:
++                    serpentine.append((direction * x_step, 0.0, 0.0))
++
++                # Sweep across Y (up/down alternates each loop)
++                y_dir = 1 if loop % 2 == 0 else -1
++                serpentine.append((0.0, direction * y_dir, 0.0))
++
++                # Move along X again to complete the loop
++                if layer == levels - 1 or loop != loops - 1:
++                    serpentine.append((direction * x_step, 0.0, 0.0))
++
++            # Step up in Z between levels (except after the last one)
++            if layer != levels - 1:
++                serpentine.append((0.0, 0.0, layer_step))
++
++        # Final X step to land exactly on the outlet
++        serpentine.append((x_step, 0.0, 0.0))
+ 
         router.route_with_fractional_path(self.inlet, self.outlet, serpentine, label="void")
         router.finalize_routes()
-```
 
-    Preview the full 3D serpentine. If you already added a preview above, **remove it** so only one preview call remains.
+ if __name__ == "__main__":
+     SerpentineChannel().preview()
+    </script>
+</div>
 
-### 6) Preview
-
-```python
-if __name__ == "__main__":
-    SerpentineChannel().preview()
-
-```
+Preview the full 3D serpentine.
 
 ![Multi Level Serpentine](resources/9/9-3.png)
 
 ---
 
-## Full example (copy/paste)
+## Full example
 
 The full script below combines the component setup, ports, and routing into one file so you can run it directly and preview the channel.
 
-```python
-### SERPENTINE CHANNEL COMPONENT
-
-import inspect
-from pymfcad import Component, Port, Router, Color, Cube
-
-
-class SerpentineChannel(Component):
-    """
-    Simple serpentine channel with two ports.
-    """
-
-    def __init__(
-        self,
-        channel_size=(8, 8, 6),
-        channel_margin=(8, 8, 6),
-        width=800,
-        loops=11,
-        levels=5,
-        px_size=0.0076,
-        layer_size=0.01,
-        quiet=False,
-    ):
-        frame = inspect.currentframe()
-        args, _, _, values = inspect.getargvalues(frame)
-        self.init_args = [values[arg] for arg in args if arg != "self"]
-        self.init_kwargs = {arg: values[arg] for arg in args if arg != "self"}
-
-        # Overall component size (bulk)
-        length = channel_size[0] * loops + channel_margin[0] * (loops + 1)
-
-        super().__init__(
-            size=(length, width, channel_size[2]*levels + channel_margin[2]*(levels + 1)),
-            position=(0, 0, 0),
-            px_size=px_size,
-            layer_size=layer_size,
-            quiet=quiet,
-        )
-
-        # Labels define which geometry is solid vs empty
-        self.add_label("bulk", Color.from_name("aqua", 127))
-        self.add_label("void", Color.from_name("red", 255))
-
-        # Start with a solid block
-        self.add_bulk("bulk_shape", Cube(self._size, center=False), label="bulk")
-
-        # Ports define start/end for routing
-        self.add_port(
-            "inlet",
-            Port(
-                Port.PortType.IN,
-                (0, channel_margin[1], channel_margin[2]),
-                channel_size,
-                Port.SurfaceNormal.NEG_X,
-            ),
-        )
-        self.add_port(
-            "outlet",
-            Port(
-                Port.PortType.OUT,
-                (length, width - 2 * channel_margin[1], levels*(channel_margin[2] + channel_size[2]) - channel_margin[2]),
-                channel_size,
-                Port.SurfaceNormal.POS_X,
-            ),
-        )
-
-        # Router converts a fractional path into void geometry
-        router = Router(self, channel_size=channel_size, channel_margin=channel_margin)
-
-        # Build a clear, commented fractional serpentine path.
-        total_height = (channel_size[2] + channel_margin[2]) * (levels - 1)
-        layer_step = (channel_size[2] + channel_margin[2]) / total_height if levels > 1 else 0.0
-
-        x_steps = loops * 2 + 1
-        x_step = 1.0 / x_steps
-
-        serpentine = []
-        for layer in range(levels):
-            direction = 1 if layer % 2 == 0 else -1  # alternate left/right each layer
-
-            for loop in range(loops):
-                # Move along X into a segment
-                if layer == 0 or loop != 0:
-                    serpentine.append((direction * x_step, 0.0, 0.0))
-
-                # Sweep across Y (alternating up/down)
-                y_dir = 1 if loop % 2 == 0 else -1
-                serpentine.append((0.0, direction * y_dir, 0.0))
-
-                # Move along X again
-                if layer == levels - 1 or loop != loops - 1:
-                    serpentine.append((direction * x_step, 0.0, 0.0))
-
-            # Step up in Z between levels
-            if layer != levels - 1:
-                serpentine.append((0.0, 0.0, layer_step))
-
-        # Final X step to end exactly at the outlet
-        serpentine.append((x_step, 0.0, 0.0))
-
-        router.route_with_fractional_path(self.inlet, self.outlet, serpentine, label="void")
-        router.finalize_routes()
-
-if __name__ == "__main__":
-    SerpentineChannel().preview()
-```
+<div class="diff2html-wrapper">
+    <div class="diff2html"></div>
+    <script type="text/plain" class="diff2html-source">
+diff --git a/example_device.py b/example_device.py
+index 0000000..1111111 100644
+--- a/example_device.py
++++ b/example_device.py
+@@ -1 +1 @@
+ import inspect
+ from pymfcad import Component, Port, Router, Color, Cube
+ 
+ class SerpentineChannel(Component):
+     """
+     Simple serpentine channel with two ports.
+     """
+     def __init__(
+         self,
+         channel_size=(8, 8, 6),
+         channel_margin=(8, 8, 6),
+         width=800,
+         loops=11,
+         levels=5,
+         px_size=0.0076,
+         layer_size=0.01,
+         quiet=False,
+     ):
+         frame = inspect.currentframe()
+         args, _, _, values = inspect.getargvalues(frame)
+         self.init_args = [values[arg] for arg in args if arg != "self"]
+         self.init_kwargs = {arg: values[arg] for arg in args if arg != "self"}
+ 
+         # Overall component size (bulk)
+         length = channel_size[0] * loops + channel_margin[0] * (loops + 1)
+ 
+         super().__init__(
+             size=(length, width, channel_size[2]*levels + channel_margin[2]*(levels + 1)),
+             position=(0, 0, 0),
+             px_size=px_size,
+             layer_size=layer_size,
+             quiet=quiet,
+         )
+ 
+         # Labels define which geometry is solid vs empty
+         self.add_label("bulk", Color.from_name("aqua", 127))
+         self.add_label("void", Color.from_name("red", 255))
+ 
+         # Start with a solid block
+         self.add_bulk("bulk_shape", Cube(self._size, center=False), label="bulk")
+ 
+         # Ports define start/end for routing
+         self.add_port(
+             "inlet",
+             Port(
+                 Port.PortType.IN,
+                 (0, channel_margin[1], channel_margin[2]),
+                 channel_size,
+                 Port.SurfaceNormal.NEG_X,
+             ),
+         )
+         self.add_port(
+             "outlet",
+             Port(
+                 Port.PortType.OUT,
+                 (length, width - 2 * channel_margin[1], levels*(channel_margin[2] + channel_size[2]) - channel_margin[2]),
+                 channel_size,
+                 Port.SurfaceNormal.POS_X,
+             ),
+         )
+ 
+         # Router converts a fractional path into void geometry
+         router = Router(self, channel_size=channel_size, channel_margin=channel_margin)
+ 
+         # Build a clear, commented fractional serpentine path.
+         total_height = (channel_size[2] + channel_margin[2]) * (levels - 1)
+         layer_step = (channel_size[2] + channel_margin[2]) / total_height if levels > 1 else 0.0
+ 
+         x_steps = loops * 2 + 1
+         x_step = 1.0 / x_steps
+ 
+         serpentine = []
+         for layer in range(levels):
+             direction = 1 if layer % 2 == 0 else -1  # alternate left/right each layer
+ 
+             for loop in range(loops):
+                 # Move along X into a segment
+                 if layer == 0 or loop != 0:
+                     serpentine.append((direction * x_step, 0.0, 0.0))
+ 
+                 # Sweep across Y (alternating up/down)
+                 y_dir = 1 if loop % 2 == 0 else -1
+                 serpentine.append((0.0, direction * y_dir, 0.0))
+ 
+                 # Move along X again
+                 if layer == levels - 1 or loop != loops - 1:
+                     serpentine.append((direction * x_step, 0.0, 0.0))
+ 
+             # Step up in Z between levels
+             if layer != levels - 1:
+                 serpentine.append((0.0, 0.0, layer_step))
+ 
+         # Final X step to end exactly at the outlet
+         serpentine.append((x_step, 0.0, 0.0))
+ 
+         router.route_with_fractional_path(self.inlet, self.outlet, serpentine, label="void")
+         router.finalize_routes()
+ 
+ if __name__ == "__main__":
+     SerpentineChannel().preview()
+    </script>
+</div>
 
 ---
 

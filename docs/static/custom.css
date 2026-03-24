@@ -7,3 +7,8 @@
 .doc-contents p:has(+ ol) {
   margin-bottom: 0.125em;
 }
+
+/* Widen the main content area */
+.wy-nav-content {
+  max-width: 900px;
+}

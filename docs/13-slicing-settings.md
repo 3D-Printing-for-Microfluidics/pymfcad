@@ -26,31 +26,47 @@ Settings describe the printer, resin, and default exposure/motion behavior. Star
 
 In the code below, you are creating a settings profile that matches your printer’s pixel grid and resin exposure baseline.
 
-```python
-from pymfcad import (
-    Settings,
-    ResinType,
-    Printer,
-    LightEngine,
-    PositionSettings,
-    ExposureSettings,
-)
+You can export/import `Settings`, `ResinType`, and `Printer` objects to JSON using their `save()` and `from_file()` methods.
 
-settings = Settings(
-    printer=Printer(
-        name="OS1",
-        light_engines=[
-            LightEngine(px_size=0.0076, px_count=(2560, 1600), wavelengths=[365])
-        ],
-    ),
-    resin=ResinType(bulk_exposure=300.0),
-    default_position_settings=PositionSettings(),
-    default_exposure_settings=ExposureSettings(),
-)
-
-settings.save("settings.json")
-settings = Settings.from_file("settings.json")
-```
+<div class="diff2html-wrapper">
+    <div class="diff2html"></div>
+    <script type="text/plain" class="diff2html-source">
+diff --git a/example_device.py b/example_device.py
+index 0000000..1111111 100644
+--- a/example_device.py
++++ b/example_device.py
+@@ -0 +1 @@
++from pymfcad import (
++    Settings,
++    ResinType,
++    Printer,
++    LightEngine,
++    PositionSettings,
++    ExposureSettings,
++)
++
++settings = Settings(
++    printer=Printer(
++        name="OS1",
++        light_engines=[
++            LightEngine(px_size=0.0076, px_count=(2560, 1600), wavelengths=[365])
++        ],
++    ),
++    resin=ResinType(
++        bulk_exposure=450.0,
++        monomer=[("PEG", 100)],
++        uv_absorbers=[("NPS", 2.0)],
++        initiators=[("IRG", 1.0)],
++    ),
++    default_position_settings=PositionSettings(),
++    default_exposure_settings=ExposureSettings(),
++)
++
++# Optionally save/import settings
++# settings.save("settings.json")
++# settings = Settings.from_file("settings.json")
+    </script>
+</div>
 
 ---
 
@@ -116,17 +132,27 @@ You can also attach exposure/position defaults to a device or component. These o
 
 Use this when a specific device or component needs different motion or exposure than your global defaults.
 
-```python
-from pymfcad import ExposureSettings, PositionSettings
-
-device.add_default_exposure_settings(
-    ExposureSettings(bulk_exposure_multiplier=1.0, power_setting=100)
-)
-
-device.add_default_position_settings(
-    PositionSettings(distance_up=1.0, up_speed=25.0, down_speed=20.0)
-)
-```
+<div class="diff2html-wrapper">
+    <div class="diff2html"></div>
+    <script type="text/plain" class="diff2html-source">
+diff --git a/example_device.py b/example_device.py
+index 0000000..1111111 100644
+--- a/example_device.py
++++ b/example_device.py
+@@ -27 +27 @@
+ # Optionally save/import settings
+ # settings.save("settings.json")
+ # settings = Settings.from_file("settings.json")
++
++# Not strictly needed as these are already the defaults
++device.add_default_exposure_settings(
++    ExposureSettings(bulk_exposure_multiplier=1.0, power_setting=100)
++)
++device.add_default_position_settings(
++    PositionSettings(distance_up=1.0, up_speed=25.0, down_speed=20.0)
++)
+    </script>
+</div>
 
 ## Step 3 — Burn‑in settings
 
@@ -134,10 +160,26 @@ Burn‑in layers are the first few layers of a print that use **longer exposures
 
 The list below applies one exposure time per initial layer, in order.
 
-```python
-# Optional: burn‑in exposures for early layers (ms)
-device.set_burn_in_exposure([10000.0, 5000.0, 2500.0])
-```
+<div class="diff2html-wrapper">
+    <div class="diff2html"></div>
+    <script type="text/plain" class="diff2html-source">
+diff --git a/example_device.py b/example_device.py
+index 0000000..1111111 100644
+--- a/example_device.py
++++ b/example_device.py
+@@ -31 +31 @@
+ # Not strictly needed as these are already the defaults
+ device.add_default_exposure_settings(
+     ExposureSettings(bulk_exposure_multiplier=1.0, power_setting=100)
+ )
+ device.add_default_position_settings(
+     PositionSettings(distance_up=1.0, up_speed=25.0, down_speed=20.0)
+ )
++
++# Optional: burn‑in exposures for early layers (ms)
++device.set_burn_in_exposure([10000.0, 5000.0, 2500.0])
+    </script>
+</div>
 
 ---
 
@@ -147,45 +189,57 @@ If you built the full device in Part 11, place the following **directly under th
 
 This example mirrors the minimal settings above, but adds resin metadata and explicit defaults so you can reuse the same settings file across prints.
 
-```python
-from pymfcad import (
-    Settings,
-    ResinType,
-    Printer,
-    LightEngine,
-    PositionSettings,
-    ExposureSettings,
-)
+<div class="diff2html-wrapper">
+    <div class="diff2html"></div>
+    <script type="text/plain" class="diff2html-source">
+diff --git a/example_device.py b/example_device.py
+index 0000000..1111111 100644
+--- a/example_device.py
++++ b/example_device.py
+@@ -1 +1 @@
+ from pymfcad import (
+     Settings,
+     ResinType,
+     Printer,
+     LightEngine,
+     PositionSettings,
+     ExposureSettings,
+ )
+ 
+ # Create settings object
+ settings = Settings(
+     printer=Printer(
+         name="OS1",
+         light_engines=[
+             LightEngine(px_size=0.0076, px_count=(2560, 1600), wavelengths=[365])
+         ],
+     ),
+     resin=ResinType(
+         bulk_exposure=450.0,
+         monomer=[("PEG", 100)],
+         uv_absorbers=[("NPS", 2.0)],
+         initiators=[("IRG", 1.0)],
+     ),
+     default_position_settings=PositionSettings(),
+     default_exposure_settings=ExposureSettings(),
+ )
 
-# Create settings object
-settings = Settings(
-    printer=Printer(
-        name="OS1",
-        light_engines=[
-            LightEngine(px_size=0.0076, px_count=(2560, 1600), wavelengths=[365])
-        ],
-    ),
-    resin=ResinType(
-        bulk_exposure=450.0,
-        monomer=[("PEG", 100)],
-        uv_absorbers=[("NPS", 2.0)],
-        initiators=[("IRG", 1.0)],
-    ),
-    default_position_settings=PositionSettings(),
-    default_exposure_settings=ExposureSettings(),
-)
-
-# Not strictly needed as these are already the defaults
-device.add_default_exposure_settings(
-    ExposureSettings(bulk_exposure_multiplier=1.0, power_setting=100)
-)
-device.add_default_position_settings(
-    PositionSettings(distance_up=1.0, up_speed=25.0, down_speed=20.0)
-)
-
-# Set device burn-in
-device.set_burn_in_exposure([10000.0, 5000.0, 2500.0])
-```
+ # Optionally save/import settings
+ # settings.save("settings.json")
+ # settings = Settings.from_file("settings.json")
+ 
+ # Not strictly needed as these are already the defaults
+ device.add_default_exposure_settings(
+     ExposureSettings(bulk_exposure_multiplier=1.0, power_setting=100)
+ )
+ device.add_default_position_settings(
+     PositionSettings(distance_up=1.0, up_speed=25.0, down_speed=20.0)
+ )
+ 
+ # Set device burn-in
+ device.set_burn_in_exposure([10000.0, 5000.0, 2500.0])
+    </script>
+</div>
 
 ---
 

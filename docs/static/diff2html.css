@@ -1,0 +1,56 @@
+.diff2html-wrapper {
+  margin: 1.2em 0;
+}
+
+.diff2html-wrapper .d2h-file-header {
+  display: none;
+}
+
+.diff2html-wrapper .d2h-wrapper {
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+/* Disable word-level highlighting for line diffs */
+.diff2html-wrapper .d2h-code-line ins,
+.diff2html-wrapper .d2h-code-line del {
+  background: transparent !important;
+  text-decoration: none !important;
+  color: inherit !important;
+}
+
+/* Normalize line colors for additions/deletions */
+.diff2html-wrapper .d2h-del {
+  background-color: var(--diff-del-bg) !important;
+}
+
+.diff2html-wrapper .d2h-ins {
+  background-color: var(--diff-ins-bg) !important;
+}
+
+
+.diff2html-wrapper .d2h-del .d2h-code-line,
+.diff2html-wrapper .d2h-del .d2h-code-line-ctn,
+.diff2html-wrapper .d2h-del .d2h-code-line-prefix {
+  color: var(--diff-del-text) !important;
+}
+
+.diff2html-wrapper .d2h-ins .d2h-code-line,
+.diff2html-wrapper .d2h-ins .d2h-code-line-ctn,
+.diff2html-wrapper .d2h-ins .d2h-code-line-prefix {
+  color: var(--diff-ins-text) !important;
+}
+
+/* VS Code-like semantic colors for custom identifiers */
+.diff2html-wrapper .d2h-id-class,
+.diff2html-wrapper .d2h-id-import {
+  color: var(--diff-class-color) !important; /* classes/packages */
+}
+
+.diff2html-wrapper .d2h-id-function {
+  color: var(--diff-function-color) !important; /* functions */
+}
+
+.diff2html-wrapper .d2h-id-variable {
+  color: var(--diff-variable-color) !important; /* variables/params */
+}

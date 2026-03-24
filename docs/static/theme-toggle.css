@@ -1,0 +1,160 @@
+:root {
+  --diff-del-bg: #ffecec;
+  --diff-ins-bg: #eaffea;
+  --diff-del-text: #000000;
+  --diff-ins-text: #000000;
+  --diff-class-color: #267f99;
+  --diff-import-color: #267f99;
+  --diff-function-color: #795e26;
+  --diff-variable-color: #001080;
+}
+
+:root[data-theme="dark"] {
+  --diff-del-bg: #4e1d1d;
+  --diff-ins-bg: #294410;
+  --diff-del-text: #ffffff;
+  --diff-ins-text: #ffffff;
+  --diff-class-color: #4ec9b0;
+  --diff-import-color: #4ec9b0;
+  --diff-function-color: #dcdcaa;
+  --diff-variable-color: #9cdcfe;
+}
+
+.theme-toggle {
+  position: fixed;
+  right: 16px;
+  bottom: 16px;
+  z-index: 1000;
+  padding: 8px 10px;
+  font-size: 16px;
+  line-height: 1;
+  border: 1px solid #ccc;
+  border-radius: 999px;
+  background: #f7f7f7;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+}
+
+:root[data-theme="dark"] .theme-toggle {
+  border-color: #444;
+  background: #2d2d2d;
+  color: #f0f0f0;
+}
+
+/* ReadTheDocs dark theme overrides */
+:root[data-theme="dark"] body,
+:root[data-theme="dark"] .wy-body-for-nav,
+:root[data-theme="dark"] .wy-nav-content,
+:root[data-theme="dark"] .wy-nav-content-wrap {
+  background: #1e1e1e;
+  color: #d4d4d4;
+}
+
+:root[data-theme="dark"] .wy-nav-side {
+  background: #252526;
+  color: #d4d4d4;
+}
+
+:root[data-theme="dark"] .wy-side-nav-search,
+:root[data-theme="dark"] .wy-side-nav-search input[type="text"] {
+  background: #2d2d2d;
+  color: #d4d4d4;
+  border-color: #3c3c3c;
+}
+
+:root[data-theme="dark"] .wy-nav-side a,
+:root[data-theme="dark"] .wy-nav-content a,
+:root[data-theme="dark"] .wy-side-nav-search a {
+  color: #9cdcfe;
+}
+
+:root[data-theme="dark"] .wy-menu-vertical a {
+  color: #d4d4d4;
+}
+
+:root[data-theme="dark"] .wy-menu-vertical a:hover,
+:root[data-theme="dark"] .wy-menu-vertical a:focus {
+  background: #2b2b2b;
+}
+
+:root[data-theme="dark"] .wy-menu-vertical li.toctree-l1.current > a,
+:root[data-theme="dark"] .wy-menu-vertical li.toctree-l2.current > a,
+:root[data-theme="dark"] .wy-menu-vertical li.toctree-l3.current > a {
+  background: #383838;
+  color: #ffffff;
+}
+
+:root[data-theme="dark"] .wy-menu-vertical li.toctree-l1.current > ul,
+:root[data-theme="dark"] .wy-menu-vertical li.toctree-l2.current > ul,
+:root[data-theme="dark"] .wy-menu-vertical li.toctree-l3.current > ul {
+  background: #4c4c4e;
+}
+
+:root[data-theme="dark"] .wy-menu-vertical li.current > a,
+:root[data-theme="dark"] .wy-menu-vertical li.current > a:hover,
+:root[data-theme="dark"] .wy-menu-vertical li.current > a:focus {
+  background: #2f2f2f;
+  color: #ffffff;
+}
+
+:root[data-theme="dark"] .wy-nav-top {
+  background: #2d2d2d;
+  color: #d4d4d4;
+}
+
+:root[data-theme="dark"] .rst-content .note,
+:root[data-theme="dark"] .rst-content .warning,
+:root[data-theme="dark"] .rst-content .admonition {
+  background: #2a2a2a;
+  border-color: #3c3c3c;
+}
+
+:root[data-theme="dark"] .rst-content code,
+:root[data-theme="dark"] .rst-content tt,
+:root[data-theme="dark"] .rst-content pre {
+  background: #1e1e1e;
+  color: #d4d4d4;
+  border-color: #3c3c3c;
+}
+
+:root[data-theme="dark"] .rst-content table.docutils,
+:root[data-theme="dark"] .rst-content table.docutils th,
+:root[data-theme="dark"] .rst-content table.docutils td {
+  background: #1e1e1e;
+  color: #d4d4d4;
+  border-color: #3c3c3c;
+}
+
+/* Diff2html borders in dark mode */
+:root[data-theme="dark"] .diff2html-wrapper .d2h-diff-table th,
+:root[data-theme="dark"] .diff2html-wrapper .d2h-diff-table td,
+:root[data-theme="dark"] .diff2html-wrapper .d2h-code-line,
+:root[data-theme="dark"] .diff2html-wrapper .d2h-code-line-ctn,
+:root[data-theme="dark"] .diff2html-wrapper .d2h-code-line-prefix,
+:root[data-theme="dark"] .diff2html-wrapper .d2h-code-linenumber {
+  border-color: #3c3c3c !important;
+}
+
+/* Diff2html scrollbars in dark mode */
+:root[data-theme="dark"] .diff2html-wrapper .d2h-wrapper {
+  scrollbar-color: #555 #1e1e1e;
+}
+
+:root[data-theme="dark"] .diff2html-wrapper .d2h-wrapper::-webkit-scrollbar {
+  height: 10px;
+  width: 10px;
+}
+
+:root[data-theme="dark"] .diff2html-wrapper .d2h-wrapper::-webkit-scrollbar-track {
+  background: #1e1e1e;
+}
+
+:root[data-theme="dark"] .diff2html-wrapper .d2h-wrapper::-webkit-scrollbar-thumb {
+  background: #555;
+  border-radius: 8px;
+  border: 2px solid #1e1e1e;
+}
+
+:root[data-theme="dark"] .diff2html-wrapper .d2h-wrapper::-webkit-scrollbar-thumb:hover {
+  background: #666;
+}

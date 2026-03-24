@@ -12,7 +12,8 @@ nav:
       - "Part 1: Introduction": 1-introduction.md
       - "Part 2: Installation": 2-installation.md
       - "Part 3: Using the Visualizer": 3-visualizer.md
-      - "Part 4: Hello World Component": 4-building_first_component.md
+      - "Part 4a: Reading Code Examples": 4a-reading-code-examples.md
+      - "Part 4b: Hello World Component": 4b-building_first_component.md
   - "Modeling with PyMFCAD":
     - "Part 5: Modeling Introduction": 5-modeling-introduction.md
     - "Part 6: Modeling Bulks, Voids, and Shapes": 6-modeling-bulks-voids-shapes.md
@@ -54,7 +55,9 @@ nav:
       - "Component Library": api/component_library.md
 
 
-theme: readthedocs
+theme:
+  name: readthedocs
+  custom_dir: docs/overrides
 
 markdown_extensions:
     - pymdownx.superfences
@@ -78,11 +81,24 @@ plugins:
                 docstring_section_style: list
                 heading_level: 3
 
+hooks:
+  - utilities/mkdocs_hooks.py
+
 extra_javascript:
-    - https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js
-    - https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js
-    - static/katex.js
+  - https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js
+  - https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js
+  - static/katex.js
+  - https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/highlight.min.js
+  - static/diff2html-identifiers.js
+  - https://cdn.jsdelivr.net/npm/diff2html/bundles/js/diff2html.min.js
+  - static/diff2html.js
+  - static/theme-toggle.js
 
 extra_css:
-    - https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css
-    - static/custom.css
+  - https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css
+  - https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/styles/vs.min.css
+  - https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/styles/vs2015.min.css
+  - https://cdn.jsdelivr.net/npm/diff2html/bundles/css/diff2html.min.css
+  - static/custom.css
+  - static/diff2html.css
+  - static/theme-toggle.css

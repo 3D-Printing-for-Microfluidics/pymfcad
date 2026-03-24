@@ -45,35 +45,41 @@ Let’s see an example.
 
 Before we can start modeling our device, we need to make our canvas. The `Device` defines the pixel grid and layer stack for a specific printer setup.
 
-```python
-import pymfcad
-
-# Define constants for device dimensions and resolution
-# Pixel/layer units are the core constraint for DLP‑SLA 3D printing.
-PX_SIZE = 0.0076
-LAYER_SIZE = 0.01
-
-DEVICE_X = 2560
-DEVICE_Y = 1600
-DEVICE_Z = 300
-
-# Create a new device (final print = bulk minus voids)
-device = pymfcad.Device(
-    name="example_device",
-    position=(0, 0, 0),
-    layers=DEVICE_Z,
-    layer_size=LAYER_SIZE,
-    px_count=(DEVICE_X, DEVICE_Y),
-    px_size=PX_SIZE,
-)
-
-
-# Add labels for bulk and void regions (labels are just named color groups)
-device.add_label("bulk", pymfcad.Color.from_name("aqua", 120))
-device.add_label("void", pymfcad.Color.from_name("tomato", 200))
-
-
-```
+<div class="diff2html-wrapper">
+    <div class="diff2html"></div>
+    <script type="text/plain" class="diff2html-source">
+diff --git a/example_device.py b/example_device.py
+index 0000000..1111111 100644
+--- a/example_device.py
++++ b/example_device.py
+@@ -0 +1 @@
++import pymfcad
++
++# Define constants for device dimensions and resolution
++# Pixel/layer units are the core constraint for DLP‑SLA 3D printing.
++PX_SIZE = 0.0076
++LAYER_SIZE = 0.01
++
++DEVICE_X = 2560
++DEVICE_Y = 1600
++DEVICE_Z = 300
++
++# Create a new device (final print = bulk minus voids)
++device = pymfcad.Device(
++    name="example_device",
++    position=(0, 0, 0),
++    layers=DEVICE_Z,
++    layer_size=LAYER_SIZE,
++    px_count=(DEVICE_X, DEVICE_Y),
++    px_size=PX_SIZE,
++)
++
++
++# Add labels for bulk and void regions (labels are just named color groups)
++device.add_label("bulk", pymfcad.Color.from_name("aqua", 120))
++device.add_label("void", pymfcad.Color.from_name("tomato", 200))
+    </script>
+</div>
 
 ---
 
@@ -81,18 +87,41 @@ device.add_label("void", pymfcad.Color.from_name("tomato", 200))
 
 Start with a single bulk shape that matches the device bounds. Every channel, reservoir, or access port will be carved out as a **void** later.
 
-```python
-# Define bulk region and add it to the device
-bulk = pymfcad.Cube((DEVICE_X, DEVICE_Y, DEVICE_Z))
-device.add_bulk("bulk_shape", bulk, label="bulk")
-```
+<div class="diff2html-wrapper">
+    <div class="diff2html"></div>
+    <script type="text/plain" class="diff2html-source">
+diff --git a/example_device.py b/example_device.py
+index 0000000..1111111 100644
+--- a/example_device.py
++++ b/example_device.py
+@@ -23 +23 @@
+ # Add labels for bulk and void regions (labels are just named color groups)
+ device.add_label("bulk", pymfcad.Color.from_name("aqua", 120))
+ device.add_label("void", pymfcad.Color.from_name("tomato", 200))
++
++# Define bulk region and add it to the device
++bulk = pymfcad.Cube((DEVICE_X, DEVICE_Y, DEVICE_Z))
++device.add_bulk("bulk_shape", bulk, label="bulk")
+    </script>
+</div>
 
+Preview now to confirm your bulk body is correct.
 
-Preview now to confirm your bulk body is correct. When you move on to the next step, **remove the previous** `device.preview()` call (or move your new code **above** the preview so there is only one preview call).
-
-```python
-device.preview()
-```
+<div class="diff2html-wrapper">
+    <div class="diff2html"></div>
+    <script type="text/plain" class="diff2html-source">
+diff --git a/example_device.py b/example_device.py
+index 1111111..2222222 100644
+--- a/example_device.py
++++ b/example_device.py
+@@ -27 +27 @@
+ # Define bulk region and add it to the device
+ bulk = pymfcad.Cube((DEVICE_X, DEVICE_Y, DEVICE_Z))
+ device.add_bulk("bulk_shape", bulk, label="bulk")
++
++device.preview()
+    </script>
+</div>
 
 ![Device bulk](resources/7/7-1.png)
 
@@ -102,23 +131,33 @@ device.preview()
 
 Channels are usually long and thin, so we start with a rectangular void. We avoid round channels at very small widths because a few pixels can’t represent a smooth circle. We create the channel centered in X for easy placement, then translate it into position.
 
-```python
-# Define channel dimensions and position
-CHANNEL_SIZE = (2560, 13, 10)
-CHANNEL_POS = (0, 800, 150)
+<div class="diff2html-wrapper">
+    <div class="diff2html"></div>
+    <script type="text/plain" class="diff2html-source">
+diff --git a/example_device.py b/example_device.py
+index 0000000..1111111 100644
+--- a/example_device.py
++++ b/example_device.py
+@@ -27 +27 @@
+ # Define bulk region and add it to the device
+ bulk = pymfcad.Cube((DEVICE_X, DEVICE_Y, DEVICE_Z))
+ device.add_bulk("bulk_shape", bulk, label="bulk")
++
++# Define channel dimensions and position
++CHANNEL_SIZE = (2560, 13, 10)
++CHANNEL_POS = (0, 800, 150)
++
++# Create a channel (centered for easy placement, then translated)
++channel = pymfcad.Cube(CHANNEL_SIZE, center=True)
++# Translate to absolute device coordinates (centered x, absolute y/z)
++channel.translate((CHANNEL_POS[0] + CHANNEL_SIZE[0] // 2, CHANNEL_POS[1], CHANNEL_POS[2]))
++device.add_void("channel", channel, label="void")
+  
+ device.preview()
+    </script>
+</div>
 
-# Create a channel (centered for easy placement, then translated)
-channel = pymfcad.Cube(CHANNEL_SIZE, center=True)
-# Translate to absolute device coordinates (centered x, absolute y/z)
-channel.translate((CHANNEL_POS[0] + CHANNEL_SIZE[0] // 2, CHANNEL_POS[1], CHANNEL_POS[2]))
-device.add_void("channel", channel, label="void")
-```
-
-Preview the channel placement. **Remove the previous** `device.preview()` or keep a single preview at the bottom after this step’s code.
-
-```python
-device.preview()
-```
+At this point you should now have a channel running through your bulk block.
 
 ![Simple channel](resources/7/7-2.png)
 
@@ -130,229 +169,352 @@ Channels need **access points** for tubing or reservoirs. We model these as **la
 
 Because $\text{px\_size} \ne \text{layer\_size}$, we convert the pinhole height in layers so the opening stays circular in **mm**.
 
-```python
-# Define pinhole dimensions
-PINHOLE_WIDTH = 150
-PINHOLE_LENGTH = 200
-# Convert a physical width to layer units to keep pinholes circular in mm
-PINHOLE_HEIGHT = PINHOLE_WIDTH * PX_SIZE / LAYER_SIZE
+<div class="diff2html-wrapper">
+    <div class="diff2html"></div>
+    <script type="text/plain" class="diff2html-source">
+diff --git a/example_device.py b/example_device.py
+index 0000000..1111111 100644
+--- a/example_device.py
++++ b/example_device.py
+@@ -35 +35 @@
+ # Create a channel (centered for easy placement, then translated)
+ channel = pymfcad.Cube(CHANNEL_SIZE, center=True)
+ # Translate to absolute device coordinates (centered x, absolute y/z)
+ channel.translate((CHANNEL_POS[0] + CHANNEL_SIZE[0] // 2, CHANNEL_POS[1], CHANNEL_POS[2]))
+ device.add_void("channel", channel, label="void")
++
++# Define pinhole dimensions
++PINHOLE_WIDTH = 150
++PINHOLE_LENGTH = 200
++# Convert a physical width to layer units to keep pinholes circular in mm
++PINHOLE_HEIGHT = PINHOLE_WIDTH * PX_SIZE / LAYER_SIZE
++
++# Create pinholes and add them as voids
++pinhole_a = pymfcad.Cylinder(height=1, radius=1).rotate((0, 90, 0))
++# Resize to keep pinholes circular in mm (px and layer sizes differ)
++pinhole_a.resize((PINHOLE_LENGTH, PINHOLE_WIDTH, PINHOLE_HEIGHT))
++pinhole_a.translate((CHANNEL_POS[0], CHANNEL_POS[1], CHANNEL_POS[2]))
++
++pinhole_b = pymfcad.Cylinder(height=1, radius=1).rotate((0, 90, 0))
++# Resize to keep pinholes circular in mm (px and layer sizes differ)
++pinhole_b.resize((PINHOLE_LENGTH, PINHOLE_WIDTH, PINHOLE_HEIGHT))
++pinhole_b.translate((CHANNEL_POS[0] + CHANNEL_SIZE[0] - PINHOLE_LENGTH, CHANNEL_POS[1], CHANNEL_POS[2]))
++
++device.add_void("pin_a", pinhole_a, label="void")
++device.add_void("pin_b", pinhole_b, label="void")
+  
+ device.preview()
+    </script>
+</div>
 
-# Create pinholes and add them as voids
-pinhole_a = pymfcad.Cylinder(height=1, radius=1).rotate((0, 90, 0))
-# Resize to keep pinholes circular in mm (px and layer sizes differ)
-pinhole_a.resize((PINHOLE_LENGTH, PINHOLE_WIDTH, PINHOLE_HEIGHT))
-pinhole_a.translate((CHANNEL_POS[0], CHANNEL_POS[1], CHANNEL_POS[2]))
-
-pinhole_b = pymfcad.Cylinder(height=1, radius=1).rotate((0, 90, 0))
-# Resize to keep pinholes circular in mm (px and layer sizes differ)
-pinhole_b.resize((PINHOLE_LENGTH, PINHOLE_WIDTH, PINHOLE_HEIGHT))
-pinhole_b.translate((CHANNEL_POS[0] + CHANNEL_SIZE[0] - PINHOLE_LENGTH, CHANNEL_POS[1], CHANNEL_POS[2]))
-
-device.add_void("pin_a", pinhole_a, label="void")
-device.add_void("pin_b", pinhole_b, label="void")
-```
-
----
-
-## Step 5 — Finish the base device and preview
-
-At this point you have a complete device: a bulk block with a channel and two pinholes carved out as voids. If you already previewed in Step 4, you can skip this or keep just **one** preview call.
-
-```python
-device.preview()
-```
+At this point you have a complete device: a bulk block with a channel and two pinholes carved out as voids.
 
 ![Channel with pinholes](resources/7/7-3.png)
 
 ---
 
-## Step 6 — Parametric design (union, loops, and conditionals)
+## Step 5 — Parametric design (union, loops, and conditionals)
 
 Now we can use the shape operations to combine shapes into one unit and create variants programmatically. The goal is to **stop adding individual voids** and instead add **copies of a single parametric unit**.
 
-### 6.1 Union the three shapes
+### 5.1 Union the three shapes
 
 Replace the individual void adds from Step 3 with a single void shape:
 
-```python
-# Remove these from Step 3:
-# device.add_void("channel", channel, label="void")
-# device.add_void("pin_a", pinhole_a, label="void")
-# device.add_void("pin_b", pinhole_b, label="void")
+<div class="diff2html-wrapper">
+    <div class="diff2html"></div>
+    <script type="text/plain" class="diff2html-source">
+diff --git a/example_device.py b/example_device.py
+index 0000000..1111111 100644
+--- a/example_device.py
++++ b/example_device.py
+@@ -35 +35 @@
+ # Create a channel (centered for easy placement, then translated)
+ channel = pymfcad.Cube(CHANNEL_SIZE, center=True)
+ # Translate to absolute device coordinates (centered x, absolute y/z)
+ channel.translate((CHANNEL_POS[0] + CHANNEL_SIZE[0] // 2, CHANNEL_POS[1], CHANNEL_POS[2]))
+-device.add_void("channel", channel, label="void")
+ 
+ # Define pinhole dimensions
+ PINHOLE_WIDTH = 150
+ PINHOLE_LENGTH = 200
+ # Convert a physical width to layer units to keep pinholes circular in mm
+ PINHOLE_HEIGHT = PINHOLE_WIDTH * PX_SIZE / LAYER_SIZE
+ 
+ # Create pinholes and add them as voids
+ pinhole_a = pymfcad.Cylinder(height=1, radius=1).rotate((0, 90, 0))
+ # Resize to keep pinholes circular in mm (px and layer sizes differ)
+ pinhole_a.resize((PINHOLE_LENGTH, PINHOLE_WIDTH, PINHOLE_HEIGHT))
+ pinhole_a.translate((CHANNEL_POS[0], CHANNEL_POS[1], CHANNEL_POS[2]))
+ 
+ pinhole_b = pymfcad.Cylinder(height=1, radius=1).rotate((0, 90, 0))
+ # Resize to keep pinholes circular in mm (px and layer sizes differ)
+ pinhole_b.resize((PINHOLE_LENGTH, PINHOLE_WIDTH, PINHOLE_HEIGHT))
+ pinhole_b.translate((CHANNEL_POS[0] + CHANNEL_SIZE[0] - PINHOLE_LENGTH, CHANNEL_POS[1], CHANNEL_POS[2]))
+ 
+-device.add_void("pin_a", pinhole_a, label="void")
+-device.add_void("pin_b", pinhole_b, label="void")
++channel_unit = channel + pinhole_a + pinhole_b
++device.add_void("channel", channel_unit, label="void")
+  
+ device.preview()
+    </script>
+</div>
 
-# Combine channel and pinholes into a single parametric unit
-channel_unit = channel + pinhole_a + pinhole_b
-```
+![Channel with pinholes](resources/7/7-3.png)
 
 ---
 
-### 6.2 Use loops + if statements
+### 5.2 Use loops + if statements
 
 We can build a small array of channels with labels **A, B, C, D, E** using a loop and a conditional. This is a simple example of parametric design: the same unit is reused, placed, and optionally annotated.
 
-```python
-# Add this before device.preview()
+<div class="diff2html-wrapper">
+    <div class="diff2html"></div>
+    <script type="text/plain" class="diff2html-source">
+diff --git a/example_device.py b/example_device.py
+index 0000000..1111111 100644
+--- a/example_device.py
++++ b/example_device.py
+@@ -57 +57 @@
+ channel_unit = channel + pinhole_a + pinhole_b
+-device.add_void("channel", channel_unit, label="void")
++
++# Parametric toggles make it easy to explore variants without editing geometry
++INCLUDE_TEXT = True
++
++FONT_SIZE = 100
++FONT_HEIGHT = 10
++LABELS = ["A", "B", "C", "D", "E"]
++
++for i, letter in enumerate(LABELS):
++    offset = (0, (i-2) * 300, 0)
++
++    unit = channel_unit.copy().translate(offset)
++    device.add_void(f"channel_{letter}", unit, label="void")
++
++    # Example conditional: only add text for the first four
++    if i < 4:
++        text = pymfcad.TextExtrusion(letter, height=FONT_HEIGHT, font_size=FONT_SIZE)
++        text.rotate((90, 0, 90))
++        text.translate((CHANNEL_POS[0], CHANNEL_POS[1] + (i-2) * 300 - 20, CHANNEL_POS[2] + PINHOLE_HEIGHT/2 + 10))
++        device.add_void(f"label_{letter}", text, label="void")
+  
+ device.preview()
+    </script>
+</div>
 
-# Parametric toggles make it easy to explore variants without editing geometry
-INCLUDE_TEXT = True
-
-FONT_SIZE = 100
-FONT_HEIGHT = 10
-LABELS = ["A", "B", "C", "D", "E"]
-
-for i, letter in enumerate(LABELS):
-    offset = (0, (i-2) * 300, 0)
-
-    unit = channel_unit.copy().translate(offset)
-    device.add_void(f"channel_{letter}", unit, label="void")
-
-    # Example conditional: only add text for the first four
-    if i < 4:
-        text = pymfcad.TextExtrusion(letter, height=FONT_HEIGHT, font_size=FONT_SIZE)
-        text.rotate((90, 0, 90))
-        text.translate((CHANNEL_POS[0], CHANNEL_POS[1] + (i-2) * 300 - 20, CHANNEL_POS[2] + PINHOLE_HEIGHT/2 + 10))
-        device.add_void(f"label_{letter}", text, label="void")
-```
-
-Preview the parametric array. **Remove the previous** `device.preview()` or ensure only one preview call remains below the new code.
-
-```python
-device.preview()
+Preview the parametric array.
 ```
 
 ![Parametric channel array](resources/7/7-4.png)
 
 ---
 
-## Full parameterized script
+## Full parameterized example
 
 Your final code should look something like this:
 
-```python
-import pymfcad
-
-# Define constants for device dimensions and resolution
-# Pixel/layer units are the core constraint for DLP‑SLA printing.
-PX_SIZE = 0.0076
-LAYER_SIZE = 0.01
-
-DEVICE_X = 2560
-DEVICE_Y = 1600
-DEVICE_Z = 300
-
-# Create a new device (final print = bulk minus voids)
-device = pymfcad.Device(
-    name="example_device",
-    position=(0, 0, 0),
-    layers=DEVICE_Z,
-    layer_size=LAYER_SIZE,
-    px_count=(DEVICE_X, DEVICE_Y),
-    px_size=PX_SIZE,
-)
-
-# Add labels for bulk and void regions (labels are just named color groups)
-device.add_label("bulk", pymfcad.Color.from_name("aqua", 120))
-device.add_label("void", pymfcad.Color.from_name("tomato", 200))
-
-# Define bulk region and add it to the device
-bulk = pymfcad.Cube((DEVICE_X, DEVICE_Y, DEVICE_Z))
-device.add_bulk("bulk_shape", bulk, label="bulk")
-
-
-# Define channel and pinhole dimensions and position
-CHANNEL_SIZE = (2560, 13, 10)
-CHANNEL_POS = (0, 800, 150)
-PINHOLE_WIDTH = 150
-PINHOLE_LENGTH = 200
-# Convert a physical width to layer units to keep pinholes circular in mm
-PINHOLE_HEIGHT = PINHOLE_WIDTH * PX_SIZE / LAYER_SIZE
-
-# Create a channel (centered for easy placement, then translated)
-channel = pymfcad.Cube(CHANNEL_SIZE, center=True)
-# Translate to absolute device coordinates (centered x, absolute y/z)
-channel.translate((CHANNEL_POS[0]+CHANNEL_SIZE[0]//2, CHANNEL_POS[1], CHANNEL_POS[2]))
-
-# Create pinholes
-pinhole_a = pymfcad.Cylinder(height=1, radius=1).rotate((0,90,0))
-# Resize to keep pinholes circular in mm (px and layer sizes differ)
-pinhole_a.resize((PINHOLE_LENGTH, PINHOLE_WIDTH, PINHOLE_HEIGHT))
-pinhole_a.translate((CHANNEL_POS[0], CHANNEL_POS[1], CHANNEL_POS[2]))
-
-pinhole_b = pymfcad.Cylinder(height=1, radius=1).rotate((0,90,0))
-# Resize to keep pinholes circular in mm (px and layer sizes differ)
-pinhole_b.resize((PINHOLE_LENGTH, PINHOLE_WIDTH, PINHOLE_HEIGHT))
-pinhole_b.translate((CHANNEL_POS[0]+CHANNEL_SIZE[0]-PINHOLE_LENGTH, CHANNEL_POS[1], CHANNEL_POS[2]))
-
-# Combine channel and pinholes into a single void region (boolean union)
-channel_unit = channel + pinhole_a + pinhole_b
-
-
-# Parametric toggles make it easy to explore variants without editing geometry
-INCLUDE_TEXT = True
-
-FONT_SIZE = 100
-FONT_HEIGHT = 10
-LABELS = ["A", "B", "C", "D", "E"]
-
-for i, letter in enumerate(LABELS):
-    offset = (0, (i-2) * 300, 0)
-
-    unit = channel_unit.copy().translate(offset)
-    device.add_void(f"channel_{letter}", unit, label="void")
-
-    # Example conditional: only add text for the first four
-    if i < 4:
-        text = pymfcad.TextExtrusion(letter, height=FONT_HEIGHT, font_size=FONT_SIZE)
-        text.rotate((90, 0, 90))
-        text.translate((CHANNEL_POS[0], CHANNEL_POS[1] + (i-2) * 300 - 20, CHANNEL_POS[2] + PINHOLE_HEIGHT/2 + 10))
-        device.add_void(f"label_{letter}", text, label="void")
-
-# Preview the device
-device.preview()
-
-```
+<div class="diff2html-wrapper">
+    <div class="diff2html"></div>
+    <script type="text/plain" class="diff2html-source">
+diff --git a/example_device.py b/example_device.py
+index 0000000..1111111 100644
+--- a/example_device.py
++++ b/example_device.py
+@@ -1 +1 @@
+ import pymfcad
+ 
+ # Define constants for device dimensions and resolution
+ # Pixel/layer units are the core constraint for DLP‑SLA printing.
+ PX_SIZE = 0.0076
+ LAYER_SIZE = 0.01
+ 
+ DEVICE_X = 2560
+ DEVICE_Y = 1600
+ DEVICE_Z = 300
+ 
+ # Create a new device (final print = bulk minus voids)
+ device = pymfcad.Device(
+     name="example_device",
+     position=(0, 0, 0),
+     layers=DEVICE_Z,
+     layer_size=LAYER_SIZE,
+     px_count=(DEVICE_X, DEVICE_Y),
+     px_size=PX_SIZE,
+ )
+ 
+ # Add labels for bulk and void regions (labels are just named color groups)
+ device.add_label("bulk", pymfcad.Color.from_name("aqua", 120))
+ device.add_label("void", pymfcad.Color.from_name("tomato", 200))
+ 
+ # Define bulk region and add it to the device
+ bulk = pymfcad.Cube((DEVICE_X, DEVICE_Y, DEVICE_Z))
+ device.add_bulk("bulk_shape", bulk, label="bulk")
+ 
+ 
+ # Define channel and pinhole dimensions and position
+ CHANNEL_SIZE = (2560, 13, 10)
+ CHANNEL_POS = (0, 800, 150)
+ PINHOLE_WIDTH = 150
+ PINHOLE_LENGTH = 200
+ # Convert a physical width to layer units to keep pinholes circular in mm
+ PINHOLE_HEIGHT = PINHOLE_WIDTH * PX_SIZE / LAYER_SIZE
+ 
+ # Create a channel (centered for easy placement, then translated)
+ channel = pymfcad.Cube(CHANNEL_SIZE, center=True)
+ # Translate to absolute device coordinates (centered x, absolute y/z)
+ channel.translate((CHANNEL_POS[0]+CHANNEL_SIZE[0]//2, CHANNEL_POS[1], CHANNEL_POS[2]))
+ 
+ # Create pinholes
+ pinhole_a = pymfcad.Cylinder(height=1, radius=1).rotate((0,90,0))
+ # Resize to keep pinholes circular in mm (px and layer sizes differ)
+ pinhole_a.resize((PINHOLE_LENGTH, PINHOLE_WIDTH, PINHOLE_HEIGHT))
+ pinhole_a.translate((CHANNEL_POS[0], CHANNEL_POS[1], CHANNEL_POS[2]))
+ 
+ pinhole_b = pymfcad.Cylinder(height=1, radius=1).rotate((0,90,0))
+ # Resize to keep pinholes circular in mm (px and layer sizes differ)
+ pinhole_b.resize((PINHOLE_LENGTH, PINHOLE_WIDTH, PINHOLE_HEIGHT))
+ pinhole_b.translate((CHANNEL_POS[0]+CHANNEL_SIZE[0]-PINHOLE_LENGTH, CHANNEL_POS[1], CHANNEL_POS[2]))
+ 
+ # Combine channel and pinholes into a single void region (boolean union)
+ channel_unit = channel + pinhole_a + pinhole_b
+ 
+ 
+ # Parametric toggles make it easy to explore variants without editing geometry
+ INCLUDE_TEXT = True
+ 
+ FONT_SIZE = 100
+ FONT_HEIGHT = 10
+ LABELS = ["A", "B", "C", "D", "E"]
+ 
+ for i, letter in enumerate(LABELS):
+     offset = (0, (i-2) * 300, 0)
+ 
+     unit = channel_unit.copy().translate(offset)
+     device.add_void(f"channel_{letter}", unit, label="void")
+ 
+     # Example conditional: only add text for the first four
+     if i < 4:
+         text = pymfcad.TextExtrusion(letter, height=FONT_HEIGHT, font_size=FONT_SIZE)
+         text.rotate((90, 0, 90))
+         text.translate((CHANNEL_POS[0], CHANNEL_POS[1] + (i-2) * 300 - 20, CHANNEL_POS[2] + PINHOLE_HEIGHT/2 + 10))
+         device.add_void(f"label_{letter}", text, label="void")
+ 
+ # Preview the device
+ device.preview()
+    </script>
+</div>
 
 ---
 
-## Step 7 — Polychannel version (continuous/hulled shape)
+## Step 6 — Polychannel version (continuous/hulled shape)
 
 You can build the same “two pinholes + connecting channel” as a **continuous composite shape** using a **polychannel**. A polychannel is a sequence of cross‑sections that get **hulled** together, creating smooth, continuous geometry without manual unions between every piece.
 
 **Positioning rule:** the **first** `PolychannelShape` position is **absolute**. Every shape after that is **relative to the previous one** (unless you explicitly set `absolute_position=True`). If a property doesn’t change (like `shape_type` or `size`), you can omit it and the previous value is reused. Full shape options are documented in the API: [Polychannels](api/polychannels.md).
 
-```python
-# Polychannel basics: a path of cross-sections that are hulled together
-polychannel = pymfcad.Polychannel(
-    [
-        pymfcad.PolychannelShape(
-            shape_type="sphere",
-            position=(CHANNEL_POS[0], CHANNEL_POS[1], CHANNEL_POS[2]),
-            size=(0, PINHOLE_WIDTH, PINHOLE_HEIGHT),
-        ),
-        pymfcad.PolychannelShape(
-            position=(PINHOLE_LENGTH, 0, 0),
-        ),
-        pymfcad.PolychannelShape(
-            shape_type="cube",
-            position=(0, 0, 0),
-            size=(0, CHANNEL_SIZE[1], CHANNEL_SIZE[2]),
-        ),
-        pymfcad.PolychannelShape(
-            position=(CHANNEL_SIZE[0] - PINHOLE_LENGTH * 2, 0, 0),
-        ),
-        pymfcad.PolychannelShape(
-            shape_type="sphere",
-            position=(0, 0, 0),
-            size=(0, PINHOLE_WIDTH, PINHOLE_HEIGHT),
-        ),
-        pymfcad.PolychannelShape(
-            position=(PINHOLE_LENGTH, 0, 0),
-        ),
-    ]
-)
-
-device.add_void("polychannel_unit", polychannel, label="void")
-```
+<div class="diff2html-wrapper">
+    <div class="diff2html"></div>
+    <script type="text/plain" class="diff2html-source">
+diff --git a/example_device.py b/example_device.py
+index 0000000..1111111 100644
+--- a/example_device.py
++++ b/example_device.py
+@@ -1 +1 @@
+ import pymfcad
+ 
+ # Define constants for device dimensions and resolution
+ # Pixel/layer units are the core constraint for DLP‑SLA printing.
+ PX_SIZE = 0.0076
+ LAYER_SIZE = 0.01
+ 
+ DEVICE_X = 2560
+ DEVICE_Y = 1600
+ DEVICE_Z = 300
+ 
+ # Create a new device (final print = bulk minus voids)
+ device = pymfcad.Device(
+     name="example_device",
+     position=(0, 0, 0),
+     layers=DEVICE_Z,
+     layer_size=LAYER_SIZE,
+     px_count=(DEVICE_X, DEVICE_Y),
+     px_size=PX_SIZE,
+ )
+ 
+ # Add labels for bulk and void regions (labels are just named color groups)
+ device.add_label("bulk", pymfcad.Color.from_name("aqua", 120))
+ device.add_label("void", pymfcad.Color.from_name("tomato", 200))
+ 
+ # Define bulk region and add it to the device
+ bulk = pymfcad.Cube((DEVICE_X, DEVICE_Y, DEVICE_Z))
+ device.add_bulk("bulk_shape", bulk, label="bulk")
+ 
+ 
+ # Define channel and pinhole dimensions and position
+ CHANNEL_SIZE = (2560, 13, 10)
+ CHANNEL_POS = (0, 800, 150)
+ PINHOLE_WIDTH = 150
+ PINHOLE_LENGTH = 200
+ # Convert a physical width to layer units to keep pinholes circular in mm
+ PINHOLE_HEIGHT = PINHOLE_WIDTH * PX_SIZE / LAYER_SIZE
+ 
+-# Create a channel (centered for easy placement, then translated)
+-channel = pymfcad.Cube(CHANNEL_SIZE, center=True)
+-# Translate to absolute device coordinates (centered x, absolute y/z)
+-channel.translate((CHANNEL_POS[0]+CHANNEL_SIZE[0]//2, CHANNEL_POS[1], CHANNEL_POS[2]))
+-
+-# Create pinholes
+-pinhole_a = pymfcad.Cylinder(height=1, radius=1).rotate((0,90,0))
+-# Resize to keep pinholes circular in mm (px and layer sizes differ)
+-pinhole_a.resize((PINHOLE_LENGTH, PINHOLE_WIDTH, PINHOLE_HEIGHT))
+-pinhole_a.translate((CHANNEL_POS[0], CHANNEL_POS[1], CHANNEL_POS[2]))
+-
+-pinhole_b = pymfcad.Cylinder(height=1, radius=1).rotate((0,90,0))
+-# Resize to keep pinholes circular in mm (px and layer sizes differ)
+-pinhole_b.resize((PINHOLE_LENGTH, PINHOLE_WIDTH, PINHOLE_HEIGHT))
+-pinhole_b.translate((CHANNEL_POS[0]+CHANNEL_SIZE[0]-PINHOLE_LENGTH, CHANNEL_POS[1], CHANNEL_POS[2]))
+-
+-# Combine channel and pinholes into a single void region (boolean union)
+-channel_unit = channel + pinhole_a + pinhole_b
++# Polychannel basics: a path of cross-sections that are hulled together
++polychannel = pymfcad.Polychannel(
++    [
++        pymfcad.PolychannelShape(
++            shape_type="sphere",
++            position=(CHANNEL_POS[0], CHANNEL_POS[1], CHANNEL_POS[2]),
++            size=(0, PINHOLE_WIDTH, PINHOLE_HEIGHT),
++        ),
++        pymfcad.PolychannelShape(
++            position=(PINHOLE_LENGTH, 0, 0),
++        ),
++        pymfcad.PolychannelShape(
++            shape_type="cube",
++            position=(0, 0, 0),
++            size=(0, CHANNEL_SIZE[1], CHANNEL_SIZE[2]),
++        ),
++        pymfcad.PolychannelShape(
++            position=(CHANNEL_SIZE[0] - PINHOLE_LENGTH * 2, 0, 0),
++        ),
++        pymfcad.PolychannelShape(
++            shape_type="sphere",
++            position=(0, 0, 0),
++            size=(0, PINHOLE_WIDTH, PINHOLE_HEIGHT),
++        ),
++        pymfcad.PolychannelShape(
++            position=(PINHOLE_LENGTH, 0, 0),
++        ),
++    ]
++)
++
++device.add_void("polychannel_unit", polychannel, label="void")
++device.add_void("channel", channel_unit, label="void")
+ 
+ # Preview the device
+ device.preview()
+    </script>
+</div>
 
 ![Channel with pinholes](resources/7/7-3.png)
 
