@@ -51,18 +51,6 @@ def test_example_outputs_match_golden(case, tmp_path, monkeypatch):
     if not golden_zip.exists():
         pytest.skip(f"Golden zip not available for {case['name']}")
 
-    import pymfcad.backend.color as color
-    import pymfcad.backend.manifold3d as manifold3d
-
-    def _abs_pymfcad_env_dir() -> Path | None:
-        spec = importlib.util.find_spec("pymfcad")
-        if spec and spec.origin:
-            return Path(spec.origin).parent
-        return None
-
-    monkeypatch.setattr(manifold3d, "get_pymfcad_env_dir", _abs_pymfcad_env_dir)
-    monkeypatch.setattr(color, "get_pymfcad_env_dir", _abs_pymfcad_env_dir)
-
     golden_extract_dir = tmp_path / f"golden_{case['name']}"
     with zipfile.ZipFile(golden_zip, "r") as archive:
         archive.extractall(golden_extract_dir)
