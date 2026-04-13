@@ -95,7 +95,7 @@ index 0000000..1111111 100644
 
 ## Step 2 — Membrane region (on the membrane layer)
 
-Membranes are thin layers that need special handling. Use `MembraneSettings` over the membrane layer to adjust exposure, apply defocus, and enable special techniques like `Print on Film`. It can also auto‑detect membranes within the region by finding areas thinner than `max_membrane_thickness_um` that are sandwiched between non‑exposed zones.
+Membranes are thin layers that need special handling. Use `MembraneSettings` over the membrane layer to adjust exposure, apply defocus, and enable special techniques like `Print on Film`. It can also auto‑detect membranes within the region by finding areas thinner than `max_membrane_thickness_um` that are sandwiched between non‑exposed zones. If you already know the membrane area, set `scan_for_membrane=False` to use the region shape directly instead of scanning for membranes within that shape. Note: this also covers corner cases like print‑on‑film membranes with exposed pixels directly beneath them (for example, valves with 0‑layer‑thickness fluidic regions).
 
 <div class="diff2html-wrapper">
     <div class="diff2html"></div>
@@ -279,6 +279,7 @@ index 0000000..1111111 100644
                  bulk_exposure_multiplier=0.5,
                  defocus_um=50,
                  dilation_px=2,
+                 scan_for_membrane=False,
              ),
              label="region_membrane",
          )

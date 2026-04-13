@@ -951,6 +951,7 @@ class MembraneSettings:
         bulk_exposure_multiplier: float = 1.0,
         dilation_px: int = 0,
         defocus_um: float = 0.0,
+        scan_for_membrane: bool = True,
         special_image_techniques: list[SpecialImageTechniques] = [],
     ):
         """
@@ -962,11 +963,13 @@ class MembraneSettings:
         - bulk_exposure_multiplier: Multiplier applied to resin bulk exposure.
         - dilation_px: Dilation in pixels
         - defocus_um: Defocus position in microns.
+        - scan_for_membrane: Whether to scan slices for membranes or use masks directly.
         - special_image_techniques: List of SpecialImageTechniques to apply.
         """
 
         self.max_membrane_thickness_um = max_membrane_thickness_um
         self.dilation_px = dilation_px
+        self.scan_for_membrane = scan_for_membrane
         self.exposure_settings = ExposureSettings(
             bulk_exposure_multiplier=bulk_exposure_multiplier,
             relative_focus_position=defocus_um,
@@ -980,6 +983,7 @@ class MembraneSettings:
         return (
             self.max_membrane_thickness_um == other.max_membrane_thickness_um
             and self.dilation_px == other.dilation_px
+            and self.scan_for_membrane == other.scan_for_membrane
             and self.exposure_settings == other.exposure_settings
         )
 
@@ -990,6 +994,7 @@ class MembraneSettings:
             bulk_exposure_multiplier=self.exposure_settings.bulk_exposure_multiplier,
             dilation_px=self.dilation_px,
             defocus_um=self.exposure_settings.relative_focus_position,
+            scan_for_membrane=self.scan_for_membrane,
             special_image_techniques=self.exposure_settings.special_image_techniques.copy(),
         )
 

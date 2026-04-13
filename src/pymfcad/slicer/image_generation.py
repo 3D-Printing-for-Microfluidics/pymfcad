@@ -148,6 +148,53 @@ def generate_membrane_images_from_folders(
         cv2.MORPH_RECT, (opening_kernel_size, opening_kernel_size)
     )
 
+    if not membrane_settings.scan_for_membrane:
+        for meta in slices:
+            curr_name = meta["image_name"]
+            mask = get_mask_from_masks_data(masks, curr_name)
+            if mask is None:
+                continue
+
+            image = get_slice(meta, invert_check=None)
+            if image is None:
+                continue
+
+            masked_membrane = mask
+            if cv2.countNonZero(masked_membrane) == 0:
+                continue
+
+            image_minus_membrane = cv2.bitwise_and(
+                image, cv2.bitwise_not(masked_membrane)
+            )
+            dilated_membrane = cv2.dilate(masked_membrane, dilation_kernel)
+
+            # Overwrite original image
+            if save_temp_files:
+                curr_path = image_dir / curr_name
+                print(f"\t\tOverwriting image at {curr_path.name} without membrane")
+                cv2.imwrite(str(curr_path.resolve()), image_minus_membrane)
+            meta["image_data"] = rle_encode_packed(image_minus_membrane)
+
+            # Write dilated membrane
+            stem = Path(curr_name).stem
+            membrane_output_path = get_unique_path(image_dir, stem, postfix="membrane")
+            if "membrane_slices" not in data:
+                data["membrane_slices"] = []
+            data["membrane_slices"].append(
+                {
+                    "image_name": membrane_output_path.name,
+                    "image_data": rle_encode_packed(dilated_membrane),
+                    "layer_position": meta["layer_position"],
+                    "exposure_settings": membrane_settings.exposure_settings,
+                    "dilation_px": dilation_px,
+                    "position_settings": meta["position_settings"],
+                }
+            )
+            if save_temp_files:
+                print(f"\t\tSaving membrane image to {membrane_output_path.name}")
+                cv2.imwrite(str(membrane_output_path), dilated_membrane)
+        return
+
     # loop through all slices
     for i in range(len(slices)):
         # Figure out how many slices are in membrane thickness
