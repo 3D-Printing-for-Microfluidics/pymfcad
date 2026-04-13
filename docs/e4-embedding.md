@@ -8,6 +8,8 @@ Key ideas:
 - Embedded devices are sliced separately, then injected into the parent device’s print layers.
 - Offsets are computed **relative to the parent device’s center**.
 - Z translations are preserved (child layers are shifted up/down in microns).
+- Embedded devices can be emitted at **different resolutions** than the parent.
+- By default, subcomponents **subtract their bounding box** from the parent (often desirable, but not always when embedding).
 
 ---
 
@@ -70,11 +72,59 @@ child.add_void(
 parent.add_subcomponent("inset", child.translate((100,100,100)))
 ```
 
+You can also choose to **disable bounding‑box subtraction** for embedded devices (see below). 
+
 When slicing:
 
 - The child’s **center** is aligned relative to the parent’s **center**.
 - Any child translation (x/y/z) compounds through the hierarchy.
 - Z offsets are applied in microns to the child’s layers.
+
+---
+
+## Slicing
+
+- When slicing embedded devices, make sure:
+
+1) Your printer has each light engine properly defined
+2) The light engine's names match the expected names for the printer (i.e. visitech, wintech)
+3) Your printer definition has the xy_stage_available parameter set properly.
+4) Your device sizes match the resolutions of the defined light engines.
+
+---
+
+## Bounding‑box subtraction (important)
+
+By default, `add_subcomponent()` subtracts the **subcomponent’s bounding box** from the parent’s shapes. This is often critical for normal subcomponents (prevents double‑solid regions), but it can be **wrong for embedded devices** in two common cases:
+
+1) **Overlap margins** — you may want a few pixels of overlap between the low‑res parent and the high‑res inset to ensure a strong connection.
+2) **Inset smaller than the light engine** — if the high‑res device doesn’t fill the light engine’s full resolution, the automatic subtraction can create **unexposed gaps around the embedded device**.
+
+In these cases, disable the default subtraction and define a **custom subtraction void** in the parent so you control exactly what gets removed:
+
+```python
+parent.add_subcomponent(
+	"inset",
+	child.translate((100, 100, 100)),
+	subtract_bounding_box=False,
+)
+
+# Example: carve a custom void with overlap margin
+overlap = 20  # pixels to keep overlapping between parent and child
+void_size = (child._size[0] - 2 * overlap, child._size[1] - 2 * overlap, child._size[2])
+void_pos = (child._position[0] + overlap, child._position[1] + overlap, child._position[2])
+parent.add_void(
+	"inset_clearance",
+	Cube(void_size, center=False).translate(void_pos),
+	label="void",
+)
+```
+
+Guidelines:
+
+- **Keep subtraction on** if the embedded device should carve out a full cavity the same size as the child.
+- **Turn it off + add a custom void** if you need overlap margins or the child doesn’t span the full light engine.
+- If results look hollowed unexpectedly or you see gaps around the inset, this is the first thing to check.
 
 ---
 
