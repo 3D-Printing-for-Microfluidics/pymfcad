@@ -39,7 +39,7 @@ TPMS structures are typically used as **bulk**. Keep the geometry simple around 
 # Pseudocode: use your TPMS function as the bulk
 tpms = pymfcad.TPMS(
 	size=(200, 200, 60),
-	function=gyroid,
+	function=pymfcad.TPMS.gyroid,
 	period=(20, 20, 20),
 	threshold=0.0,
 )
