@@ -1744,7 +1744,7 @@ class Device(Component):
         name: str,
         position: tuple[int, int, int],
         layers: int = 0,
-        layer_size: float = 0.01,
+        layer_size: float = 0.015,
         quiet: bool = False,
     ) -> Device:
         """
@@ -1779,7 +1779,7 @@ class Device(Component):
         name: str,
         position: tuple[int, int, int],
         layers: int = 0,
-        layer_size: float = 0.01,
+        layer_size: float = 0.0015,
         quiet: bool = False,
     ) -> Device:
         """
@@ -1923,7 +1923,7 @@ class StitchedDevice(Device):
         name: str,
         position: tuple[int, int, int],
         layers: int = 0,
-        layer_size: float = 0.01,
+        layer_size: float = 0.015,
         tiles_x: int = 1,
         tiles_y: int = 1,
         overlap_px: int = 0,
@@ -1967,7 +1967,7 @@ class StitchedDevice(Device):
         name: str,
         position: tuple[int, int, int],
         layers: int = 0,
-        layer_size: float = 0.01,
+        layer_size: float = 0.0015,
         tiles_x: int = 1,
         tiles_y: int = 1,
         overlap_px: int = 0,
