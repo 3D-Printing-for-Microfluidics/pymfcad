@@ -836,7 +836,7 @@ settings = Settings(
                 px_size=0.0076,
                 px_count=(2560, 1600),
                 wavelengths=[365],
-                grayscale_available=[False],
+                grayscale_available=[True],
             )
         ],
         vacuum_available=False,
