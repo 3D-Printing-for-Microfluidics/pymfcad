@@ -17,7 +17,7 @@ Choose one path below. If you already have an active environment, skip directly 
 
 ## Python versions
 
-PyMFCAD supports Python 3.10–3.13.
+PyMFCAD supports Python 3.10–3.14.
 
 ---
 
@@ -107,7 +107,7 @@ If you are working from the repository, use the Makefile targets below (requires
 
 **Issue:** `pip install pymfcad` fails while building the `manifold3d` wheel.
 
-**Fix:** Verify your Python version is supported (Python 3.10–3.13).
+**Fix:** Verify your Python version is supported (Python 3.10–3.14).
 
 
 ---

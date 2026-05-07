@@ -4,7 +4,7 @@ build-backend = "uv_build"
 
 [project]
 name = "pymfcad"
-version = "0.3.0"
+version = "0.3.1"
 dependencies = [
     "freetype-py>=2.5.1",
     "flask>=3.0.0",
@@ -40,6 +40,7 @@ classifiers = [
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
     "Topic :: Scientific/Engineering :: Bio-Informatics",
     "Topic :: Scientific/Engineering :: Visualization",
 ]

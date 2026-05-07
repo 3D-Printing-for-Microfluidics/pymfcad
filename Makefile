@@ -7,8 +7,8 @@ UV ?= uv
 define CHECK_PYTHON
 import sys
 v = sys.version_info
-if not ((3, 8) <= (v.major, v.minor) <= (3, 13)):
-	raise SystemExit(f"Unsupported Python {v.major}.{v.minor}. Use 3.8-3.13.")
+if not ((3, 8) <= (v.major, v.minor) <= (3, 14)):
+	raise SystemExit(f"Unsupported Python {v.major}.{v.minor}. Use 3.8-3.14.")
 endef
 export CHECK_PYTHON
 
