@@ -174,16 +174,15 @@ You should see a solid block with the “Hello World” void cut out.
 - If you are importing your own custom modules, you may have a slightly different file structure and may need to use Python’s module system:
 
     Example folder structure:
-    ```
-    pymfcad_code/
-    ├── projects/
-    │   └── test_device/
-    │       ├── __init__.py
-    │       └── example_device.py
-    └── components/
-        ├── __init__.py
-        └── test_component.py
-    ```
+
+    - pymfcad_code/  
+    ├── projects/  
+    │   └── test_device/  
+    │       ├── \_\_init\_\_.py  
+    │       └── example_device.py  
+    └── components/  
+        ├── \_\_init\_\_.py  
+        └── test_component.py  
 
     The `test_component.py` file can define one or more components (e.g., `MyComponent`).
 
