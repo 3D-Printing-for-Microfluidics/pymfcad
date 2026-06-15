@@ -17,6 +17,7 @@ const AXES_STORAGE_KEY = 'pymfcad_axes_visible';
 const DEFAULT_CONTROLS_TYPE_STORAGE_KEY = 'pymfcad_default_controls_type';
 const MODEL_DEFAULT_VERSION_KEY = 'pymfcad_model_default_version';
 const LIGHTS_STORAGE_KEY = 'pymfcad_lights_v1';
+const MEASUREMENT_UNITS_KEY = 'pymfcad_measurement_units_v1';
 
 const sceneState = createScene();
 const {
@@ -32,6 +33,7 @@ const {
   setControlsType,
   THREE,
 } = sceneState;
+renderer.autoClear = false;
 let controls = initialControls;
 
 const modelManager = createModelManager({ scene, world });
@@ -71,7 +73,229 @@ const cameraSystem = createCameraSystem({
 
 const raycaster = new THREE.Raycaster();
 const pointer = new THREE.Vector2();
-renderer.domElement.addEventListener('dblclick', (event) => {
+const measurementPointerState = {
+  isDown: false,
+  startX: 0,
+  startY: 0,
+};
+const measurementScene = new THREE.Scene();
+
+const measurementGeometry = new THREE.BufferGeometry();
+const measurementMaterial = new THREE.LineBasicMaterial({
+  color: 0x4fd1c5,
+  depthTest: false,
+  depthWrite: false,
+});
+const measurementLine = new THREE.Line(measurementGeometry, measurementMaterial);
+measurementLine.visible = false;
+measurementLine.renderOrder = 1000;
+measurementScene.add(measurementLine);
+
+const measurementBeam = new THREE.Mesh(
+  new THREE.CylinderGeometry(0.02, 0.02, 1, 16, 1, false),
+  new THREE.MeshBasicMaterial({
+    color: 0x4fd1c5,
+    transparent: true,
+    opacity: 0.95,
+    depthTest: false,
+    depthWrite: false,
+  })
+);
+measurementBeam.visible = false;
+measurementBeam.renderOrder = 1000;
+measurementBeam.frustumCulled = false;
+measurementScene.add(measurementBeam);
+
+const measurementBeamAxis = new THREE.Vector3(0, 1, 0);
+
+const measurementPointGeometry = new THREE.SphereGeometry(0.003, 100, 100);
+const measurementStartMarker = new THREE.Mesh(
+  measurementPointGeometry,
+  new THREE.MeshBasicMaterial({ color: 0x4fd1c5, depthTest: false, depthWrite: false })
+);
+const measurementEndMarker = new THREE.Mesh(
+  measurementPointGeometry,
+  new THREE.MeshBasicMaterial({ color: 0xffffff, depthTest: false, depthWrite: false })
+);
+measurementStartMarker.visible = false;
+measurementEndMarker.visible = false;
+measurementStartMarker.renderOrder = 1001;
+measurementEndMarker.renderOrder = 1001;
+measurementScene.add(measurementStartMarker);
+measurementScene.add(measurementEndMarker);
+
+const measurementState = {
+  enabled: false,
+  startPoint: null,
+  endPoint: null,
+};
+
+const measurementPanel = document.getElementById('measurementPanel');
+const measurementPanelToggleBtn = document.getElementById('measurementPanelToggleBtn');
+const measurementToggleBtn = document.getElementById('measurementToggleBtn');
+const measurementClearBtn = document.getElementById('measurementClearBtn');
+const measurementReadout = document.getElementById('measurementReadout');
+const measurementUnitsHost = document.getElementById('measurementUnitsHost');
+let measurementUnitButtons = [];
+
+const UNIT_FACTORS = {
+  m: 0.001,
+  cm: 0.1,
+  mm: 1,
+  'μm': 1000,
+};
+
+let measurementUnits = localStorage.getItem(MEASUREMENT_UNITS_KEY) || 'μm';
+
+function setMeasurementUnits(units, { persist = true } = {}) {
+  if (!units) return;
+  measurementUnits = units;
+  if (measurementUnitButtons && measurementUnitButtons.length) {
+    measurementUnitButtons.forEach((btn) => {
+      const isActive = btn.dataset.unit === units;
+      btn.classList.toggle('is-active', isActive);
+      btn.setAttribute('aria-pressed', String(isActive));
+    });
+  }
+  if (persist) localStorage.setItem(MEASUREMENT_UNITS_KEY, units);
+  if (measurementState.startPoint && measurementState.endPoint) {
+    // Recompute readout with new units
+    setMeasurementEnd(measurementState.endPoint);
+  }
+}
+
+function initMeasurementUnitButtons() {
+  if (!measurementUnitsHost) return;
+  measurementUnitButtons = Array.from(measurementUnitsHost.querySelectorAll('.measurement-units-btn'));
+  measurementUnitButtons.forEach((btn) => {
+    const unit = btn.dataset.unit;
+    btn.addEventListener('click', () => setMeasurementUnits(unit));
+  });
+  // reflect current selection without persisting
+  setMeasurementUnits(measurementUnits, { persist: false });
+}
+initMeasurementUnitButtons();
+
+function formatMeasurementPoint(point) {
+  if (!point) return '(n/a)';
+  return `(${point.x.toFixed(3)}, ${point.y.toFixed(3)}, ${point.z.toFixed(3)})`;
+}
+
+function updateMeasurementReadout(message, { html = false } = {}) {
+  if (!measurementReadout) return;
+  if (html) {
+    measurementReadout.innerHTML = message;
+  } else {
+    measurementReadout.textContent = message;
+  }
+}
+
+function setMeasurementButtonState(enabled) {
+  if (!measurementToggleBtn) return;
+  measurementToggleBtn.classList.toggle('is-active', enabled);
+  measurementToggleBtn.textContent = `Measure: ${enabled ? 'On' : 'Off'}`;
+  measurementToggleBtn.title = enabled
+    ? 'Measurement mode active. Click two points on the model.'
+    : 'Enable measurement mode.';
+}
+
+function clearMeasurement({ keepPrompt = false } = {}) {
+  measurementState.startPoint = null;
+  measurementState.endPoint = null;
+  measurementStartMarker.visible = false;
+  measurementEndMarker.visible = false;
+  measurementLine.visible = false;
+  measurementBeam.visible = false;
+  measurementGeometry.setFromPoints([]);
+  measurementScene.visible = false;
+  if (measurementReadout && !keepPrompt) {
+    updateMeasurementReadout(measurementState.enabled
+      ? 'Click two points on the model.'
+      : 'Measurement is off. Enable Measure to start.');
+  }
+}
+
+function setMeasurementPanelVisible(visible) {
+  if (!measurementPanel) return;
+  measurementPanel.classList.toggle('is-hidden', !visible);
+  if (measurementPanelToggleBtn) {
+    measurementPanelToggleBtn.classList.toggle('is-active', visible);
+    measurementPanelToggleBtn.title = visible ? 'Hide Measurement Pane' : 'Show Measurement Pane';
+    measurementPanelToggleBtn.setAttribute('aria-pressed', String(visible));
+  }
+  if (!visible) {
+    clearMeasurement();
+    setMeasurementEnabled(false);
+  }
+}
+
+function setMeasurementStart(point) {
+  clearMeasurement({ keepPrompt: true });
+  measurementState.startPoint = point.clone();
+  measurementScene.visible = true;
+  measurementStartMarker.position.copy(point);
+  measurementStartMarker.visible = true;
+  updateMeasurementReadout('Point A pinned. Select point B.');
+}
+
+function setMeasurementEnd(point) {
+  if (!measurementState.startPoint) return;
+  measurementState.endPoint = point.clone();
+  measurementScene.visible = true;
+  measurementEndMarker.position.copy(point);
+  measurementEndMarker.visible = true;
+  measurementLine.geometry.setFromPoints([measurementState.startPoint, measurementState.endPoint]);
+  measurementLine.visible = true;
+  const rawSegment = measurementState.endPoint.clone().sub(measurementState.startPoint);
+  const segmentLength = rawSegment.length();
+  if (segmentLength > 1e-6) {
+    const segmentCenter = measurementState.startPoint.clone().add(measurementState.endPoint).multiplyScalar(0.5);
+    measurementBeam.position.copy(segmentCenter);
+    const beamDirection = rawSegment.clone().normalize();
+    measurementBeam.quaternion.setFromUnitVectors(measurementBeamAxis, beamDirection);
+    measurementBeam.scale.set(0.015, segmentLength, 0.015);
+    measurementBeam.visible = true;
+  } else {
+    measurementBeam.visible = false;
+  }
+  const factor = UNIT_FACTORS[measurementUnits] || 1000000;
+  const unitLabel = measurementUnits;
+  const dxValue = Math.abs(rawSegment.x * factor);
+  const dyValue = Math.abs(rawSegment.y * factor);
+  const dzValue = Math.abs(rawSegment.z * factor);
+  const totalValue = Math.sqrt(dxValue * dxValue + dyValue * dyValue + dzValue * dzValue);
+  const dx = dxValue.toFixed(1);
+  const dy = dyValue.toFixed(1);
+  const dz = dzValue.toFixed(1);
+  const total = totalValue.toFixed(1);
+  const html = [
+    `<div>A: ${formatMeasurementPoint(measurementState.startPoint)}</div>`,
+    `<div>B: ${formatMeasurementPoint(measurementState.endPoint)}</div>`,
+    `<div class="measurement-component measurement-dx">ΔX: <span class="measurement-value">${dx} ${unitLabel}</span></div>`,
+    `<div class="measurement-component measurement-dy">ΔY: <span class="measurement-value">${dz} ${unitLabel}</span></div>`,
+    `<div class="measurement-component measurement-dz">ΔZ: <span class="measurement-value">${dy} ${unitLabel}</span></div>`,
+    `<div class="measurement-component measurement-total">Total: <span class="measurement-value">${total} ${unitLabel}</span></div>`,
+  ].join('');
+  updateMeasurementReadout(html, { html: true });
+  showToast(`Measured total: ${total} ${unitLabel}`);
+}
+
+function setMeasurementEnabled(enabled) {
+  measurementState.enabled = Boolean(enabled);
+  setMeasurementButtonState(measurementState.enabled);
+  renderer.domElement.style.cursor = measurementState.enabled ? 'crosshair' : 'default';
+  if (!measurementState.enabled && measurementState.startPoint && !measurementState.endPoint) {
+    clearMeasurement();
+    return;
+  }
+  if (measurementState.enabled && !measurementState.startPoint) {
+    updateMeasurementReadout('Click two points on the model.');
+  } else if (!measurementState.enabled && !measurementState.startPoint) {
+    updateMeasurementReadout('Measurement is off. Enable Measure to start.');
+  }
+}
+
+function getRaycastHitFromEvent(event) {
   const rect = renderer.domElement.getBoundingClientRect();
   pointer.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
   pointer.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
@@ -79,16 +303,52 @@ renderer.domElement.addEventListener('dblclick', (event) => {
   const camera = cameraSystem.getCamera();
   raycaster.setFromCamera(pointer, camera);
   const targetGroup = modelManager.buildVisibleGroup();
-  if (!targetGroup) return;
+  if (!targetGroup) return null;
   targetGroup.matrixAutoUpdate = false;
   targetGroup.matrix.copy(world.matrixWorld);
   targetGroup.updateMatrixWorld(true);
   const hits = raycaster.intersectObject(targetGroup, true);
-  const hit = hits.find((entry) => entry.object?.isMesh);
+  return hits.find((entry) => entry.object?.isMesh) || null;
+}
+
+function handleMeasurementPick(event) {
+  if (!measurementState.enabled) return;
+  const hit = getRaycastHitFromEvent(event);
+  if (!hit) return;
+  if (!measurementState.startPoint || measurementState.endPoint) {
+    setMeasurementStart(hit.point);
+  } else {
+    setMeasurementEnd(hit.point);
+  }
+}
+
+renderer.domElement.addEventListener('pointerdown', (event) => {
+  if (!measurementState.enabled || event.button !== 0) return;
+  measurementPointerState.isDown = true;
+  measurementPointerState.startX = event.clientX;
+  measurementPointerState.startY = event.clientY;
+});
+
+renderer.domElement.addEventListener('pointerup', (event) => {
+  if (!measurementState.enabled || event.button !== 0 || !measurementPointerState.isDown) return;
+  measurementPointerState.isDown = false;
+  const dx = Math.abs(event.clientX - measurementPointerState.startX);
+  const dy = Math.abs(event.clientY - measurementPointerState.startY);
+  if (dx > 6 || dy > 6) return;
+  handleMeasurementPick(event);
+});
+
+renderer.domElement.addEventListener('pointercancel', () => {
+  measurementPointerState.isDown = false;
+});
+
+renderer.domElement.addEventListener('dblclick', (event) => {
+  if (measurementState.enabled) return;
+  const hit = getRaycastHitFromEvent(event);
   if (!hit) return;
 
   const roll = cameraSystem.getCameraState().roll || 0;
-  cameraSystem.setCameraPose(camera.position.clone(), hit.point.clone(), roll);
+  cameraSystem.setCameraPose(cameraSystem.getCamera().position.clone(), hit.point.clone(), roll);
 });
 
 keyframeSystem = createKeyframeSystem({ cameraSystem, modelManager });
@@ -1207,6 +1467,7 @@ function buildSettingsPayload() {
       axesVisible: axes?.visible ?? true,
       defaultControlsType: cameraSystem.getDefaultControlType?.() || defaultControlTypeSelect?.value || 'orbit',
       defaultModelVersion: getDefaultModelVersionStrategy(),
+      measurementUnits: measurementUnits,
     },
     camera: buildCameraPayload(),
     lights: lightSystem.getLightState(),
@@ -1381,6 +1642,9 @@ function applySettingsPayload(payload, sections = {}) {
         cameraSystem.setTargetToModelCenter({ persist: false });
         lightSystem.updateDirectionalLightTargets();
       });
+    }
+    if (general.measurementUnits) {
+      setMeasurementUnits(general.measurementUnits);
     }
   }
 
@@ -1937,6 +2201,7 @@ async function initModels() {
   applyDefaultVersionVisibilityConstraint();
   modelManager.setModelVersionSelections(modelSelector.getSelectionSnapshot().versions);
   await modelManager.loadAllModels();
+  clearMeasurement();
   cameraSystem.setTargetToModelCenter({ persist: false });
   lightSystem.ensureDefaultLight();
   lightSystem.updateDirectionalLightTargets();
@@ -2029,7 +2294,12 @@ function animate() {
   requestAnimationFrame(animate);
   controls.update();
   cameraSystem.updateCameraIcon();
+  renderer.clear();
   renderer.render(scene, cameraSystem.getCamera());
+  if (measurementScene.visible) {
+    renderer.clearDepth();
+    renderer.render(measurementScene, cameraSystem.getCamera());
+  }
   viewCubeSystem?.render();
   previewSystem.render();
 }
@@ -2321,6 +2591,11 @@ async function init() {
     if (!event) return;
     if (isEditableTarget(event.target) || isEditingInput()) return;
     if (isAnyDialogOpen()) return;
+    if (event.key === 'Escape' && measurementState.enabled) {
+      event.preventDefault();
+      setMeasurementEnabled(false);
+      return;
+    }
     const isCtrl = event.ctrlKey || event.metaKey;
     if (!isCtrl) return;
     const key = event.key?.toLowerCase();
@@ -2364,6 +2639,29 @@ async function init() {
   }, true);
 
   syncAnimationExportTypeForQuality();
+
+  if (measurementToggleBtn) {
+    measurementToggleBtn.addEventListener('click', () => {
+      setMeasurementEnabled(!measurementState.enabled);
+    });
+  }
+
+  if (measurementClearBtn) {
+    measurementClearBtn.addEventListener('click', () => {
+      clearMeasurement();
+    });
+  }
+
+  if (measurementPanelToggleBtn) {
+    measurementPanelToggleBtn.addEventListener('click', () => {
+      const nextVisible = measurementPanel ? measurementPanel.classList.contains('is-hidden') : false;
+      setMeasurementPanelVisible(nextVisible);
+    });
+  }
+
+  setMeasurementEnabled(false);
+  setMeasurementPanelVisible(false);
+  clearMeasurement({ keepPrompt: true });
 
   if (defaultControlTypeSelect) {
     const savedType = localStorage.getItem(DEFAULT_CONTROLS_TYPE_STORAGE_KEY) || 'orbit';

@@ -98,6 +98,22 @@
 
 	<div id="controls">
 		<button id="reloadModelBtn" class="control-btn">Auto Reload: ON</button>
+		<div id="measurementPanel" class="measurement-panel is-hidden">
+			<div class="measurement-panel-header">Measurement</div>
+			<div class="measurement-actions">
+				<button id="measurementToggleBtn" class="control-btn" type="button" title="Enable measurement mode">Measure: Off</button>
+				<button id="measurementClearBtn" class="control-btn" type="button" title="Clear current measurement">Clear</button>
+			</div>
+			<div class="measurement-units-row">
+				<div id="measurementUnitsHost" class="measurement-units-host" role="tablist" aria-label="Measurement units">
+					<button class="control-btn measurement-units-btn" data-unit="m" type="button" aria-pressed="false">m</button>
+					<button class="control-btn measurement-units-btn" data-unit="cm" type="button" aria-pressed="false">cm</button>
+					<button class="control-btn measurement-units-btn" data-unit="mm" type="button" aria-pressed="false">mm</button>
+					<button class="control-btn measurement-units-btn" data-unit="μm" type="button" aria-pressed="false">μm</button>
+				</div>
+			</div>
+			<div id="measurementReadout" class="measurement-readout">Measurement is off. Enable Measure to start.</div>
+		</div>
 	</div>
 
 	<div id="cameraStripWrapper">
@@ -115,6 +131,9 @@
 		<div class="camera-strip-divider" aria-hidden="true"></div>
 		<div class="camera-bar-group">
 			<span class="camera-bar-label">Tools</span>
+            <button id="measurementPanelToggleBtn" class="control-btn" title="Toggle Measurement Pane">
+				<i class="fa-solid fa-ruler"></i>
+			</button>
 			<button id="docsBtn" class="control-btn" title="Documentation">
 				<i class="fa-solid fa-book-open"></i>
 			</button>
