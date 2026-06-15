@@ -1400,7 +1400,53 @@ class TPMS(Shape):
         ]  # bounding box
         # bounds = [0.0, 0.0, 0.0, 10.0, 10.0, 10.0]  # bounding box
         edge_length = 1 / refinement
-        self._object = Manifold.level_set(func, bounds, edge_length, level=fill)
+        # self._object = Manifold.level_set(func, bounds, edge_length, level=fill)
+
+
+        # eps = 1e-6
+        # cell = Manifold.level_set(func, [0,0,0,1-eps,1-eps,1-eps], edge_length, level=fill)
+        # copies = []
+        # for x in range(cells[0]):
+        #     for y in range(cells[1]):
+        #         for z in range(cells[2]):
+        #             copies.append(
+        #                 cell.translate((x, y, z))
+        #             )
+        # self._object = Manifold.batch_boolean(copies, OpType.Add)
+
+        eps = 1e-6
+        cell = Manifold.level_set(func, [0,0,0,1-eps,1-eps,1-eps], edge_length, level=fill)
+        mesh = cell.to_mesh()
+        verts = np.array(mesh.vert_properties, dtype=np.float32)
+        tris = np.array(mesh.tri_verts, dtype=np.uint32)
+        all_verts = []
+        all_tris = []
+        vert_offset = 0
+        for ix in range(cells[0]):
+            for iy in range(cells[1]):
+                for iz in range(cells[2]):
+                    translation = np.array([ix, iy, iz], dtype=np.float32)
+                    # Translate vertices
+                    translated_verts = verts + translation
+                    # Offset triangle indices
+                    translated_tris = tris + vert_offset
+                    all_verts.append(translated_verts)
+                    all_tris.append(translated_tris)
+                    vert_offset += len(verts)
+        # Combine into giant arrays
+        all_verts = np.vstack(all_verts)
+        all_tris = np.vstack(all_tris)
+
+        tiled_mesh = Mesh(
+            vert_properties=all_verts,
+            tri_verts=all_tris,
+        )
+
+        self._object = Manifold(tiled_mesh)
+
+
+
+
         size = (
             size[0] * cells[0],
             size[1] * cells[1],

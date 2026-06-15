@@ -16,6 +16,7 @@ from .pymfcad import (
     Port,
     Component,
     VariableLayerThicknessComponent,
+    TPMSComponent,
     Device,
     StitchedDevice,
 )

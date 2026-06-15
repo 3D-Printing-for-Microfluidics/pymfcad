@@ -6,7 +6,7 @@ import importlib
 from math import gcd
 from enum import Enum
 from pathlib import Path
-from typing import Union
+from typing import Union, Callable
 from functools import reduce
 from fractions import Fraction
 
@@ -63,9 +63,9 @@ class _InstantiationTrackerMixin:
 
     @property
     def instantiation_dir(self) -> Path:
-        from . import Component, Device, VariableLayerThicknessComponent, StitchedDevice
+        from . import Component, Device, VariableLayerThicknessComponent, StitchedDevice, TPMSComponent
 
-        if type(self) in (Component, Device, VariableLayerThicknessComponent, StitchedDevice):
+        if type(self) in (Component, Device, VariableLayerThicknessComponent, StitchedDevice, TPMSComponent):
             return self._instantiation_path.parent
 
         return self._class_definition_path().parent
@@ -74,9 +74,9 @@ class _InstantiationTrackerMixin:
 
     @property
     def instantiating_file_stem(self) -> str:
-        from . import Component, Device, VariableLayerThicknessComponent, StitchedDevice
+        from . import Component, Device, VariableLayerThicknessComponent, StitchedDevice, TPMSComponent
 
-        if type(self) in (Component, Device, VariableLayerThicknessComponent, StitchedDevice):
+        if type(self) in (Component, Device, VariableLayerThicknessComponent, StitchedDevice, TPMSComponent):
             return self._instantiation_path.stem
 
         return self._class_definition_path().stem
@@ -1669,6 +1669,96 @@ class VariableLayerThicknessComponent(Component):
     def _expand_layer_sizes(self) -> list[float]:
         """Expand the layer sizes into a list of heights for each layer."""
         return self.expanded_sizes
+
+
+class TPMSComponent(Component):
+    """
+    A component that slices a single TPMS unit cell and tiles it across its volume.
+    """
+
+    def __init__(
+        self,
+        size: tuple[int, int, int],
+        position: tuple[int, int, int],
+        unit_cell_size: tuple[int, int, int],
+        tpms_func: Callable[[float, float, float], float],
+        fill: float = 0.0,
+        refinement: int = 10,
+        px_size: float = 0.0076,
+        layer_size: float = 0.01,
+        hide_in_render: bool = True,
+        quiet: bool = False,
+    ):
+        """
+        Initialize a TPMSComponent.
+
+        Parameters:
+
+        - size (tuple[int, int, int]): Component size in px/layer space.
+        - position (tuple[int, int, int]): Component position in parent px/layer space.
+        - unit_cell_size (tuple[int, int, int]): TPMS unit cell size in px/layer space.
+        - tpms_func (Callable[[float, float, float], float]): TPMS level-set function.
+        - fill (float): Level set value for the TPMS isosurface.
+        - refinement (int): Level-set grid subdivisions per unit cell.
+        - px_size (float): Pixel size in mm.
+        - layer_size (float): Layer size in mm.
+        - hide_in_render (bool): Whether to hide in renders. Default is True.
+        - quiet (bool): If True, suppress creation messages.
+        """
+        if type(self) == TPMSComponent:
+            frame = inspect.currentframe()
+            args, _, _, values = inspect.getargvalues(frame)
+            self.init_args = [values[arg] for arg in args if arg != "self"]
+            self.init_kwargs = {arg: values[arg] for arg in args if arg != "self"}
+
+        self.unit_cell_size = self._validate_unit_cell_size(unit_cell_size)
+        self.tpms_func = tpms_func
+        self.tpms_fill = fill
+        self.tpms_refinement = refinement
+
+        super().__init__(
+            size,
+            position,
+            px_size=px_size,
+            layer_size=layer_size,
+            hide_in_render=hide_in_render,
+            quiet=quiet,
+        )
+
+    def _validate_unit_cell_size(
+        self, unit_cell_size: tuple[int, int, int]
+    ) -> tuple[int, int, int]:
+        if len(unit_cell_size) != 3:
+            raise ValueError("unit_cell_size must be a 3-tuple (x, y, z).")
+        validated = []
+        for value in unit_cell_size:
+            if value <= 0:
+                raise ValueError("unit_cell_size values must be positive.")
+            if abs(value - round(value)) > 1e-6:
+                raise ValueError("unit_cell_size values must be integers.")
+            validated.append(int(round(value)))
+        return tuple(validated)
+
+    def add_bulk(self, *args, **kwargs):
+        raise ValueError("TPMSComponent does not support bulk shapes.")
+    
+    def add_shape(self, *args, **kwargs):
+        raise ValueError("TPMSComponent does not support void shapes.")
+    
+    def add_label(self, *args, **kwargs):
+        raise ValueError("TPMSComponent does not support labels.")
+    
+    def add_labels(self, mapping):
+        raise ValueError("TPMSComponent does not support labels.")
+
+    def add_port(self, name, port):
+        raise ValueError("TPMSComponent does not support ports.")
+    
+    def add_regional_settings(self, name, shape, settings, label):
+        raise ValueError("TPMSComponent does not support regional settings.")
+
+    def add_subcomponent(self, *args, **kwargs):
+        raise ValueError("TPMSComponent does not support subcomponents.")
 
 
 class Device(Component):

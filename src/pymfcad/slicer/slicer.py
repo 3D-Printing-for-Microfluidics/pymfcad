@@ -449,7 +449,7 @@ class Slicer:
         temp_directory,
         slices_folder,
     ):
-        from .. import Device
+        from .. import Device, StitchedDevice
 
         def _px_to_um(px: float, px_size: float) -> float:
             return px * px_size * 1000
@@ -653,7 +653,72 @@ class Slicer:
                                 continue
                             parent_info.setdefault("slices", [])
 
-                            if isinstance(parent_device, Device):
+                            if isinstance(parent_device, StitchedDevice):
+                                base_px_count = parent_device.base_px_count
+                                overlap_px = parent_device.overlap_px
+                                step_x = base_px_count[0] - overlap_px
+                                step_y = base_px_count[1] - overlap_px
+
+                                base_offset_x_um = -parent_device.default_exposure_settings.image_x_offset
+                                base_offset_y_um = -parent_device.default_exposure_settings.image_y_offset
+
+                                for ty in range(parent_device.tiles_y):
+                                    for tx in range(parent_device.tiles_x):
+                                        tile_origin_x = tx * step_x
+                                        tile_origin_y = ty * step_y
+                                        local_pos = (
+                                            round(pos[1]) - tile_origin_x,
+                                            round(pos[2]) - tile_origin_y,
+                                        )
+                                        embedded_slice_image = self._embed_image(
+                                            local_pos,
+                                            base_px_count,
+                                            slice_img2,
+                                            parent_device.get_fully_qualified_name(),
+                                        )
+
+                                        exposure_settings = copy.deepcopy(
+                                            parent_device.default_exposure_settings
+                                        )
+                                        exposure_settings.image_x_offset = -round(
+                                            base_offset_x_um
+                                            + _px_to_um(tx * step_x, parent_device._px_size),
+                                            1,
+                                        )
+                                        exposure_settings.image_y_offset = -round(
+                                            base_offset_y_um
+                                            + _px_to_um(ty * step_y, parent_device._px_size),
+                                            1,
+                                        )
+                                        if exposure_settings.image_x_offset == -0.0:
+                                            exposure_settings.image_x_offset = 0.0
+                                        if exposure_settings.image_y_offset == -0.0:
+                                            exposure_settings.image_y_offset = 0.0
+
+                                        parent_info["slices"].append(
+                                            {
+                                                "image_name": slice["image_name"],
+                                                "parent": None,
+                                                "image_data": rle_encode_packed(
+                                                    embedded_slice_image
+                                                ),
+                                                "device": None,
+                                                "position": None,
+                                                "layer_position": (
+                                                    round(
+                                                        slice["layer_position"]
+                                                        + round(pos[3], 4) * 1000,
+                                                        1,
+                                                    )
+                                                ),
+                                                "exposure_settings": exposure_settings,
+                                                "position_settings": (
+                                                    parent_device.default_position_settings
+                                                ),
+                                            }
+                                        )
+
+                            elif isinstance(parent_device, Device):
                                 parent_info["slices"].append(
                                     {
                                         "image_name": slice["image_name"],
@@ -676,7 +741,7 @@ class Slicer:
                                         ),
                                     }
                                 )
-                            else: # if parent is not a device (subcomponents' subcomponents)
+                            else:  # if parent is not a device (subcomponents' subcomponents)
                                 x = pos[1]
                                 y = pos[2]
                                 z = round(pos[3], 4)
@@ -1148,17 +1213,28 @@ class Slicer:
             ]["Image settings"]
 
 
-            print("Combining exposures...")
-            combined_slices = []
+            print("Combining exposures and compiling print settings...")
+            layers = []
+            last_layer = 0.0
+            last_light_engine = None
             for layer, slices in self._iterate_slices_by_layer(embedded_devices):
                 print(
                     f"\r\tProcessing layer at {layer:.1f} um... ",
                     end="",
                     flush=True,
                 )
+
                 grouped_slices = self._group_images_by_settings(slices)
-                combined_slices_groups = []
+
+                layer_thickness = layer - last_layer
+                position_settings = None
+                layer_settings = {}
+                image_settings_list = []
+
+                # Group slices by settings
                 for group in grouped_slices:
+                    group_exposure_settings = None
+
                     group_exposures = [
                         slice_info["exposure_settings"].get_exposure_time(
                             self.settings.resin
@@ -1167,48 +1243,19 @@ class Slicer:
                     ]
                     group_images = []
                     for slice_info in group:
-                        if slice_info.get("parent") is not None:
-                            group_images.append(
-                                {
-                                    "device": slice_info["device"],
-                                    "parent": slice_info["parent"],
-                                    "image_data": slice_info["image_data"],
-                                    "image_name": slice_info["image_name"],
-                                    "position": slice_info["position"],
-                                }
-                            )
-                        else:
-                            image = rle_decode_packed(*slice_info["image_data"])
-                            group_images.append(image)
+                        group_images.append(
+                            {
+                                "device": slice_info.get("device"),
+                                "parent": slice_info.get("parent"),
+                                "image_data": slice_info["image_data"],
+                                "image_name": slice_info["image_name"],
+                                "position": slice_info.get("position"),
+                            }
+                        )
 
-                    # combine exposures
                     output_imgs, output_times = self._combine_exposures(
                         group_images, group_exposures, temp_directory
                     )
-                    combined_slices_groups.append((group, output_imgs, output_times))
-                combined_slices.append((layer, combined_slices_groups))
-            print()
-
-            # Loop z positions
-            print("Compile print settings...")
-            layers = []
-            last_layer = 0.0
-            last_light_engine = None
-            for layer, groups in combined_slices:
-                print(
-                    f"\r\tProcessing layer at {layer:.1f} um... ",
-                    end="",
-                    flush=True,
-                )
-
-                layer_thickness = layer - last_layer
-                position_settings = None
-                layer_settings = {}
-                image_settings_list = []
-
-                # Group slices by settings
-                for group, output_imgs, output_times in groups:
-                    group_exposure_settings = None
 
                     output_img_files = []
                     for i, arr in enumerate(output_imgs):
