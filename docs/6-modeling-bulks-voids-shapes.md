@@ -41,7 +41,7 @@ index 0000000..1111111 100644
 
 ### Step 2 — Create a Device
 
-The `Device` is the 3D canvas we build inside. The size is controlled by pixel counts (x/y), layer count (z), and physical resolution (pixel size and layer size).
+The `Device` is the sliceable 3D canvas that constrains your design to the printer's hardware limits. Its dimensions are defined by pixel counts (x,y), layer count (z), and physical resolution (pixel and layer size).
 
 <div class="diff2html-wrapper">
     <div class="diff2html"></div>

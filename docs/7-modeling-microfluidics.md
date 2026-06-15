@@ -43,7 +43,7 @@ Let’s see an example.
 
 ## Step 1 — Device context
 
-Before we can start modeling our device, we need to make our canvas. The `Device` defines the pixel grid and layer stack for a specific printer setup.
+Before modeling, define the `Device` context. It maps your design to the printer's pixel grid and layer stack so geometry matches hardware resolution.
 
 <div class="diff2html-wrapper">
     <div class="diff2html"></div>
