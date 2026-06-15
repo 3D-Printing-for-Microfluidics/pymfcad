@@ -308,13 +308,14 @@ class Router:
             )
             + np.array(input_size) / 2
         )
-        if input_port._parent._parent is None:  # heuristic for external port
-            # shift position to edge of port
-            vect = input_port.to_vector()
-            for i in range(3):
-                if vect[i] != 0:
-                    input_pos[i] -= vect[i] * input_size[i]/2
-                    input_size[i] = 0
+        # if input_port._parent._parent is None:  # heuristic for external port # we are switching this to always happening...
+        # shift position to edge of port
+        vect = input_port.to_vector()
+        for i in range(3):
+            if vect[i] != 0:
+                input_pos[i] -= vect[i] * input_size[i]/2
+                input_size[i] = 0
+
         polychannel_shapes.insert(
             0,
             PolychannelShape(
@@ -335,13 +336,14 @@ class Router:
             )
             + np.array(output_size) / 2
         )
-        if output_port._parent._parent is None:  # heuristic for external port
-            # shift position to edge of port
-            vect = output_port.to_vector()
-            for i in range(3):
-                if vect[i] != 0:
-                    output_pos[i] -= vect[i] * output_size[i]/2
-                    output_size[i] = 0
+        # if output_port._parent._parent is None:  # heuristic for external port  # we are switching this to always happening...
+        # shift position to edge of port
+        vect = output_port.to_vector()
+        for i in range(3):
+            if vect[i] != 0:
+                output_pos[i] -= vect[i] * output_size[i]/2
+                output_size[i] = 0
+                
         polychannel_shapes.append(
             PolychannelShape(
                 "cube",
