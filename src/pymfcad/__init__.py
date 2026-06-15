@@ -31,6 +31,7 @@ from .backend import (
     TextExtrusion,
     ImportModel,
     TPMS,
+    TPMSGrid,
     Color,
     Polychannel,
     PolychannelShape,

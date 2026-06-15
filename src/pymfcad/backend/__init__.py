@@ -13,6 +13,7 @@ from .manifold3d import (
     TextExtrusion,
     ImportModel,
     TPMS,
+    TPMSGrid,
 )
 from .render import render_component
 

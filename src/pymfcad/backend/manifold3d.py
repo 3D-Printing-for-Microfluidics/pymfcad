@@ -1454,3 +1454,82 @@ class TPMS(Shape):
         )
         self.resize(size)
         self._add_bbox_to_keepout(self._object.bounding_box())
+
+
+class TPMSGrid(Shape):
+    """
+    TPMS grid shape that is sliced via raster tiling instead of manifold ops.
+
+    This shape is intended to be combined with other component slices after
+    standard slicing, rather than participating in manifold boolean operations.
+    """
+
+    def __init__(
+        self,
+        size: tuple[int, int, int],
+        unit_cell_size: tuple[int, int, int],
+        func: Callable[[float, float, float], float] = TPMS.diamond,
+        fill: float = 0.0,
+        refinement: int = 10,
+        quiet: bool = False,
+    ) -> None:
+        """
+        Create a TPMS grid volume.
+
+        Parameters:
+
+        - size (tuple[int, int, int]): Grid volume size in px/layer space.
+        - unit_cell_size (tuple[int, int, int]): TPMS unit cell size in px/layer space.
+        - func (Callable[[float, float, float], float]): TPMS level-set function.
+        - fill (float): Level set value for the TPMS isosurface.
+        - refinement (int): Level-set grid subdivisions per unit cell.
+        - quiet (bool): If True, suppresses informational output.
+        """
+        super().__init__()
+
+        self.unit_cell_size = self._validate_unit_cell_size(unit_cell_size)
+        self.tpms_func = func
+        self.tpms_fill = fill
+        self.tpms_refinement = refinement
+        self.quiet = quiet
+
+        # Store a bounding volume for positioning and keepouts.
+        if size[0] == 0:
+            size = (0.0001, size[1], size[2])
+        if size[1] == 0:
+            size = (size[0], 0.0001, size[2])
+        if size[2] == 0:
+            size = (size[0], size[1], 0.0001)
+
+        self._object = Manifold.cube(
+            (size[0], size[1], size[2]),
+            center=False,
+        )
+        self._add_bbox_to_keepout(self._object.bounding_box())
+
+    def _validate_unit_cell_size(
+        self, unit_cell_size: tuple[int, int, int]
+    ) -> tuple[int, int, int]:
+        if len(unit_cell_size) != 3:
+            raise ValueError("unit_cell_size must be a 3-tuple (x, y, z).")
+        validated = []
+        for value in unit_cell_size:
+            if value <= 0:
+                raise ValueError("unit_cell_size values must be positive.")
+            if abs(value - round(value)) > 1e-6:
+                raise ValueError("unit_cell_size values must be integers.")
+            validated.append(int(round(value)))
+        return tuple(validated)
+
+    def rotate(self, rotation: tuple[float, float, float]) -> "Shape":
+        """Rotate grid and update unit cell axes for 90-degree Z rotations."""
+        rx, ry, rz = rotation
+        if rx == 0 and ry == 0:
+            rot = int(rz) % 360
+            if rot in (90, 270):
+                self.unit_cell_size = (
+                    self.unit_cell_size[1],
+                    self.unit_cell_size[0],
+                    self.unit_cell_size[2],
+                )
+        return super().rotate(rotation)

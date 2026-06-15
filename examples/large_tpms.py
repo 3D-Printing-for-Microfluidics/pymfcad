@@ -180,23 +180,13 @@ chan_list += [
 channel = Polychannel(chan_list)
 outer.add_void("channel", channel, label="void")
 
-# tpms = StitchedDevice.with_wintech(
-#     name="StitchedDemo",
-#     position=(0, 0, 0),
-#     layers=100,
-#     layer_size=0.0015,
-#     tiles_x=5,
-#     tiles_y=8,
-#     overlap_px=10,
-# )
-
 stitched_wintech = StitchedDevice.with_wintech(
     name="StitchedDemo",
     position=(0, 0, 0),
     layers=100,
     layer_size=0.0015,
-    tiles_x=5,
-    tiles_y=8,
+    tiles_x=2, #5
+    tiles_y=2, #8
     overlap_px=0,
 )
 stitched_wintech.add_default_exposure_settings(ExposureSettings(wavelength=365, power_setting=60, bulk_exposure_multiplier=0.01))
@@ -207,21 +197,28 @@ stitched_wintech.add_default_position_settings(PositionSettings(distance_up=0.5,
                                                 down_acceleration=50.0))
 stitched_wintech.add_label("bulk", Color.from_name("blue", 127))
 stitched_wintech.add_label("void", Color.from_name("aqua", 127))
-stitched_wintech.add_bulk("bulk_shape", Cube((1,1,1), center=False), label="bulk")
 
-tpms = TPMSComponent(stitched_wintech._size, 
-                    position=(0,0,900), 
-                    unit_cell_size=(20, 20, 10),
-                    tpms_func=TPMS.diamond,
-                    fill=0.0,
-                    refinement=20,
-                    px_size=0.00075,
-                    layer_size=0.0015
-                    )
+# stitched_wintech.add_bulk("bulk_shape", Cube((1,1,1), center=False), label="bulk")
+# tpms = TPMSComponent(stitched_wintech._size, 
+#                     position=(0,0,900), 
+#                     unit_cell_size=(20, 20, 10),
+#                     tpms_func=TPMS.diamond,
+#                     fill=0.0,
+#                     refinement=20,
+#                     px_size=0.00075,
+#                     layer_size=0.0015
+#                     )
+# stitched_wintech.add_subcomponent("tpms", tpms)
 
-
-# tpms.add_subcomponent("tpms", TPMSComponent(size=(400, 400, 200), 
-stitched_wintech.add_subcomponent("tpms", tpms)
+from pymfcad import TPMSGrid
+stitched_wintech.add_bulk("bulk_shape", TPMSGrid(
+    size=stitched_wintech._size,
+    unit_cell_size=(40, 40, 20),
+    func=TPMS.diamond,
+    fill=0.0,
+    refinement=20,
+    quiet=True
+), label="bulk")
 
 # Embed the inner device into the outer device
 # calculate translation (center inner device within outer device)
@@ -229,7 +226,7 @@ translation_x = (outer._size[0]*outer._px_size - stitched_wintech._size[0]*stitc
 translation_y = (outer._size[1]*outer._px_size - stitched_wintech._size[1]*stitched_wintech._px_size) / 2
 print(outer._size, stitched_wintech._size, translation_x, translation_y, translation_x / outer._px_size, translation_y / outer._px_size)
 stitched_wintech.translate((translation_x / outer._px_size, translation_y / outer._px_size, 90))  # translation in outer device pixels/layers
-outer.add_subcomponent("stitched_wintech", stitched_wintech, subtract_bounding_box=False, hide_in_render=True)
+outer.add_subcomponent("stitched_wintech", stitched_wintech, subtract_bounding_box=False, hide_in_render=False)
 
 outer.preview()
 
