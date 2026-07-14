@@ -256,7 +256,7 @@ index 0000000..1111111 100644
  import inspect
  from pymfcad import Component, Port, Color, Cube, Polychannel, PolychannelShape
  
-class YJunctionMixer(Component):
+ class YJunctionMixer(Component):
      """
      Simple Y-junction mixer with two inlets and one outlet.
      """
