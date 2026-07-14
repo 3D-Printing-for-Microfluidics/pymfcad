@@ -47,9 +47,15 @@ def _is_clockwise(polygon: np.ndarray) -> bool:
 
     - bool: True when the polygon is clockwise.
     """
-    x = polygon[:, 0]
-    y = polygon[:, 1]
-    return np.sum((x[1:] - x[:-1]) * (y[1:] + y[:-1])) > 0
+    area = 0
+    n = len(polygon)
+
+    for i in range(n):
+        x1, y1 = polygon[i]
+        x2, y2 = polygon[(i + 1) % n]
+        area += x1 * y2 - x2 * y1
+
+    return area < 0
 
 
 def _slice(
@@ -104,16 +110,15 @@ def _slice(
         draw = ImageDraw.Draw(img)
 
         for poly in polygons:
+            clockwise = _is_clockwise(poly)
+
             # Snap to the pixel grid.
             transformed = np.round(poly).astype(int)
             transformed[:, 1] = img.height - transformed[:, 1]
             points = [tuple(p) for p in transformed]
 
             # Determine fill color based on orientation.
-            if _is_clockwise(transformed):
-                fill_color = 255  # solid
-            else:
-                fill_color = 0  # hole
+            fill_color = 0 if clockwise else 255
 
             # Convert polygon and offset inward slightly to avoid edge artifacts.
             p = Polygon(points)
