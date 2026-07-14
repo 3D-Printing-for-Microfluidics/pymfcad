@@ -1309,6 +1309,10 @@ class Component(_InstantiationTrackerMixin):
                         port._position[2],
                     )
 
+            # Adjust port size if needed
+            if rot in (90, 270):
+                port._size = (port._size[1], port._size[0], port._size[2])
+
         if in_place:
             # Translate the component so new negative-negative corner is at original position
             if rot == 90:
