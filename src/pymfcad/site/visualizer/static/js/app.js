@@ -14,6 +14,9 @@ import { createSettingsSystem } from './settings.js';
 const AUTO_RELOAD_STORAGE_KEY = 'pymfcad_auto_reload';
 const AUTO_RELOAD_INTERVAL_KEY = 'pymfcad_auto_reload_interval_ms';
 const AXES_STORAGE_KEY = 'pymfcad_axes_visible';
+const MEASUREMENT_VISIBILITY_STORAGE_KEY = 'pymfcad_measurement_visibility_v1';
+const RULER_VISIBILITY_STORAGE_KEY = 'pymfcad_ruler_visibility_v1';
+const RULER_UNITS_STORAGE_KEY = 'pymfcad_ruler_units_v1';
 const DEFAULT_CONTROLS_TYPE_STORAGE_KEY = 'pymfcad_default_controls_type';
 const MODEL_DEFAULT_VERSION_KEY = 'pymfcad_model_default_version';
 const LIGHTS_STORAGE_KEY = 'pymfcad_lights_v1';
@@ -70,6 +73,9 @@ const cameraSystem = createCameraSystem({
     }
   },
 });
+
+axes.setCameraProvider?.(() => cameraSystem.getCamera());
+axes.setControlsProvider?.(() => controls);
 
 const raycaster = new THREE.Raycaster();
 const pointer = new THREE.Vector2();
@@ -146,6 +152,77 @@ const UNIT_FACTORS = {
 };
 
 let measurementUnits = localStorage.getItem(MEASUREMENT_UNITS_KEY) || 'μm';
+let rulerUnits = localStorage.getItem(RULER_UNITS_STORAGE_KEY) || 'mm';
+
+axes.setUnitsProvider?.(() => rulerUnits);
+
+const RULER_VISIBILITY_MODES = [
+  { value: 'hidden', label: 'Ruler: Hidden' },
+  { value: 'axis', label: 'Ruler: Axis' },
+  { value: 'ticks', label: 'Ruler: Ticks' },
+  { value: 'all', label: 'Ruler: All' },
+];
+
+let rulerUnitButtons = [];
+let rulerVisibilityMode = localStorage.getItem(RULER_VISIBILITY_STORAGE_KEY) || 'all';
+
+function syncRulerVisibilityButton() {
+  if (!rulerVisibilityBtn) return;
+  const current = RULER_VISIBILITY_MODES.find((entry) => entry.value === rulerVisibilityMode) || RULER_VISIBILITY_MODES[3];
+  rulerVisibilityBtn.classList.toggle('is-active', rulerVisibilityMode !== 'hidden');
+  rulerVisibilityBtn.textContent = current.label;
+  rulerVisibilityBtn.setAttribute('aria-pressed', String(rulerVisibilityMode !== 'hidden'));
+  rulerVisibilityBtn.title = 'Cycle ruler visibility';
+}
+
+function setRulerVisibilityMode(mode, { persist = true } = {}) {
+  const nextMode = RULER_VISIBILITY_MODES.some((entry) => entry.value === mode) ? mode : 'all';
+  rulerVisibilityMode = nextMode;
+  if (persist) {
+    localStorage.setItem(RULER_VISIBILITY_STORAGE_KEY, nextMode);
+  }
+  axes.setVisibilityMode?.(nextMode);
+  syncRulerVisibilityButton();
+}
+
+function cycleRulerVisibilityMode() {
+  const currentIndex = RULER_VISIBILITY_MODES.findIndex((entry) => entry.value === rulerVisibilityMode);
+  const nextIndex = currentIndex >= 0 ? (currentIndex + 1) % RULER_VISIBILITY_MODES.length : 0;
+  setRulerVisibilityMode(RULER_VISIBILITY_MODES[nextIndex].value);
+}
+
+function setRulerUnits(units, { persist = true } = {}) {
+  if (!units) return;
+  rulerUnits = units;
+  if (rulerUnitButtons && rulerUnitButtons.length) {
+    rulerUnitButtons.forEach((btn) => {
+      const isActive = btn.dataset.unit === units;
+      btn.classList.toggle('is-active', isActive);
+      btn.setAttribute('aria-pressed', String(isActive));
+    });
+  }
+  if (persist) localStorage.setItem(RULER_UNITS_STORAGE_KEY, units);
+  axes.update?.();
+}
+
+function initRulerUnitButtons() {
+  if (!rulerUnitsHost) return;
+  rulerUnitButtons = Array.from(rulerUnitsHost.querySelectorAll('.ruler-units-btn'));
+  rulerUnitButtons.forEach((btn) => {
+    const unit = btn.dataset.unit;
+    btn.addEventListener('click', () => setRulerUnits(unit));
+  });
+  setRulerUnits(rulerUnits, { persist: false });
+}
+
+function initRulerVisibilityToggle() {
+  if (!rulerVisibilityBtn) return;
+  rulerVisibilityBtn.addEventListener('click', () => {
+    cycleRulerVisibilityMode();
+    scheduleHistoryCapture();
+  });
+  setRulerVisibilityMode(rulerVisibilityMode, { persist: false });
+}
 
 function setMeasurementUnits(units, { persist = true } = {}) {
   if (!units) return;
@@ -199,6 +276,42 @@ function setMeasurementButtonState(enabled) {
     : 'Enable measurement mode.';
 }
 
+let measurementVisibility = localStorage.getItem(MEASUREMENT_VISIBILITY_STORAGE_KEY) !== 'false';
+
+function updateMeasurementSceneVisibility() {
+  const hasMeasurement = !!(
+    measurementStartMarker.visible ||
+    measurementEndMarker.visible ||
+    measurementLine.visible ||
+    measurementBeam.visible
+  );
+  measurementScene.visible = measurementVisibility && hasMeasurement;
+}
+
+function setMeasurementVisibility(visible, { persist = true } = {}) {
+  measurementVisibility = !!visible;
+  if (persist) {
+    localStorage.setItem(MEASUREMENT_VISIBILITY_STORAGE_KEY, String(measurementVisibility));
+  }
+  if (measurementPanel) {
+    measurementPanel.classList.toggle('is-hidden', !measurementVisibility);
+  }
+  if (measurementVisibilityBtn) {
+    measurementVisibilityBtn.classList.toggle('is-active', measurementVisibility);
+    measurementVisibilityBtn.textContent = `Measurements: ${measurementVisibility ? 'On' : 'Off'}`;
+    measurementVisibilityBtn.setAttribute('aria-pressed', String(measurementVisibility));
+    measurementVisibilityBtn.title = measurementVisibility
+      ? 'Hide measurement pane'
+      : 'Show measurement pane';
+  }
+  if (measurementPanelToggleBtn) {
+    measurementPanelToggleBtn.classList.toggle('is-active', measurementVisibility);
+    measurementPanelToggleBtn.title = measurementVisibility ? 'Hide Measurement Pane' : 'Show Measurement Pane';
+    measurementPanelToggleBtn.setAttribute('aria-pressed', String(measurementVisibility));
+  }
+  updateMeasurementSceneVisibility();
+}
+
 function clearMeasurement({ keepPrompt = false } = {}) {
   measurementState.startPoint = null;
   measurementState.endPoint = null;
@@ -207,7 +320,7 @@ function clearMeasurement({ keepPrompt = false } = {}) {
   measurementLine.visible = false;
   measurementBeam.visible = false;
   measurementGeometry.setFromPoints([]);
-  measurementScene.visible = false;
+  updateMeasurementSceneVisibility();
   if (measurementReadout && !keepPrompt) {
     updateMeasurementReadout(measurementState.enabled
       ? 'Click two points on the model.'
@@ -232,16 +345,15 @@ function setMeasurementPanelVisible(visible) {
 function setMeasurementStart(point) {
   clearMeasurement({ keepPrompt: true });
   measurementState.startPoint = point.clone();
-  measurementScene.visible = true;
   measurementStartMarker.position.copy(point);
   measurementStartMarker.visible = true;
+  updateMeasurementSceneVisibility();
   updateMeasurementReadout('Point A pinned. Select point B.');
 }
 
 function setMeasurementEnd(point) {
   if (!measurementState.startPoint) return;
   measurementState.endPoint = point.clone();
-  measurementScene.visible = true;
   measurementEndMarker.position.copy(point);
   measurementEndMarker.visible = true;
   measurementLine.geometry.setFromPoints([measurementState.startPoint, measurementState.endPoint]);
@@ -258,6 +370,7 @@ function setMeasurementEnd(point) {
   } else {
     measurementBeam.visible = false;
   }
+  updateMeasurementSceneVisibility();
   const factor = UNIT_FACTORS[measurementUnits] || 1000000;
   const unitLabel = measurementUnits;
   const dxValue = Math.abs(rawSegment.x * factor);
@@ -399,7 +512,9 @@ modelSelector.setVersionChangeCallback((idx, versionId) => {
 
 const resetCameraBtn = document.getElementById('resetCameraBtn');
 const reloadModelBtn = document.getElementById('reloadModelBtn');
-const axesToggleBtn = document.getElementById('axesToggleBtn');
+const rulerVisibilityBtn = document.getElementById('rulerVisibilityBtn');
+const rulerUnitsHost = document.getElementById('rulerUnitsHost');
+const measurementVisibilityBtn = document.getElementById('measurementVisibilityBtn');
 
 const cameraModeBtn = document.getElementById('cameraModeBtn');
 const homeCameraBtn = document.getElementById('homeCameraBtn');
@@ -581,14 +696,6 @@ function applyControlsType(type, persist = true) {
   }
 }
 
-function applyAxesState(visible) {
-  axes.visible = !!visible;
-  localStorage.setItem(AXES_STORAGE_KEY, String(axes.visible));
-  if (axesToggleBtn) {
-    axesToggleBtn.textContent = axes.visible ? 'Axes: On' : 'Axes: Off';
-  }
-}
-
 function syncThemeInputs(themeName) {
   if (!themeManager || !themeInputs) return;
   const state = themeManager.getThemeState();
@@ -673,10 +780,7 @@ function applyHistorySnapshot(snapshot) {
     cameraSystem.resetCameraHome();
   }
   syncCameraControlSelect();
-
-  if (typeof snapshot.axesVisible === 'boolean') {
-    applyAxesState(snapshot.axesVisible);
-  }
+  
   if (snapshot.defaultControlsType) {
     if (defaultControlTypeSelect) {
       defaultControlTypeSelect.value = snapshot.defaultControlsType;
@@ -1609,9 +1713,6 @@ function applySettingsPayload(payload, sections = {}) {
 
   if (apply.general && isNewFormat) {
     const general = payload.general || {};
-    if (general.axesVisible !== undefined) {
-      applyAxesState(!!general.axesVisible);
-    }
     if (general.defaultControlsType) {
       cameraSystem.setDefaultControlType(general.defaultControlsType);
       if (defaultControlTypeSelect) defaultControlTypeSelect.value = general.defaultControlsType;
@@ -1801,15 +1902,12 @@ lightSystem.bindLightUI({
 
 // Preview viewer is bound per tab via settingsSystem.
 
-function initAxesToggle() {
-  if (!axesToggleBtn) return;
-  const savedAxes = localStorage.getItem(AXES_STORAGE_KEY);
-  axes.visible = savedAxes !== 'false';
-  axesToggleBtn.textContent = axes.visible ? 'Axes: On' : 'Axes: Off';
-  axesToggleBtn.addEventListener('click', () => {
-    axes.visible = !axes.visible;
-    localStorage.setItem(AXES_STORAGE_KEY, String(axes.visible));
-    axesToggleBtn.textContent = axes.visible ? 'Axes: On' : 'Axes: Off';
+
+function initMeasurementVisibilityToggle() {
+  setMeasurementVisibility(measurementVisibility, { persist: false });
+  if (!measurementVisibilityBtn) return;
+  measurementVisibilityBtn.addEventListener('click', () => {
+    setMeasurementVisibility(!measurementVisibility);
     scheduleHistoryCapture();
   });
 }
@@ -2144,6 +2242,9 @@ async function resetAllSettings() {
   localStorage.removeItem(AUTO_RELOAD_STORAGE_KEY);
   localStorage.removeItem(AUTO_RELOAD_INTERVAL_KEY);
   localStorage.removeItem(AXES_STORAGE_KEY);
+  localStorage.removeItem(MEASUREMENT_VISIBILITY_STORAGE_KEY);
+  localStorage.removeItem(RULER_VISIBILITY_STORAGE_KEY);
+  localStorage.removeItem(RULER_UNITS_STORAGE_KEY);
   localStorage.removeItem(DEFAULT_CONTROLS_TYPE_STORAGE_KEY);
   localStorage.removeItem('pymfcad_theme');
   localStorage.removeItem('pymfcad_theme_defs_v1');
@@ -2294,6 +2395,7 @@ function animate() {
   requestAnimationFrame(animate);
   controls.update();
   cameraSystem.updateCameraIcon();
+  axes.update();
   renderer.clear();
   renderer.render(scene, cameraSystem.getCamera());
   if (measurementScene.visible) {
@@ -2330,7 +2432,8 @@ async function init() {
     resetBtn: themeResetBtn,
     saveCustomBtn: themeToCustomBtn,
   });
-  initAxesToggle();
+  initRulerVisibilityToggle();
+  initRulerUnitButtons();
   if (docsBtn) {
     docsBtn.addEventListener('click', () => {
       window.open('/docs/', '_blank', 'noopener');
@@ -2660,7 +2763,6 @@ async function init() {
   }
 
   setMeasurementEnabled(false);
-  setMeasurementPanelVisible(false);
   clearMeasurement({ keepPrompt: true });
 
   if (defaultControlTypeSelect) {

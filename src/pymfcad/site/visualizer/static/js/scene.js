@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { RulerAxesHelper } from './ruler.js';
 import { OrbitControls } from '../../../static/js/controls/OrbitControls.js';
 import { TrackballControls } from '../../../static/js/controls/TrackballControls.js';
 
@@ -9,9 +10,9 @@ export function createScene() {
   scene.add(world);
   world.rotation.x = -Math.PI / 2;
 
-  const axes = new THREE.AxesHelper(100);
-  axes.position.set(-0.0001, -0.0001, -0.0001);
-  world.add(axes);
+  // const axes = new THREE.AxesHelper(100);
+  // axes.position.set(-0.0001, -0.0001, -0.0001);
+  // world.add(axes);
 
   const perspectiveCamera = new THREE.PerspectiveCamera(
     20,
@@ -30,6 +31,10 @@ export function createScene() {
   renderer.domElement.addEventListener('pointerdown', () => {
     renderer.domElement.focus();
   });
+
+  const axes = new RulerAxesHelper(100, perspectiveCamera, renderer);
+  axes.position.set(-0.0001, -0.0001, -0.0001);
+  world.add(axes);
 
   const orbitControls = new OrbitControls(perspectiveCamera, renderer.domElement);
   orbitControls.enableDamping = true;
