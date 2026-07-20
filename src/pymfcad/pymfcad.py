@@ -902,6 +902,30 @@ class Component(_InstantiationTrackerMixin):
         component._subtract_bounding_box = subtract_bounding_box
         component.run_translate()
 
+        # validate that subcomponent in within the parent component's bounding box
+        parent_bbox = self.get_bounding_box()
+        subcomp_bbox = component.get_bounding_box()
+        if not (
+            parent_bbox[0] <= subcomp_bbox[0] and subcomp_bbox[3] <= parent_bbox[3] and
+            parent_bbox[1] <= subcomp_bbox[1] and subcomp_bbox[4] <= parent_bbox[4] and
+            parent_bbox[2] <= subcomp_bbox[2] and subcomp_bbox[5] <= parent_bbox[5]
+        ):
+            raise ValueError(
+                f"Subcomponent '{component._name}' is not fully contained within the parent component '{self._name}'."
+            )
+        
+        # validate that subcomponents do not overlap with each other
+        for existing_name, existing_subcomp in self.subcomponents.items():
+            existing_bbox = existing_subcomp.get_bounding_box()
+            if not (
+                subcomp_bbox[3] <= existing_bbox[0] or subcomp_bbox[0] >= existing_bbox[3] or
+                subcomp_bbox[4] <= existing_bbox[1] or subcomp_bbox[1] >= existing_bbox[4] or
+                subcomp_bbox[5] <= existing_bbox[2] or subcomp_bbox[2] >= existing_bbox[5]
+            ):
+                raise ValueError(
+                    f"Subcomponent '{component._name}' overlaps with existing subcomponent '{existing_name}'."
+                )
+
         def update_labels(comp: Component, prefix: str = None, parent_labels: dict = None):
             """
             Update labels in the component and its subcomponents to include the prefix.

@@ -228,6 +228,24 @@ def _component_to_manifold(
     regional_manifolds = {}
     ports = []
 
+    def get_component_bounding_box_shape(comp: "Component") -> "Shape":
+        bbox = comp.get_bounding_box(comp._px_size, comp._layer_size)
+        from . import Cube
+        return Cube(
+            size=(
+                (bbox[3] - bbox[0]),
+                (bbox[4] - bbox[1]),
+                (bbox[5] - bbox[2]),
+            ),
+            center=False,
+        ).translate(
+            (
+                bbox[0],
+                bbox[1],
+                bbox[2],
+            )
+        )
+
     def accumulate_shape(comp: "Component", _top_level: bool = True) -> None:
         """
         Accumulate shapes from the component and its subcomponents.
@@ -242,6 +260,10 @@ def _component_to_manifold(
             # key = str(shape._color)
             key = str(shape._label)
             tmp_shape = shape.copy(_internal=True)
+            # intersect shape with the component's bounding box to avoid rendering shapes outside the component's bounds
+            if not _top_level:
+                bbox_cube = get_component_bounding_box_shape(comp)
+                tmp_shape &= bbox_cube
             tmp_shape._object = tmp_shape._object.scale(
                 [comp._px_size, comp._px_size, comp._layer_size]
             )
@@ -261,13 +283,14 @@ def _component_to_manifold(
                 if len(shape_list) > 0:
                     manifolds[key] = Shape._batch_boolean_add(shape_list)
 
-    def accumulate_bulk_shape(comp: "Component") -> dict[str, "Shape"]:
+    def accumulate_bulk_shape(comp: "Component", _top_level: bool = True) -> dict[str, "Shape"]:
         """
         Accumulate bulk shapes from the component and its subcomponents.
 
         Parameters:
 
         - comp (Component): Component to traverse.
+        - _top_level (bool): Whether this is the top-level component.
 
         Returns:
 
@@ -287,6 +310,9 @@ def _component_to_manifold(
             # key = str(bulk._color)
             key = str(bulk._label)
             temp_bulk = bulk.copy(_internal=True)
+            if not _top_level:
+                bbox_cube = get_component_bounding_box_shape(comp)
+                temp_bulk &= bbox_cube
             temp_bulk._object = temp_bulk._object.scale(
                 [comp._px_size, comp._px_size, comp._layer_size]
             )
@@ -324,7 +350,7 @@ def _component_to_manifold(
                     comp_cubes.append(bbox_cube)
 
             if not sub.hide_in_render:
-                _bulks = accumulate_bulk_shape(sub)
+                _bulks = accumulate_bulk_shape(sub, _top_level=False)
                 for key, item in _bulks.items():
                     if key in comp_bulks.keys():
                         comp_bulks[key].append(item)
@@ -378,6 +404,9 @@ def _component_to_manifold(
             # key = str(shape._color)
             key = prefix + str(shape._label)
             tmp_shape = shape.copy(_internal=True)
+            if not _top_level:
+                bbox_cube = get_component_bounding_box_shape(comp)
+                tmp_shape &= bbox_cube
             tmp_shape._object = tmp_shape._object.scale(
                 [comp._px_size, comp._px_size, comp._layer_size]
             )
