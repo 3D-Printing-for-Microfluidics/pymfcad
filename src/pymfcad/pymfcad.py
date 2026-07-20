@@ -318,6 +318,81 @@ class Port(_InstantiationTrackerMixin):
         else:
             return Color.from_name("w", 255)  # White
 
+    def rotate(self, rot):
+        # limited to 90 degree increments
+        if rot % 90 != 0:
+            raise ValueError("Rotation angle must be a multiple of 90 degrees.")
+        rot = rot % 360
+
+        x, y, z = self._position
+
+        if rot == 90:
+            self._position = (-y, x, z)
+        elif rot == 180:
+            self._position = (-x, -y, z)
+        elif rot == 270:
+            self._position = (y, -x, z)
+
+        # Mapping for 90-degree rotation steps around Z axis
+        vector_rotation_map = {
+            90: {
+                Port.SurfaceNormal.POS_X: (Port.SurfaceNormal.POS_Y, (-1, 0)),
+                Port.SurfaceNormal.POS_Y: (Port.SurfaceNormal.NEG_X, (0, 0)),
+                Port.SurfaceNormal.NEG_X: (Port.SurfaceNormal.NEG_Y, (-1, 0)),
+                Port.SurfaceNormal.NEG_Y: (Port.SurfaceNormal.POS_X, (0, 0)),
+            },
+            180: {
+                Port.SurfaceNormal.POS_X: (Port.SurfaceNormal.NEG_X, (0, -1)),
+                Port.SurfaceNormal.POS_Y: (Port.SurfaceNormal.NEG_Y, (-1, 0)),
+                Port.SurfaceNormal.NEG_X: (Port.SurfaceNormal.POS_X, (0, -1)),
+                Port.SurfaceNormal.NEG_Y: (Port.SurfaceNormal.POS_Y, (-1, 0)),
+            },
+            270: {
+                Port.SurfaceNormal.POS_X: (Port.SurfaceNormal.NEG_Y, (0, 0)),
+                Port.SurfaceNormal.POS_Y: (Port.SurfaceNormal.POS_X, (0, -1)),
+                Port.SurfaceNormal.NEG_X: (Port.SurfaceNormal.POS_Y, (0, 0)),
+                Port.SurfaceNormal.NEG_Y: (Port.SurfaceNormal.NEG_X, (0, -1)),
+            },
+        }
+
+        if self._surface_normal in vector_rotation_map.get(rot, {}):
+            new_vector, (dx, dy) = vector_rotation_map[rot][self._surface_normal]
+            self._position = (
+                self._position[0] + dx * self._size[0],
+                self._position[1] + dy * self._size[1],
+                self._position[2],
+            )
+            self._surface_normal = new_vector
+
+        # Adjust Z ports if needed
+        if self._surface_normal in (
+            Port.SurfaceNormal.POS_Z,
+            Port.SurfaceNormal.NEG_Z,
+        ):
+            if rot == 90:
+                self._position = (
+                    self._position[0] - self._size[0],
+                    self._position[1],
+                    self._position[2],
+                )
+            elif rot == 180:
+                self._position = (
+                    self._position[0] - self._size[0],
+                    self._position[1] - self._size[1],
+                    self._position[2],
+                )
+            elif rot == 270:
+                self._position = (
+                    self._position[0],
+                    self._position[1] - self._size[1],
+                    self._position[2],
+                )
+
+        # Adjust port size if needed
+        if rot in (90, 270):
+            self._size = (self._size[1], self._size[0], self._size[2])
+
+
 
 class Component(_InstantiationTrackerMixin):
     """
@@ -1138,12 +1213,17 @@ class Component(_InstantiationTrackerMixin):
             self._translations[1] += translation[1]
             self._translations[2] += translation[2]
         else:
-            if not _internal:
-                translation = (
-                    round(translation[0] / self._px_size * self._parent._px_size, 3),
-                    round(translation[1] / self._px_size * self._parent._px_size, 3),
-                    round(translation[2] / self._layer_size * self._parent._layer_size, 3),
-                )
+            if self._parent is None:
+                px = self._px_size
+                layer = self._layer_size
+            else:
+                px = self._parent._px_size
+                layer = self._parent._layer_size
+            translation = (
+                round(translation[0] / self._px_size * px, 3),
+                round(translation[1] / self._px_size * px, 3),
+                round(translation[2] / self._layer_size * layer, 3),
+            )
             for component in self.subcomponents.values():
                 component.translate(translation, _internal=True, _bypass_lock=True)
             for shape in self.shapes.values():
@@ -1158,12 +1238,11 @@ class Component(_InstantiationTrackerMixin):
                     port._position[1] + translation[1],
                     port._position[2] + translation[2],
                 )
-            if not _internal:
-                self._position = (
-                    self._position[0] + translation[0],
-                    self._position[1] + translation[1],
-                    self._position[2] + translation[2],
-                )
+            self._position = (
+                self._position[0] + translation[0],
+                self._position[1] + translation[1],
+                self._position[2] + translation[2],
+            )
         return self
 
     def run_translate(self) -> Component:
@@ -1230,95 +1309,32 @@ class Component(_InstantiationTrackerMixin):
                 _bypass_lock=True,
             )
 
-        for component in self.subcomponents.values():
-            component.rotate(rotation, _bypass_lock=True)
-
-        for shape in self.shapes.values():
-            shape.rotate((0, 0, rotation))
-
-        for bulk_shape in self.bulk_shapes.values():
-            bulk_shape.rotate((0, 0, rotation))
-
-        for shape, _ in self.regional_settings.values():
-            shape.rotate((0, 0, rotation))
-
         rot = rotation % 360
 
-        # Mapping for 90-degree rotation steps around Z axis
-        vector_rotation_map = {
-            90: {
-                Port.SurfaceNormal.POS_X: (Port.SurfaceNormal.POS_Y, (-1, 0)),
-                Port.SurfaceNormal.POS_Y: (Port.SurfaceNormal.NEG_X, (0, 0)),
-                Port.SurfaceNormal.NEG_X: (Port.SurfaceNormal.NEG_Y, (-1, 0)),
-                Port.SurfaceNormal.NEG_Y: (Port.SurfaceNormal.POS_X, (0, 0)),
-            },
-            180: {
-                Port.SurfaceNormal.POS_X: (Port.SurfaceNormal.NEG_X, (0, -1)),
-                Port.SurfaceNormal.POS_Y: (Port.SurfaceNormal.NEG_Y, (-1, 0)),
-                Port.SurfaceNormal.NEG_X: (Port.SurfaceNormal.POS_X, (0, -1)),
-                Port.SurfaceNormal.NEG_Y: (Port.SurfaceNormal.POS_Y, (-1, 0)),
-            },
-            270: {
-                Port.SurfaceNormal.POS_X: (Port.SurfaceNormal.NEG_Y, (0, 0)),
-                Port.SurfaceNormal.POS_Y: (Port.SurfaceNormal.POS_X, (0, -1)),
-                Port.SurfaceNormal.NEG_X: (Port.SurfaceNormal.POS_Y, (0, 0)),
-                Port.SurfaceNormal.NEG_Y: (Port.SurfaceNormal.NEG_X, (0, -1)),
-            },
-        }
+        for component in self.subcomponents.values():
+            component.rotate(rot, _bypass_lock=True)
+
+        for shape in self.shapes.values():
+            shape.rotate((0, 0, rot))
+
+        for bulk_shape in self.bulk_shapes.values():
+            bulk_shape.rotate((0, 0, rot))
+
+        for shape, _ in self.regional_settings.values():
+            shape.rotate((0, 0, rot))
 
         for port in self.ports.values():
-            x, y, z = port._position
+            port.rotate(rot)
 
-            if rot == 90:
-                port._position = (-y, x, z)
-            elif rot == 180:
-                port._position = (-x, -y, z)
-            elif rot == 270:
-                port._position = (y, -x, z)
-
-            if port._surface_normal in vector_rotation_map.get(rot, {}):
-                new_vector, (dx, dy) = vector_rotation_map[rot][port._surface_normal]
-                port._position = (
-                    port._position[0] + dx * port._size[0],
-                    port._position[1] + dy * port._size[1],
-                    port._position[2],
-                )
-                port._surface_normal = new_vector
-
-            # Adjust Z ports if needed
-            if port._surface_normal in (
-                Port.SurfaceNormal.POS_Z,
-                Port.SurfaceNormal.NEG_Z,
-            ):
-                if rot == 90:
-                    port._position = (
-                        port._position[0] - port._size[0],
-                        port._position[1],
-                        port._position[2],
-                    )
-                elif rot == 180:
-                    port._position = (
-                        port._position[0] - port._size[0],
-                        port._position[1] - port._size[1],
-                        port._position[2],
-                    )
-                elif rot == 270:
-                    port._position = (
-                        port._position[0],
-                        port._position[1] - port._size[1],
-                        port._position[2],
-                    )
-
-            # Adjust port size if needed
-            if rot in (90, 270):
-                port._size = (port._size[1], port._size[0], port._size[2])
+        if rot in (90, 270):
+            self._size = (self._size[1], self._size[0], self._size[2])
 
         if in_place:
             # Translate the component so new negative-negative corner is at original position
             if rot == 90:
                 self.translate(
                     (
-                        original_position[0] + self._size[1],
+                        original_position[0] + self._size[0],
                         original_position[1],
                         original_position[2],
                     ),
@@ -1339,38 +1355,33 @@ class Component(_InstantiationTrackerMixin):
                 self.translate(
                     (
                         original_position[0],
-                        original_position[1] + self._size[0],
+                        original_position[1] + self._size[1],
                         original_position[2],
                     ),
                     _internal=True,
                     _bypass_lock=True
                 )
-
-            if rot in (90, 270):
-                self._size = (self._size[1], self._size[0], self._size[2])
+            self._position = original_position
         else:
             # Update position and size for non in-place rotation (position is negative-negative corner)
             if rot == 90:
                 self._position = (
-                    self._position[0] - self._size[1],
-                    self._position[1],
+                    -self._position[1] - self._size[0],
+                    self._position[0],
                     self._position[2],
                 )
             elif rot == 180:
                 self._position = (
-                    self._position[0] - self._size[0],
-                    self._position[1] - self._size[1],
+                    -self._position[0] - self._size[0],
+                    -self._position[1] - self._size[1],
                     self._position[2],
                 )
             elif rot == 270:
                 self._position = (
-                    self._position[0],
-                    self._position[1] - self._size[0],
+                    self._position[1],
+                    -self._position[0] - self._size[0],
                     self._position[2],
                 )
-
-            if rot in (90, 270):
-                self._size = (self._size[1], self._size[0], self._size[2])
         return self
 
     def mirror(
@@ -1487,18 +1498,19 @@ class Component(_InstantiationTrackerMixin):
                     _internal=True,
                     _bypass_lock=True
                 )
+            self._position = original_position
         else:
             # Update position for non in-place mirroring (position is negative-negative corner)
             if mirror_x and not mirror_y:
                 self._position = (
-                    self._position[0] - self._size[0],
+                    -self._position[0] - self._size[0],
                     self._position[1],
                     self._position[2],
                 )
             elif not mirror_x and mirror_y:
                 self._position = (
                     self._position[0],
-                    self._position[1] - self._size[1],
+                    -self._position[1] - self._size[1],
                     self._position[2],
                 )
 

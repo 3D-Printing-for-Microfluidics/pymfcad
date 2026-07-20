@@ -500,33 +500,25 @@ class Slicer:
                 current = parent_next
             return x_mm, y_mm, z_mm
 
-        def _relative_origin_mm(child, stop_parent):
-            x_mm = 0.0
-            y_mm = 0.0
-            z_mm = 0.0
-            current = child
-            while current is not None and current is not stop_parent:
-                if current._parent is None:
-                    x_mm += current.get_position()[0] * current._px_size
-                    y_mm += current.get_position()[1] * current._px_size
-                    z_mm += current.get_position()[2] * current._layer_size
-                    break
-                parent = current._parent
-                pos_in_parent = current.get_position(
-                    px_size=parent._px_size, layer_size=parent._layer_size
-                )
-                x_mm += pos_in_parent[0] * parent._px_size
-                y_mm += pos_in_parent[1] * parent._px_size
-                z_mm += pos_in_parent[2] * parent._layer_size
-                current = parent
-            return x_mm, y_mm, z_mm
-
         embedded_devices = []
         info_by_id = {id(dev): info for dev, info in zip(sliced_devices, sliced_devices_data)}
 
-        for device, info in zip(reversed(sliced_devices), reversed(sliced_devices_data)):
-            print(f"\tEmbedding {device.get_fully_qualified_name()}...")
+        # Sort by dependency order. We need to find the devices with no subcomponents first, then their parents, and so on. We then process this in reverse order
+        _sliced_devices = []
+        while len(_sliced_devices) < len(sliced_devices):
+            for device, info in zip(sliced_devices, sliced_devices_data):
+                if device in _sliced_devices:
+                    continue
+                positions = info.get("positions", [])
+                if all(
+                    parent is None or parent in _sliced_devices for parent, _, _, _ in positions
+                ):
+                    _sliced_devices.append(device)
+        _sliced_devices_data = [info_by_id[id(dev)] for dev in _sliced_devices]
 
+
+        for device, info in zip(reversed(_sliced_devices), reversed(_sliced_devices_data)):
+            print(f"\tEmbedding {device.get_fully_qualified_name()}...")
             slice_list = []
             slice_list.extend(info.get("slices", []))
             slice_list.extend(info.get("membrane_slices", []))
