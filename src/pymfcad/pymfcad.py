@@ -1403,7 +1403,7 @@ class Component(_InstantiationTrackerMixin):
             elif rot == 270:
                 self._position = (
                     self._position[1],
-                    -self._position[0] - self._size[0],
+                    -self._position[0] - self._size[1],
                     self._position[2],
                 )
         return self
