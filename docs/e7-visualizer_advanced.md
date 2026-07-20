@@ -114,7 +114,3 @@ Notes:
 - **Export** opens the export dialog with renderer, resolution, FPS, and quality controls.
 
 ![Animation export dialog (placeholder)](resources/e-7/animation_export.png)
-
----
-
-Next: [Part 4: Hello World Component](4-building_first_component.md)
