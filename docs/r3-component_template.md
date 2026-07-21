@@ -9,11 +9,6 @@ import inspect
 
 class ***MyComponent***(***Component or VariableLayerThicknessComponent***):
     def __init__(self, ***component_parameters***, quiet = False):
-        # Store constructor arguments for equality comparison.
-        frame = inspect.currentframe()
-        args, _, _, values = inspect.getargvalues(frame)
-        self.init_args = [values[arg] for arg in args if arg != "self"]
-        self.init_kwargs = {arg: values[arg] for arg in args if arg != "self"}
 
         # Initialize the base Component
         super().__init__(

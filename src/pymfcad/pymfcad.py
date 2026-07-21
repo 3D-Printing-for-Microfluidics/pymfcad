@@ -3,6 +3,7 @@ from __future__ import annotations
 import sys
 import inspect
 import importlib
+import functools
 from math import gcd
 from enum import Enum
 from pathlib import Path
@@ -448,6 +449,41 @@ class Component(_InstantiationTrackerMixin):
         self.burnin_settings = []
         self.labels = {}
         self._locked = False
+
+        if type(self) is Component:
+            frame = inspect.currentframe()
+            args, _, _, values = inspect.getargvalues(frame)
+            self.init_args = [values[arg] for arg in args if arg != "self"]
+            self.init_kwargs = {arg: values[arg] for arg in args if arg != "self"}
+
+
+    def __init_subclass__(cls):
+        super().__init_subclass__()
+
+        init = cls.__init__
+        sig = inspect.signature(init)
+
+        @functools.wraps(init)
+        def wrapper(self, *args, **kwargs):
+            bound = sig.bind(self, *args, **kwargs)
+            bound.apply_defaults()
+
+            values = bound.arguments
+
+            self.init_args = [
+                values[name]
+                for name in values
+                if name != "self"
+            ]
+            self.init_kwargs = {
+                name: values[name]
+                for name in values
+                if name != "self"
+            }
+
+            return init(self, *args, **kwargs)
+
+        cls.__init__ = wrapper
 
     def _ensure_unlocked(self, action: str):
         if self._locked:
@@ -1745,11 +1781,6 @@ class TPMSComponent(Component):
         - hide_in_render (bool): Whether to hide in renders. Default is True.
         - quiet (bool): If True, suppress creation messages.
         """
-        if type(self) == TPMSComponent:
-            frame = inspect.currentframe()
-            args, _, _, values = inspect.getargvalues(frame)
-            self.init_args = [values[arg] for arg in args if arg != "self"]
-            self.init_kwargs = {arg: values[arg] for arg in args if arg != "self"}
 
         self.unit_cell_size = self._validate_unit_cell_size(unit_cell_size)
         self.tpms_func = tpms_func
@@ -1825,12 +1856,6 @@ class Device(Component):
         - px_size (float): The pixel size in mm. Default is 0.0076.
         - quiet (bool): If True, suppresses informational output. Default is False.
         """
-        
-        if type(self) == Device:
-            frame = inspect.currentframe()
-            args, _, _, values = inspect.getargvalues(frame)
-            self.init_args = [values[arg] for arg in args if arg != "self"]
-            self.init_kwargs = {arg: values[arg] for arg in args if arg != "self"}
 
         super().__init__(
             (px_count[0], px_count[1], layers),
@@ -1978,12 +2003,6 @@ class StitchedDevice(Device):
         - px_size (float): The pixel size in mm. Default is 0.0076.
         - quiet (bool): If True, suppresses informational output. Default is False.
         """
-
-        if type(self) == StitchedDevice:
-            frame = inspect.currentframe()
-            args, _, _, values = inspect.getargvalues(frame)
-            self.init_args = [values[arg] for arg in args if arg != "self"]
-            self.init_kwargs = {arg: values[arg] for arg in args if arg != "self"}
 
         if tiles_x < 1 or tiles_y < 1:
             raise ValueError("tiles_x and tiles_y must be >= 1")

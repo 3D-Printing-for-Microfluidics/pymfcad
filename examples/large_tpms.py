@@ -16,7 +16,6 @@ from pymfcad import (
     TPMS,
     TPMSComponent
 )
-import inspect
 
 # Printer with XY stage (recommended when using offsets)
 settings = Settings(

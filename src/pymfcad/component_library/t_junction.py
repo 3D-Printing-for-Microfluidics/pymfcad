@@ -1,4 +1,3 @@
-import inspect
 from pymfcad import Component, Port, Color, Cube, Router
 
 
@@ -23,10 +22,6 @@ class TJunction(Component):
     """
     def __init__(self, channel_size=(8, 8, 6), channel_margin=(8, 8, 6), quiet: bool = False):
         """Initialize a T Junction component."""
-        frame = inspect.currentframe()
-        args, _, _, values = inspect.getargvalues(frame)
-        self.init_args = [values[arg] for arg in args if arg != "self"]
-        self.init_kwargs = {arg: values[arg] for arg in args if arg != "self"}
 
         super().__init__(
             size=(

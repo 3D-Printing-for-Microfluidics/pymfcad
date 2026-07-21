@@ -1,4 +1,3 @@
-import inspect
 from pymfcad import *
 from pymfcad.component_library import Pinhole
 

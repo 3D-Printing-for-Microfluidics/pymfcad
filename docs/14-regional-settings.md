@@ -31,10 +31,6 @@ index 0000000..1111111 100644
 +
 +class Valve20px(Component):
 +    def __init__(self, quiet: bool = False):
-+        frame = inspect.currentframe()
-+        args, _, _, values = inspect.getargvalues(frame)
-+        self.init_args = [values[arg] for arg in args if arg != "self"]
-+        self.init_kwargs = {arg: values[arg] for arg in args if arg != "self"}
 +
 +        super().__init__(
 +            size=(36, 36, 24),
@@ -112,10 +108,6 @@ index 0000000..1111111 100644
  
  class Valve20px(Component):
      def __init__(self, quiet: bool = False):
-         frame = inspect.currentframe()
-         args, _, _, values = inspect.getargvalues(frame)
-         self.init_args = [values[arg] for arg in args if arg != "self"]
-         self.init_kwargs = {arg: values[arg] for arg in args if arg != "self"}
  
          super().__init__(
              size=(36, 36, 24),
@@ -210,10 +202,6 @@ index 0000000..1111111 100644
  
  class Valve20px(Component):
      def __init__(self, quiet: bool = False):
-         frame = inspect.currentframe()
-         args, _, _, values = inspect.getargvalues(frame)
-         self.init_args = [values[arg] for arg in args if arg != "self"]
-         self.init_kwargs = {arg: values[arg] for arg in args if arg != "self"}
  
          super().__init__(
              size=(36, 36, 24),
@@ -318,10 +306,6 @@ index 0000000..1111111 100644
  
  class Valve20px(Component):
      def __init__(self, quiet: bool = False):
-         frame = inspect.currentframe()
-         args, _, _, values = inspect.getargvalues(frame)
-         self.init_args = [values[arg] for arg in args if arg != "self"]
-         self.init_kwargs = {arg: values[arg] for arg in args if arg != "self"}
  
          super().__init__(
              size=(36, 36, 24),
@@ -440,10 +424,6 @@ index 0000000..1111111 100644
  
  class Valve20px(Component):
      def __init__(self, quiet: bool = False):
-         frame = inspect.currentframe()
-         args, _, _, values = inspect.getargvalues(frame)
-         self.init_args = [values[arg] for arg in args if arg != "self"]
-         self.init_kwargs = {arg: values[arg] for arg in args if arg != "self"}
  
          super().__init__(
              size=(36, 36, 24),
