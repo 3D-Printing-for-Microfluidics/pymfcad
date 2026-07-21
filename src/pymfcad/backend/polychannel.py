@@ -515,7 +515,7 @@ class Polychannel(Shape):
 
         rounded_shapes = []
         for i, shape in enumerate(shapes):
-            if shape._corner_radius > 0:
+            if shape._corner_radius is not None and shape._corner_radius > 0:
                 if i == 0 or i == len(shapes) - 1:
                     raise ValueError(
                         "First and last shapes in a polychannel cannot have a corner radius"

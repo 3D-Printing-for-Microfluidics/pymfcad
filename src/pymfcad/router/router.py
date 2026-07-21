@@ -368,6 +368,8 @@ class Router:
         output_port: "Port" | str,
         route: list[tuple[float, float, float]],
         label: str,
+        corner_radius: float = None,
+        corner_segments: int = None,
     ):
         """
         Routes a channel between two ports using a fractional path.
@@ -378,6 +380,8 @@ class Router:
         - output_port: The Port instance where the channel ends.
         - route: A list of tuples representing the fractional path segments (each tuple contains three floats) the sum of each digit must add to 1.0.
         - label: A label for the routed channel.
+        - corner_radius: The radius of the corners in the routed channel.
+        - corner_segments: The number of segments to use for each corner.
 
         Raises:
 
@@ -433,7 +437,7 @@ class Router:
 
         # path to constant cross-section polychannel shapes
         polychannel_shapes = self._path_to_polychannel_shapes(
-            input_port, output_port, path[1:-1]
+            input_port, output_port, path[1:-1], corner_radius=corner_radius, corner_segments=corner_segments
         )
 
         self._routes[name] = {
@@ -442,9 +446,11 @@ class Router:
             "output": output_port,
             "label": label,
             "_path": polychannel_shapes,
+            "corner_radius": corner_radius,
+            "corner_segments": corner_segments,
         }
 
-    def _path_to_polychannel_shapes(self, input_port, output_port, path):
+    def _path_to_polychannel_shapes(self, input_port, output_port, path, corner_radius=None, corner_segments=None):
         """
         Converts a path defined by a list of points into a list of PolychannelShape instances.
 
@@ -453,6 +459,8 @@ class Router:
         - input_port: The Port instance where the channel starts.
         - output_port: The Port instance where the channel ends.
         - path: A list of tuples representing the path segments (each tuple contains three floats).
+        - corner_radius: The radius of the corners in the routed channel.
+        - corner_segments: The number of segments to use for each corner.
 
         Returns:
 
@@ -484,6 +492,8 @@ class Router:
                 position=tuple(input_pos),
                 size=input_size,
                 absolute_position=True,
+                corner_radius=0,
+                corner_segments=0
             )
         )
 
@@ -496,6 +506,8 @@ class Router:
                     position=tuple(point_pos),
                     size=self._channel_size,
                     absolute_position=True,
+                    corner_radius=corner_radius,
+                    corner_segments=corner_segments
                 )
             )
 
@@ -523,9 +535,10 @@ class Router:
                 position=tuple(output_pos),
                 size=output_size,
                 absolute_position=True,
+                corner_radius=0,
+                corner_segments=0
             )
         )
-
         return polychannel_shapes
 
     def finalize_routes(self):
