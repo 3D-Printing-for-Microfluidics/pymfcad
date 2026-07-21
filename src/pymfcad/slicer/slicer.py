@@ -83,6 +83,16 @@ class Slicer:
 
         :return: Path to the temporary directory.
         """
+        # Check for and delete any old temporary directories that match the pattern
+        temp_dir_pattern = re.compile(r"tmp_\d{4}-\d{2}-\d{2}_\d{2}-\d{2}-\d{2}")
+        for item in Path(".").iterdir():
+            if item.is_dir() and temp_dir_pattern.match(item.name):
+                try:
+                    shutil.rmtree(item)
+                    print(f"Deleted old temporary directory: {item}")
+                except Exception as e:
+                    print(f"Failed to delete {item}: {e}")
+
         temp_directory = Path(f"tmp_{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}")
         temp_directory.mkdir(parents=True, exist_ok=True)
         return temp_directory
