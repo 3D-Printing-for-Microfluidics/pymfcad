@@ -142,6 +142,9 @@ const measurementToggleBtn = document.getElementById('measurementToggleBtn');
 const measurementClearBtn = document.getElementById('measurementClearBtn');
 const measurementReadout = document.getElementById('measurementReadout');
 const measurementUnitsHost = document.getElementById('measurementUnitsHost');
+const measurementCustomUnitsHost = document.getElementById('measurementCustomUnitsHost');
+const measurementCustomXYInput = document.getElementById('measurementCustomXY');
+const measurementCustomZInput = document.getElementById('measurementCustomZ');
 let measurementUnitButtons = [];
 
 const UNIT_FACTORS = {
@@ -151,10 +154,50 @@ const UNIT_FACTORS = {
   'μm': 1000,
 };
 
+const CUSTOM_UNIT_DEFAULTS = { xy: 0.0076, z: 0.01 };
+
+function normalizeCustomUnits(value) {
+  const xy = Number.parseFloat(value?.xy);
+  const z = Number.parseFloat(value?.z);
+  return {
+    xy: Number.isFinite(xy) && xy > 0 ? xy : CUSTOM_UNIT_DEFAULTS.xy,
+    z: Number.isFinite(z) && z > 0 ? z : CUSTOM_UNIT_DEFAULTS.z,
+  };
+}
+
+function loadCustomUnits(storageKey) {
+  try {
+    const raw = localStorage.getItem(storageKey);
+    if (!raw) return { ...CUSTOM_UNIT_DEFAULTS };
+    return normalizeCustomUnits(JSON.parse(raw));
+  } catch (error) {
+    return { ...CUSTOM_UNIT_DEFAULTS };
+  }
+}
+
+function saveCustomUnits(storageKey, value) {
+  localStorage.setItem(storageKey, JSON.stringify(normalizeCustomUnits(value)));
+}
+
+function getUnitScale(mode, customUnits, axis = 'xy') {
+  if (mode === 'custom') {
+    const mmPerUnit = axis === 'z' ? customUnits?.z : customUnits?.xy;
+    return 1 / (Number.isFinite(mmPerUnit) && mmPerUnit > 0 ? mmPerUnit : 1);
+  }
+  return UNIT_FACTORS[mode] || 1;
+}
+
+function getUnitLabel(mode) {
+  return mode === 'custom' ? 'custom' : mode;
+}
+
 let measurementUnits = localStorage.getItem(MEASUREMENT_UNITS_KEY) || 'μm';
 let rulerUnits = localStorage.getItem(RULER_UNITS_STORAGE_KEY) || 'mm';
+let measurementCustomUnits = loadCustomUnits('pymfcad_measurement_custom_units_v1');
+let rulerCustomUnits = loadCustomUnits('pymfcad_ruler_custom_units_v1');
 
 axes.setUnitsProvider?.(() => rulerUnits);
+axes.setCustomUnits?.(rulerCustomUnits);
 
 const RULER_VISIBILITY_MODES = [
   { value: 'hidden', label: 'Ruler: Hidden' },
@@ -165,6 +208,35 @@ const RULER_VISIBILITY_MODES = [
 
 let rulerUnitButtons = [];
 let rulerVisibilityMode = localStorage.getItem(RULER_VISIBILITY_STORAGE_KEY) || 'all';
+const rulerUnitsHost = document.getElementById('rulerUnitsHost');
+const rulerCustomUnitsHost = document.getElementById('rulerCustomUnitsHost');
+const rulerCustomXYInput = document.getElementById('rulerCustomXY');
+const rulerCustomZInput = document.getElementById('rulerCustomZ');
+
+function syncCustomUnitControls(host, inputXY, inputZ, units, visible) {
+  if (host) {
+    host.classList.toggle('is-hidden', !visible);
+  }
+  if (inputXY) {
+    inputXY.value = String(units.xy);
+    inputXY.disabled = !visible;
+  }
+  if (inputZ) {
+    inputZ.value = String(units.z);
+    inputZ.disabled = !visible;
+  }
+}
+
+function bindCustomUnitInput(input, commit) {
+  if (!input) return;
+  input.addEventListener('change', commit);
+  input.addEventListener('keydown', (event) => {
+    if (event.key === 'Enter') {
+      event.preventDefault();
+      input.blur();
+    }
+  });
+}
 
 function syncRulerVisibilityButton() {
   if (!rulerVisibilityBtn) return;
@@ -202,7 +274,28 @@ function setRulerUnits(units, { persist = true } = {}) {
     });
   }
   if (persist) localStorage.setItem(RULER_UNITS_STORAGE_KEY, units);
+  syncCustomUnitControls(
+    rulerCustomUnitsHost,
+    rulerCustomXYInput,
+    rulerCustomZInput,
+    rulerCustomUnits,
+    rulerUnits === 'custom'
+  );
+  axes.setCustomUnits?.(rulerCustomUnits);
   axes.update?.();
+}
+
+function setRulerCustomUnits(nextUnits, { persist = true } = {}) {
+  rulerCustomUnits = normalizeCustomUnits(nextUnits);
+  if (persist) saveCustomUnits('pymfcad_ruler_custom_units_v1', rulerCustomUnits);
+  syncCustomUnitControls(
+    rulerCustomUnitsHost,
+    rulerCustomXYInput,
+    rulerCustomZInput,
+    rulerCustomUnits,
+    rulerUnits === 'custom'
+  );
+  axes.setCustomUnits?.(rulerCustomUnits);
 }
 
 function initRulerUnitButtons() {
@@ -213,6 +306,35 @@ function initRulerUnitButtons() {
     btn.addEventListener('click', () => setRulerUnits(unit));
   });
   setRulerUnits(rulerUnits, { persist: false });
+  syncCustomUnitControls(
+    rulerCustomUnitsHost,
+    rulerCustomXYInput,
+    rulerCustomZInput,
+    rulerCustomUnits,
+    rulerUnits === 'custom'
+  );
+}
+
+function initRulerCustomInputs() {
+  bindCustomUnitInput(rulerCustomXYInput, () => {
+    setRulerCustomUnits({
+      xy: rulerCustomXYInput.value,
+      z: rulerCustomZInput ? rulerCustomZInput.value : rulerCustomUnits.z,
+    });
+  });
+  bindCustomUnitInput(rulerCustomZInput, () => {
+    setRulerCustomUnits({
+      xy: rulerCustomXYInput ? rulerCustomXYInput.value : rulerCustomUnits.xy,
+      z: rulerCustomZInput.value,
+    });
+  });
+  syncCustomUnitControls(
+    rulerCustomUnitsHost,
+    rulerCustomXYInput,
+    rulerCustomZInput,
+    rulerCustomUnits,
+    rulerUnits === 'custom'
+  );
 }
 
 function initRulerVisibilityToggle() {
@@ -235,8 +357,30 @@ function setMeasurementUnits(units, { persist = true } = {}) {
     });
   }
   if (persist) localStorage.setItem(MEASUREMENT_UNITS_KEY, units);
+  syncCustomUnitControls(
+    measurementCustomUnitsHost,
+    measurementCustomXYInput,
+    measurementCustomZInput,
+    measurementCustomUnits,
+    measurementUnits === 'custom'
+  );
   if (measurementState.startPoint && measurementState.endPoint) {
     // Recompute readout with new units
+    setMeasurementEnd(measurementState.endPoint);
+  }
+}
+
+function setMeasurementCustomUnits(nextUnits, { persist = true } = {}) {
+  measurementCustomUnits = normalizeCustomUnits(nextUnits);
+  if (persist) saveCustomUnits('pymfcad_measurement_custom_units_v1', measurementCustomUnits);
+  syncCustomUnitControls(
+    measurementCustomUnitsHost,
+    measurementCustomXYInput,
+    measurementCustomZInput,
+    measurementCustomUnits,
+    measurementUnits === 'custom'
+  );
+  if (measurementState.startPoint && measurementState.endPoint) {
     setMeasurementEnd(measurementState.endPoint);
   }
 }
@@ -250,8 +394,38 @@ function initMeasurementUnitButtons() {
   });
   // reflect current selection without persisting
   setMeasurementUnits(measurementUnits, { persist: false });
+  syncCustomUnitControls(
+    measurementCustomUnitsHost,
+    measurementCustomXYInput,
+    measurementCustomZInput,
+    measurementCustomUnits,
+    measurementUnits === 'custom'
+  );
+}
+
+function initMeasurementCustomInputs() {
+  bindCustomUnitInput(measurementCustomXYInput, () => {
+    setMeasurementCustomUnits({
+      xy: measurementCustomXYInput.value,
+      z: measurementCustomZInput ? measurementCustomZInput.value : measurementCustomUnits.z,
+    });
+  });
+  bindCustomUnitInput(measurementCustomZInput, () => {
+    setMeasurementCustomUnits({
+      xy: measurementCustomXYInput ? measurementCustomXYInput.value : measurementCustomUnits.xy,
+      z: measurementCustomZInput.value,
+    });
+  });
+  syncCustomUnitControls(
+    measurementCustomUnitsHost,
+    measurementCustomXYInput,
+    measurementCustomZInput,
+    measurementCustomUnits,
+    measurementUnits === 'custom'
+  );
 }
 initMeasurementUnitButtons();
+initMeasurementCustomInputs();
 
 function formatMeasurementPoint(point) {
   if (!point) return '(n/a)';
@@ -371,12 +545,17 @@ function setMeasurementEnd(point) {
     measurementBeam.visible = false;
   }
   updateMeasurementSceneVisibility();
-  const factor = UNIT_FACTORS[measurementUnits] || 1000000;
-  const unitLabel = measurementUnits;
-  const dxValue = Math.abs(rawSegment.x * factor);
-  const dyValue = Math.abs(rawSegment.y * factor);
-  const dzValue = Math.abs(rawSegment.z * factor);
-  const totalValue = Math.sqrt(dxValue * dxValue + dyValue * dyValue + dzValue * dzValue);
+  const factorXY = getUnitScale(measurementUnits, measurementCustomUnits, 'xy');
+  const factorZ = getUnitScale(measurementUnits, measurementCustomUnits, 'z');
+  const unitLabel = getUnitLabel(measurementUnits);
+  const dxValue = Math.abs(rawSegment.x * factorXY);
+  const dyValue = Math.abs(rawSegment.y * factorZ);
+  const dzValue = Math.abs(rawSegment.z * factorXY);
+  const totalValue = Math.sqrt(
+    (rawSegment.x * factorXY) ** 2 +
+    (rawSegment.y * factorXY) ** 2 +
+    (rawSegment.z * factorZ) ** 2
+  );
   const dx = dxValue.toFixed(1);
   const dy = dyValue.toFixed(1);
   const dz = dzValue.toFixed(1);
@@ -513,7 +692,6 @@ modelSelector.setVersionChangeCallback((idx, versionId) => {
 const resetCameraBtn = document.getElementById('resetCameraBtn');
 const reloadModelBtn = document.getElementById('reloadModelBtn');
 const rulerVisibilityBtn = document.getElementById('rulerVisibilityBtn');
-const rulerUnitsHost = document.getElementById('rulerUnitsHost');
 const measurementVisibilityBtn = document.getElementById('measurementVisibilityBtn');
 
 const cameraModeBtn = document.getElementById('cameraModeBtn');
@@ -1572,6 +1750,10 @@ function buildSettingsPayload() {
       defaultControlsType: cameraSystem.getDefaultControlType?.() || defaultControlTypeSelect?.value || 'orbit',
       defaultModelVersion: getDefaultModelVersionStrategy(),
       measurementUnits: measurementUnits,
+      measurementCustomUnits,
+      rulerUnits,
+      rulerCustomUnits,
+      rulerVisibilityMode,
     },
     camera: buildCameraPayload(),
     lights: lightSystem.getLightState(),
@@ -1746,6 +1928,18 @@ function applySettingsPayload(payload, sections = {}) {
     }
     if (general.measurementUnits) {
       setMeasurementUnits(general.measurementUnits);
+    }
+    if (general.measurementCustomUnits) {
+      setMeasurementCustomUnits(general.measurementCustomUnits);
+    }
+    if (general.rulerUnits) {
+      setRulerUnits(general.rulerUnits);
+    }
+    if (general.rulerCustomUnits) {
+      setRulerCustomUnits(general.rulerCustomUnits);
+    }
+    if (general.rulerVisibilityMode) {
+      setRulerVisibilityMode(general.rulerVisibilityMode);
     }
   }
 
@@ -2243,8 +2437,10 @@ async function resetAllSettings() {
   localStorage.removeItem(AUTO_RELOAD_INTERVAL_KEY);
   localStorage.removeItem(AXES_STORAGE_KEY);
   localStorage.removeItem(MEASUREMENT_VISIBILITY_STORAGE_KEY);
+  localStorage.removeItem('pymfcad_measurement_custom_units_v1');
   localStorage.removeItem(RULER_VISIBILITY_STORAGE_KEY);
   localStorage.removeItem(RULER_UNITS_STORAGE_KEY);
+  localStorage.removeItem('pymfcad_ruler_custom_units_v1');
   localStorage.removeItem(DEFAULT_CONTROLS_TYPE_STORAGE_KEY);
   localStorage.removeItem('pymfcad_theme');
   localStorage.removeItem('pymfcad_theme_defs_v1');
@@ -2434,6 +2630,7 @@ async function init() {
   });
   initRulerVisibilityToggle();
   initRulerUnitButtons();
+  initRulerCustomInputs();
   if (docsBtn) {
     docsBtn.addEventListener('click', () => {
       window.open('/docs/', '_blank', 'noopener');

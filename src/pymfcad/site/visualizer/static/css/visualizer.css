@@ -623,6 +623,10 @@ canvas {
   opacity: 0.95;
 }
 
+.measurement-custom-units.is-hidden {
+  display: none;
+}
+
 .measurement-panel.is-hidden {
   display: none;
 }

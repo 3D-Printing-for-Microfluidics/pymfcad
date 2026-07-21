@@ -7,6 +7,20 @@ const UNIT_FACTORS = {
     'μm': 1000,
 };
 
+const CUSTOM_UNIT_DEFAULTS = {
+    xy: 0.0076,
+    z: 0.01,
+};
+
+function normalizeCustomUnits(value) {
+    const xy = Number.parseFloat(value?.xy);
+    const z = Number.parseFloat(value?.z);
+    return {
+        xy: Number.isFinite(xy) && xy > 0 ? xy : CUSTOM_UNIT_DEFAULTS.xy,
+        z: Number.isFinite(z) && z > 0 ? z : CUSTOM_UNIT_DEFAULTS.z,
+    };
+}
+
 export class RulerAxesHelper extends THREE.AxesHelper {
 
     constructor(size = 1, camera, renderer) {
@@ -20,6 +34,7 @@ export class RulerAxesHelper extends THREE.AxesHelper {
         this.controlsProvider = null;
         this.unitsProvider = null;
         this.visibilityProvider = null;
+        this.customUnits = { ...CUSTOM_UNIT_DEFAULTS };
 
         this.majorTickEvery = 5;
         this.targetPixelSpacing = 80;
@@ -58,7 +73,8 @@ export class RulerAxesHelper extends THREE.AxesHelper {
         this._lastZoom = null;
         this._lastCamera = null;
         this._lastUnits = null;
-        this._axisChildren = this.children.slice();
+        this._lastCustomUnitsKey = JSON.stringify(this.customUnits);
+        this._axisChildren = this.children.slice(0, 3);
 
         this.update();
     }
@@ -78,6 +94,11 @@ export class RulerAxesHelper extends THREE.AxesHelper {
         this.update();
     }
 
+    setCustomUnits(customUnits) {
+        this.customUnits = normalizeCustomUnits(customUnits);
+        this.update();
+    }
+
     setVisibilityMode(mode) {
         this.visibilityMode = mode || 'all';
         this._applyVisibilityMode();
@@ -88,6 +109,7 @@ export class RulerAxesHelper extends THREE.AxesHelper {
         const camera = this._getCamera();
         if (!camera) return;
         const units = this.unitsProvider ? this.unitsProvider() : 'mm';
+        const customUnitsKey = JSON.stringify(this.customUnits);
 
         var step = this._calculateStep(camera);
         if (step === 0) step = 1; // Avoid division by zero
@@ -95,7 +117,8 @@ export class RulerAxesHelper extends THREE.AxesHelper {
         if (step === this._lastStep &&
             camera.zoom === this._lastZoom &&
             camera === this._lastCamera &&
-            units === this._lastUnits)
+            units === this._lastUnits &&
+            customUnitsKey === this._lastCustomUnitsKey)
             return;
 
         this.camera = camera;
@@ -103,6 +126,7 @@ export class RulerAxesHelper extends THREE.AxesHelper {
         this._lastZoom = camera.zoom;
         this._lastCamera = camera;
         this._lastUnits = units;
+        this._lastCustomUnitsKey = customUnitsKey;
 
         const tickStep = Math.max(step, 0.01);
         const majorEvery = Math.max(1, Math.round(this.majorTickEvery * tickStep / step));
@@ -170,6 +194,16 @@ export class RulerAxesHelper extends THREE.AxesHelper {
         const axisGroup = this._tickGroups[axis];
         const labelGroup = this._labelGroups[axis];
         const axisColor = this._axisColors[axis];
+        const units = this.unitsProvider ? this.unitsProvider() : 'mm';
+        const displayFactor = units === 'custom'
+            ? 1 / ((axis === 'z' ? this.customUnits.z : this.customUnits.xy) || 1)
+            : UNIT_FACTORS[units] || 1;
+        const displayStep = units === 'custom'
+            ? this._niceStep(step * displayFactor)
+            : null;
+        const axisStep = units === 'custom'
+            ? displayStep / displayFactor
+            : step;
         const minorTickLength = step * this.minorTickLengthFactor;
         const majorTickLength = step * this.majorTickLengthFactor;
         const labelOffset = step * this.labelOffsetFactor;
@@ -189,36 +223,41 @@ export class RulerAxesHelper extends THREE.AxesHelper {
 
         const minValue = 0;
         const maxValue = this.size;
-        const epsilon = step * 0.001;
-        const start = Math.ceil(minValue / step) * step;
+        const epsilon = axisStep * 0.001;
+        const startIndex = Math.ceil(minValue / axisStep);
 
-        for (let value = start; value <= maxValue + epsilon; value += step) {
+        for (let index = startIndex; ; index += 1) {
 
-            const roundedValue = this._roundToStep(value, step);
-            const isMajor = Math.abs(roundedValue / step) % majorEvery === 0;
+            const value = index * axisStep;
+            if (value > maxValue + epsilon) break;
+
+            const isMajor = index % majorEvery === 0;
             const tickLength = isMajor ? majorTickLength : minorTickLength;
+            const labelValue = units === 'custom'
+                ? index * displayStep
+                : this._roundToStep(value, step) * displayFactor;
 
             if (axis === 'x') {
                 (isMajor ? majorPositions : minorPositions).push(
-                    roundedValue, -tickLength, 0,
-                    roundedValue,  0, 0
+                    value, -tickLength, 0,
+                    value,  0, 0
                 );
             }
             else if (axis === 'y') {
                 (isMajor ? majorPositions : minorPositions).push(
-                    -tickLength, roundedValue, 0,
-                     0, roundedValue, 0
+                    -tickLength, value, 0,
+                     0, value, 0
                 );
             }
             else {
                 (isMajor ? majorPositions : minorPositions).push(
-                    -tickLength, 0, roundedValue,
-                     0, 0, roundedValue
+                    -tickLength, 0, value,
+                     0, 0, value
                 );
             }
 
             if (isMajor) {
-                this._addTickLabel(labelGroup, axis, roundedValue, axisColor, labelOffset, labelScale);
+                this._addTickLabel(labelGroup, axis, value, labelValue, axisColor, labelOffset, labelScale);
             }
 
         }
@@ -230,9 +269,9 @@ export class RulerAxesHelper extends THREE.AxesHelper {
 
     }
 
-    _addTickLabel(group, axis, value, color, labelOffset, labelScale) {
+    _addTickLabel(group, axis, value, labelValue, color, labelOffset, labelScale) {
 
-        const label = this._createLabelTexture(String(this._formatTickValue(value)), color);
+        const label = this._createLabelTexture(String(this._formatTickValue(labelValue)), color);
         const material = new THREE.SpriteMaterial({
             map: label,
             transparent: true,
@@ -294,10 +333,7 @@ export class RulerAxesHelper extends THREE.AxesHelper {
 
     _formatTickValue(value) {
 
-        const units = this.unitsProvider ? this.unitsProvider() : 'mm';
-        const factor = UNIT_FACTORS[units] || 1;
-        const rounded = this._roundToStep(value, this._lastStep || this._calculateStep(this._getCamera()));
-        const normalized = Math.abs(rounded) < 1e-9 ? 0 : rounded * factor;
+        const normalized = Math.abs(value) < 1e-9 ? 0 : value;
         return Number.isInteger(normalized) ? normalized : Number(normalized.toFixed(2));
 
     }
@@ -374,7 +410,7 @@ export class RulerAxesHelper extends THREE.AxesHelper {
     _applyVisibilityMode() {
 
         const mode = this.visibilityMode || 'all';
-        const axisVisible = mode === 'axis' || mode === 'ticks' || mode === 'all';
+        const axisVisible = mode === 'axis' || mode === 'all';
         const tickVisible = mode === 'ticks' || mode === 'all';
         const labelsVisible = mode === 'all';
         this.visible = mode !== 'hidden';
@@ -383,12 +419,12 @@ export class RulerAxesHelper extends THREE.AxesHelper {
             child.visible = this.visible && axisVisible;
         });
 
-        this._tickChildren.forEach((child) => {
-            child.visible = this.visible && tickVisible;
+        Object.values(this._tickGroups).forEach((group) => {
+            group.visible = this.visible && tickVisible;
         });
 
-        this._labelChildren.forEach((child) => {
-            child.visible = this.visible && labelsVisible;
+        Object.values(this._labelGroups).forEach((group) => {
+            group.visible = this.visible && labelsVisible;
         });
 
     }

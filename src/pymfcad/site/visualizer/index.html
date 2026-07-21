@@ -110,6 +110,13 @@
 					<button class="control-btn measurement-units-btn" data-unit="cm" type="button" aria-pressed="false">cm</button>
 					<button class="control-btn measurement-units-btn" data-unit="mm" type="button" aria-pressed="false">mm</button>
 					<button class="control-btn measurement-units-btn" data-unit="μm" type="button" aria-pressed="false">μm</button>
+					<button class="control-btn measurement-units-btn" data-unit="custom" type="button" aria-pressed="false">Custom</button>
+				</div>
+			</div>
+			<div id="measurementCustomUnitsHost" class="measurement-custom-units is-hidden">
+				<div class="input-grid">
+					<label>X/Y (mm) <input id="measurementCustomXY" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" value="1"></label>
+					<label>Z (mm) <input id="measurementCustomZ" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" value="1"></label>
 				</div>
 			</div>
 			<div id="measurementReadout" class="measurement-readout">Measurement is off. Enable Measure to start.</div>
@@ -218,16 +225,23 @@
 					<div class="appearance-grid">
 						<div class="modal-section">
 							<h4>Axes</h4>
-							<div>
-								<button id="rulerVisibilityBtn" class="control-btn">Ruler: All</button>
+							<div class="row-actions">
+								<button id="rulerVisibilityBtn" class="control-btn" type="button">Ruler: All</button>
 							</div>
-							<h5>Ruler Units</h4>
+							<h4>Ruler Units</h4>
 							<div class="measurement-units-row">
 								<div id="rulerUnitsHost" class="measurement-units-host" role="tablist" aria-label="Ruler units">
 									<button class="control-btn ruler-units-btn" data-unit="m" type="button" aria-pressed="false">m</button>
 									<button class="control-btn ruler-units-btn" data-unit="cm" type="button" aria-pressed="false">cm</button>
 									<button class="control-btn ruler-units-btn" data-unit="mm" type="button" aria-pressed="false">mm</button>
 									<button class="control-btn ruler-units-btn" data-unit="μm" type="button" aria-pressed="false">μm</button>
+									<button class="control-btn ruler-units-btn" data-unit="custom" type="button" aria-pressed="false">Custom</button>
+								</div>
+							</div>
+							<div id="rulerCustomUnitsHost" class="measurement-custom-units is-hidden">
+								<div class="input-grid">
+									<label>X/Y (mm) <input id="rulerCustomXY" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" value="1"></label>
+									<label>Z (mm) <input id="rulerCustomZ" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" value="1"></label>
 								</div>
 							</div>
 						</div>
