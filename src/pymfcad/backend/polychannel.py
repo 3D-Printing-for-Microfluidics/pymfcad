@@ -33,6 +33,7 @@ class PolychannelShape:
         shape_type: str | None = None,
         position: tuple[int, int, int] | None = None,
         size: tuple[int, int, int] | None = None,
+        centered: bool = True,
         rounded_cube_radius: tuple[float, float, float] | None = None,
         rotation: tuple[float, float, float] | None = None,
         absolute_position: bool | None = None,
@@ -49,6 +50,7 @@ class PolychannelShape:
         - shape_type (str | None): Type of shape (e.g., "cube", "sphere", "rounded_cube").
         - position (tuple[int, int, int] | None): Position of the shape in 3D space (x, y, z).
         - size (tuple[int, int, int] | None): Size of the shape (width, height, depth).
+        - centered (bool): If True, the shape is centered at the position; if False, the position is the corner.
         - rounded_cube_radius (tuple[float, float, float] | None): Radius for rounded cubes (rx, ry, rz).
         - rotation (tuple[float, float, float] | None): Rotation of the shape in degrees (rx, ry, rz).
         - absolute_position (bool | None): If True, the position is absolute; if False, it is relative to the last shape.
@@ -78,6 +80,7 @@ class PolychannelShape:
         self._rounded_cube_radius = rounded_cube_radius
         self._position = position
         self._rotation = rotation
+        self._centered = centered
         self._absolute_position = absolute_position
         self._corner_radius = corner_radius
         self._corner_segments = corner_segments
@@ -102,18 +105,22 @@ class PolychannelShape:
                     return a == b
             return a == b
 
-        return (
-            self._shape_type == other._shape_type
-            and _eq_field(self._size, other._size)
-            and _eq_field(self._rounded_cube_radius, other._rounded_cube_radius)
-            and _eq_field(self._position, other._position)
-            and _eq_field(self._rotation, other._rotation)
-            and self._absolute_position == other._absolute_position
-            and self._corner_radius == other._corner_radius
-            and self._corner_segments == other._corner_segments
-            and self._fn == other._fn
-            and self._no_validation == other._no_validation
-        )
+        try:
+            return (
+                self._shape_type == other._shape_type
+                and _eq_field(self._size, other._size)
+                and _eq_field(self._rounded_cube_radius, other._rounded_cube_radius)
+                and _eq_field(self._position, other._position)
+                and _eq_field(self._rotation, other._rotation)
+                and self._centered == other._centered
+                and self._absolute_position == other._absolute_position
+                and self._corner_radius == other._corner_radius
+                and self._corner_segments == other._corner_segments
+                and self._fn == other._fn
+                and self._no_validation == other._no_validation
+            )
+        except:
+            return False
 
     def __ne__(self, other: object) -> bool:
         return not self.__eq__(other)
@@ -131,6 +138,7 @@ class BezierCurveShape:
         shape_type: str | None = None,
         size: tuple[int, int, int] | None = None,
         position: tuple[int, int, int] | None = None,
+        centered: bool = True,
         rounded_cube_radius: tuple[float, float, float] | None = None,
         rotation: tuple[float, float, float] | None = None,
         absolute_position: bool | None = None,
@@ -149,6 +157,7 @@ class BezierCurveShape:
         - shape_type (str | None): Type of shape (e.g., "cube", "sphere", "rounded_cube").
         - size (tuple[int, int, int] | None): Size of shape.
         - position (tuple[int, int, int] | None): Position of the shape in 3D space.
+        - centered (bool): If True, the shape is centered at the position; if False, the position is the corner.
         - rounded_cube_radius (tuple[float, float, float] | None): Radius (if rounded cube).
         - rotation (tuple[float, float, float] | None): Rotation of the shape in degrees (x, y, z).
         - absolute_position (bool | None): If True, the position is absolute; if False, it is relative to the last shape.
@@ -178,6 +187,7 @@ class BezierCurveShape:
         self._bezier_segments = bezier_segments
         self._size = size
         self._position = position
+        self._centered = centered
         self._rounded_cube_radius = rounded_cube_radius
         self._rotation = rotation
         self._absolute_position = absolute_position
@@ -204,20 +214,24 @@ class BezierCurveShape:
                     return a == b
             return a == b
 
-        return (
-            self._shape_type == other._shape_type
-            and _eq_field(self._size, other._size)
-            and _eq_field(self._rounded_cube_radius, other._rounded_cube_radius)
-            and _eq_field(self._position, other._position)
-            and _eq_field(self._rotation, other._rotation)
-            and self._absolute_position == other._absolute_position
-            and self._corner_radius == other._corner_radius
-            and self._corner_segments == other._corner_segments
-            and _eq_field(self._control_points, other._control_points)
-            and self._bezier_segments == other._bezier_segments
-            and self._fn == other._fn
-            and self._no_validation == other._no_validation
-        )
+        try:
+            return (
+                self._shape_type == other._shape_type
+                and _eq_field(self._size, other._size)
+                and _eq_field(self._rounded_cube_radius, other._rounded_cube_radius)
+                and _eq_field(self._position, other._position)
+                and _eq_field(self._rotation, other._rotation)
+                and self._absolute_position == other._absolute_position
+                and self._centered == other._centered
+                and self._corner_radius == other._corner_radius
+                and self._corner_segments == other._corner_segments
+                and _eq_field(self._control_points, other._control_points)
+                and self._bezier_segments == other._bezier_segments
+                and self._fn == other._fn
+                and self._no_validation == other._no_validation
+            )
+        except:
+            return False
 
     def __ne__(self, other: object) -> bool:
         return not self.__eq__(other)
@@ -282,6 +296,7 @@ class BezierCurveShape:
                 size=blended_size,
                 rounded_cube_radius=blended_radius,
                 position=position,
+                centered=self._centered,
                 rotation=blended_rotation,
                 absolute_position=True,
                 fn=self._fn,
@@ -329,14 +344,14 @@ class Polychannel(Shape):
             if shape._shape_type == "cube":
                 s = Cube(
                     shape._size,
-                    center=True,
+                    center=shape._centered,
                     quiet=quiet,
                     _no_validation=shape._no_validation,
                 )
             elif shape._shape_type == "sphere":
                 s = Sphere(
                     shape._size,
-                    center=True,
+                    center=shape._centered,
                     fn=shape._fn,
                     quiet=quiet,
                     _no_validation=shape._no_validation,
@@ -345,7 +360,7 @@ class Polychannel(Shape):
                 s = RoundedCube(
                     shape._size,
                     shape._rounded_cube_radius,
-                    center=True,
+                    center=shape._centered,
                     fn=shape._fn,
                     quiet=quiet,
                     _no_validation=shape._no_validation,
