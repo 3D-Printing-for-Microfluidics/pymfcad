@@ -59,11 +59,6 @@ import inspect
 
 class TPMSComponent(Component):
     def __init__(self):
-        # Setup initial args/kwargs
-        frame = inspect.currentframe()
-        args, _, _, values = inspect.getargvalues(frame)
-        self.init_args = [values[arg] for arg in args if arg != "self"]
-        self.init_kwargs = {arg: values[arg] for arg in args if arg != "self"}
         super().__init__(
             size=(10, 10, 8),
             position=(0, 0, 0),

@@ -8,11 +8,6 @@ set_fn(50)
 
 class Valve20px(VariableLayerThicknessComponent):
     def __init__(self, cross_section: bool = False, active: bool = False, quiet: bool = False):
-        # Setup initial args/kwargs
-        frame = inspect.currentframe()
-        args, _, _, values = inspect.getargvalues(frame)
-        self.init_args = [values[arg] for arg in args if arg != "self"]
-        self.init_kwargs = {arg: values[arg] for arg in args if arg != "self"}
         super().__init__(
             size=(36, 36, 24),
             position=(0, 0, 0),
@@ -118,11 +113,6 @@ class Valve20px(VariableLayerThicknessComponent):
 
 class DC(VariableLayerThicknessComponent):
     def __init__(self, cross_section: bool = False, active: bool = False, quiet: bool = False):
-        # Setup initial args/kwargs
-        frame = inspect.currentframe()
-        args, _, _, values = inspect.getargvalues(frame)
-        self.init_args = [values[arg] for arg in args if arg != "self"]
-        self.init_kwargs = {arg: values[arg] for arg in args if arg != "self"}
         super().__init__(
             size=(36, 36, 24),
             position=(0, 0, 0),
@@ -217,11 +207,6 @@ class DC(VariableLayerThicknessComponent):
 
 class Pump(Component):
     def __init__(self, render_state: str = "render", quiet: bool = False):
-        # Setup initial args/kwargs
-        frame = inspect.currentframe()
-        args, _, _, values = inspect.getargvalues(frame)
-        self.init_args = [values[arg] for arg in args if arg != "self"]
-        self.init_kwargs = {arg: values[arg] for arg in args if arg != "self"}
         super().__init__(
             size=(125, 36, 36),
             position=(0, 0, 0),
@@ -359,10 +344,6 @@ class Pump(Component):
 
 class TJunction(Component):
     def __init__(self, quiet: bool = False):
-        frame = inspect.currentframe()
-        args, _, _, values = inspect.getargvalues(frame)
-        self.init_args = [values[arg] for arg in args if arg != "self"]
-        self.init_kwargs = {arg: values[arg] for arg in args if arg != "self"}
 
         super().__init__(
             size=(24, 24, 18), position=(0, 0, 0), px_size=0.0076, layer_size=0.01, quiet=quiet
@@ -405,10 +386,6 @@ class TJunction(Component):
 
 class ViewingRegion(Component):
     def __init__(self, quiet: bool = False):
-        frame = inspect.currentframe()
-        args, _, _, values = inspect.getargvalues(frame)
-        self.init_args = [values[arg] for arg in args if arg != "self"]
-        self.init_kwargs = {arg: values[arg] for arg in args if arg != "self"}
 
         super().__init__(
             size=(48, 48, 18), position=(0, 0, 0), px_size=0.0076, layer_size=0.01, quiet=quiet
@@ -450,10 +427,6 @@ class ViewingRegion(Component):
 
 class HARChannel(Component):
     def __init__(self, quiet: bool = False):
-        frame = inspect.currentframe()
-        args, _, _, values = inspect.getargvalues(frame)
-        self.init_args = [values[arg] for arg in args if arg != "self"]
-        self.init_kwargs = {arg: values[arg] for arg in args if arg != "self"}
 
         super().__init__(
             size=(72, 24, 36), position=(0, 0, 0), px_size=0.0076, layer_size=0.01, quiet=quiet
@@ -502,10 +475,6 @@ class SerpentineChannel(Component):
         layers: int = 3,
         quiet: bool = False,
     ):
-        frame = inspect.currentframe()
-        args, _, _, values = inspect.getargvalues(frame)
-        self.init_args = [values[arg] for arg in args if arg != "self"]
-        self.init_kwargs = {arg: values[arg] for arg in args if arg != "self"}
 
         super().__init__(
             size=(

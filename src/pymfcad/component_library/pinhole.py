@@ -22,11 +22,6 @@ class Pinhole(Component):
         taper_length = 50
         total_length = pinhole_length + taper_length
 
-        frame = inspect.currentframe()
-        args, _, _, values = inspect.getargvalues(frame)
-        self.init_args = [values[arg] for arg in args if arg != "self"]
-        self.init_kwargs = {arg: values[arg] for arg in args if arg != "self"}
-
         super().__init__(
             size=(total_length, pinhole_height, pinhole_width),
             position=(0, 0, 0),

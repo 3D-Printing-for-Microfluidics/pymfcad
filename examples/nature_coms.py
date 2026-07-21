@@ -26,10 +26,6 @@ set_fn(100)
 
 class MembraneValve6px(VariableLayerThicknessComponent):
     def __init__(self):
-        frame = inspect.currentframe()
-        args, _, _, values = inspect.getargvalues(frame)
-        self.init_args = [values[arg] for arg in args if arg != "self"]
-        self.init_kwargs = {arg: values[arg] for arg in args if arg != "self"}
         super().__init__(
             size=(18, 18, 13),
             position=(0, 0, 0),

@@ -20,10 +20,6 @@ class SerpentineChannel(Component):
         layer_size=0.01,
         quiet=False,
     ):
-        frame = inspect.currentframe()
-        args, _, _, values = inspect.getargvalues(frame)
-        self.init_args = [values[arg] for arg in args if arg != "self"]
-        self.init_kwargs = {arg: values[arg] for arg in args if arg != "self"}
 
         length = channel_size[0] * loops + channel_margin[0] * (loops + 1)
 

@@ -16,10 +16,6 @@ class YJunctionMixer(Component):
         layer_size=0.01,
         quiet=False,
     ):
-        frame = inspect.currentframe()
-        args, _, _, values = inspect.getargvalues(frame)
-        self.init_args = [values[arg] for arg in args if arg != "self"]
-        self.init_kwargs = {arg: values[arg] for arg in args if arg != "self"}
 
         super().__init__(
             size=(
