@@ -25,7 +25,6 @@ index 0000000..1111111 100644
 --- a/example_device.py
 +++ b/example_device.py
 @@ -0 +1 @@
-+import inspect
 +from pymfcad import Component, Port, Color, Cylinder, Cube
 +
 +
@@ -101,7 +100,6 @@ index 0000000..1111111 100644
 --- a/example_device.py
 +++ b/example_device.py
 @@ -1 +1 @@
- import inspect
  from pymfcad import Component, Port, Color, Cylinder, Cube
 +from pymfcad import MembraneSettings
  
@@ -194,7 +192,6 @@ index 0000000..1111111 100644
 --- a/example_device.py
 +++ b/example_device.py
 @@ -1 +1 @@
- import inspect
  from pymfcad import Component, Port, Color, Cylinder, Cube
 -from pymfcad import MembraneSettings
 +from pymfcad import MembraneSettings, ExposureSettings
@@ -298,7 +295,6 @@ index 0000000..1111111 100644
 --- a/example_device.py
 +++ b/example_device.py
 @@ -1 +1 @@
- import inspect
  from pymfcad import Component, Port, Color, Cylinder, Cube
 -from pymfcad import MembraneSettings, ExposureSettings
 +from pymfcad import MembraneSettings, ExposureSettings, PositionSettings
@@ -416,7 +412,6 @@ index 0000000..1111111 100644
 --- a/example_device.py
 +++ b/example_device.py
 @@ -1 +1 @@
- import inspect
  from pymfcad import Component, Port, Color, Cylinder, Cube
 -from pymfcad import MembraneSettings, ExposureSettings, PositionSettings
 +from pymfcad import MembraneSettings, ExposureSettings, PositionSettings, SecondaryDoseSettings

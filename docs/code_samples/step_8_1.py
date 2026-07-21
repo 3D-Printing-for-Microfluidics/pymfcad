@@ -1,5 +1,4 @@
 ### Y JUNCTION
-import inspect
 from pymfcad import Component, Port, Color, Cube, Polychannel, PolychannelShape
 
 

@@ -2,7 +2,6 @@ Prev: [Part 10: Designing Custom Subcomponents](8-making_subcomponent.md)
 
 ```python
 
-import inspect
 # import classes from pymfcad
 
 # import components from custom classes or pymfcad.component_library
