@@ -27,10 +27,7 @@ PyMFCAD supports Python 3.10–3.14.
 ```bash
 mkdir my-mf-project && cd my-mf-project
 ```
-2. Install [uv](https://github.com/astral-sh/uv) if you don't have it:
-    ```bash
-    pip install uv
-    ```
+2. Install [uv](https://github.com/astral-sh/uv) if you don't have it. Installation instructions can be found [here](https://docs.astral.sh/uv/getting-started/installation/).
 3. Create a virtual environment and install PyMFCAD:
     ```bash
     uv venv
