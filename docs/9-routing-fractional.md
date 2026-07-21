@@ -98,7 +98,7 @@ index 0000000..1111111 100644
 +         length = channel_size[0] * loops + channel_margin[0] * (loops + 1)
 + 
 +        super().__init__(
-+            size=(x_dim, y_dim, z_dim),
++            size=(length, width, channel_size[2]*levels + channel_margin[2]*(levels + 1)),
 +            position=(0, 0, 0),
 +            px_size=px_size,
 +            layer_size=layer_size,
@@ -126,7 +126,7 @@ index 0000000..1111111 100644
 +            "outlet",
 +            Port(
 +                Port.PortType.OUT,
-+                (x_dim, y_dim - 2 * channel_margin[1], channel_margin[2]),
++                (length, width - 2 * channel_margin[1], layers*(channel_margin[2] + channel_size[2]) - channel_margin[2]),
 +                channel_size,
 +                Port.SurfaceNormal.POS_X,
 +            ),
@@ -173,6 +173,7 @@ index 0000000..1111111 100644
 +        simple_path = [
 +            (0.6, 0.0, 0.0),  # move mostly along X
 +            (0.0, 1.0, 0.0),  # shift to the outlet's Y
++            (0.0, 0.0, 1.0),  # shift to the outlet's Z
 +            (0.4, 0.0, 0.0),  # finish X to reach the outlet
 +        ]
 +
@@ -233,19 +234,17 @@ index 0000000..1111111 100644
 +        direction = 1
 +        for loop in range(loops):
 +            # Move along X into the next segment
-+            if loop != 0:
-+                serpentine.append((direction * x_step, 0.0, 0.0))
++            serpentine.append((direction * x_step, 0.0, 0.0))
 +
 +            # Sweep across Y (up/down alternates each loop)
 +            y_dir = 1 if loop % 2 == 0 else -1
 +            serpentine.append((0.0, direction * y_dir, 0.0))
 +
 +            # Move along X again to complete the loop
-+            if loop != loops - 1:
-+                serpentine.append((direction * x_step, 0.0, 0.0))
++            serpentine.append((direction * x_step, 0.0, 0.0))
 +
 +        # Final X step to land exactly on the outlet
-+        serpentine.append((x_step, 0.0, 0.0))
++        serpentine.append((x_step, 0.0, 1.0))
 +
 +        router.route_with_fractional_path(self.inlet, self.outlet, serpentine, label="void")
         router.finalize_routes()
