@@ -90,9 +90,12 @@ class Shape:
         self._keepouts = []
 
     @classmethod
-    def _batch_boolean_add(cls, others: list["Shape"]) -> "Shape":
+    def union(cls, others: list["Shape"]) -> "Shape":
         """
-        Combine a list of shapes into one shape.
+        Return the boolean union of multiple shapes.
+
+        Creates a new shape representing the combined volume of all shapes in
+        ``others``. The input shapes are not modified.
 
         Parameters:
 
@@ -123,76 +126,87 @@ class Shape:
         return c
     
     @classmethod
-    def _batch_boolean_subtract(cls, others: list["Shape"]) -> "Shape":
+    def difference(cls, shape: Shape, others: list[Shape]) -> Shape:
         """
-        Subtract a list of shapes from an initial shape.
+        Return the boolean difference between a shape and one or more other shapes.
+
+        Creates a new shape by subtracting each shape in ``others`` from ``shape``.
+        The input shapes are not modified.
 
         Parameters:
 
-        - others (list[Shape]): The list of shapes to subtract.
+        - shape (Shape): The shape to subtract from.
+        - others (list[Shape]): The shapes to subtract.
 
         Returns:
 
-        - self (Shape): The resulting shape after subtraction.
+        - Shape: A new shape representing the result of the subtraction.
         """
 
-        if len(others) == 0:
-            raise ValueError("No shapes provided for batch boolean subtract.")
-        elif len(others) == 1:
-            return others[0].copy(_internal=True)
+        if shape is None:
+            raise ValueError("No base shape provided for difference operation.")
+        if others is None or len(others) == 0:
+            return shape.copy(_internal=True)
 
         c = cls()
 
-        c._object = Manifold.batch_boolean(
-            [other._object for other in others],
-            OpType.Subtract,
-        )
+        # if others is just a Shape, handle it as a single subtraction
+        if isinstance(others, Shape):
+            c._object = Manifold.batch_boolean(
+                [shape._object, others._object],
+                OpType.Subtract,
+            )
+        else:
+            c._object = Manifold.batch_boolean(
+                [shape._object] + [other._object for other in others],
+                OpType.Subtract,
+            )
 
-        c._name = others[0]._name
-        c._parent = others[0]._parent
-        c._color = others[0]._color
-        c._label = others[0]._label
+        c._name = shape._name
+        c._parent = shape._parent
+        c._color = shape._color
+        c._label = shape._label
 
         return c
     
-    @classmethod
-    def _batch_boolean_add_then_subtract(cls, additions: list["Shape"], subtractions: list["Shape"]) -> "Shape":
-        """
-        Add a list of shapes together, then subtract another list of shapes from the result.
+    # @classmethod
+    # def _batch_boolean_add_then_subtract(cls, additions: list["Shape"], subtractions: list["Shape"]) -> "Shape":
+    #     """
+    #     Add a list of shapes together, then subtract another list of shapes from the result.
 
-        Parameters:
+    #     Parameters:
 
-        - additions (list[Shape]): The list of shapes to add.
-        - subtractions (list[Shape]): The list of shapes to subtract.
+    #     - additions (list[Shape]): The list of shapes to add.
+    #     - subtractions (list[Shape]): The list of shapes to subtract.
 
-        Returns:
+    #     Returns:
 
-        - self (Shape): The resulting shape after addition and subtraction.
-        """
+    #     - self (Shape): The resulting shape after addition and subtraction.
+    #     """
 
-        if len(additions) == 0:
-            raise ValueError("No shapes provided for batch boolean add.")
-        elif len(additions) == 1 and len(subtractions) == 0:
-            return additions[0].copy(_internal=True)
+    #     if len(additions) == 0:
+    #         raise ValueError("No shapes provided for batch boolean add.")
+    #     elif len(additions) == 1 and len(subtractions) == 0:
+    #         return additions[0].copy(_internal=True)
 
-        c = cls()
+    #     c = cls()
 
-        c._object = Manifold.batch_boolean(
-            [other._object for other in additions],
-            OpType.Add,
-        )
+    #     c._object = Manifold.batch_boolean(
+    #         [other._object for other in additions],
+    #         OpType.Add,
+    #     )
 
-        c._object = Manifold.batch_boolean(
-            [c._object] + [other._object for other in subtractions],
-            OpType.Subtract,
-        )
+    #     c._object = Manifold.batch_boolean(
+    #         [c._object] + [other._object for other in subtractions],
+    #         OpType.Subtract,
+    #     )
 
-        c._name = additions[0]._name
-        c._parent = additions[0]._parent
-        c._color = additions[0]._color
-        c._label = additions[0]._label
+    #     c._name = additions[0]._name
+    #     c._parent = additions[0]._parent
+    #     c._color = additions[0]._color
+    #     c._label = additions[0]._label
 
-        return c
+    #     return c
 
     def _translate_keepouts(self, translation: tuple[float, float, float]) -> None:
         """

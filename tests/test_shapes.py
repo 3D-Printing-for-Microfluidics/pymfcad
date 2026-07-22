@@ -322,15 +322,15 @@ def test_shape_ops_translate_rotate_mirror_resize():
 
 def test_batch_boolean():
     with pytest.raises(ValueError):
-        Shape._batch_boolean_add([])
+        Shape.union([])
     with pytest.raises(ValueError):
-        Shape._batch_boolean_subtract([])
-    with pytest.raises(ValueError):
-        Shape._batch_boolean_add_then_subtract([], [])
+        Shape.difference(None,[])
+    # with pytest.raises(ValueError):
+    #     Shape._batch_boolean_add_then_subtract([], [])
 
-    Shape._batch_boolean_subtract([Cube(size=(1,1,1), quiet=False)])
+    Shape.difference(Cube(size=(1,1,1), quiet=False), [])
 
-    diff = Shape._batch_boolean_subtract([Cube(size=(2,1,1), quiet=False), Cube(size=(1,1,1), quiet=False)])
+    diff = Shape.difference(Cube(size=(2,1,1), quiet=False), [Cube(size=(1,1,1), quiet=False)])
     assert _bbox_min_max(diff)[3] - _bbox_min_max(diff)[0] == pytest.approx(1)
 
 def test_cube():

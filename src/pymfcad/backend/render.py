@@ -281,7 +281,7 @@ def _component_to_manifold(
             # Merge shapes of the same key.
             for key, shape_list in manifolds.items():
                 if len(shape_list) > 0:
-                    manifolds[key] = Shape._batch_boolean_add(shape_list)
+                    manifolds[key] = Shape.union(shape_list)
 
     def accumulate_bulk_shape(comp: "Component", _top_level: bool = True) -> dict[str, "Shape"]:
         """
@@ -357,17 +357,17 @@ def _component_to_manifold(
                     else:
                         comp_bulks[key] = [item]
 
-        comp_cubes = Shape._batch_boolean_add(comp_cubes) if comp_cubes is not None else None
+        comp_cubes = Shape.union(comp_cubes) if comp_cubes is not None else None
         for key, bulk in bulks.items():
             if len(bulk) == 0:
                 continue
-            bulks[key] = Shape._batch_boolean_add(bulk)
+            bulks[key] = Shape.union(bulk)
             bulks[key] = bulks[key] - comp_cubes if comp_cubes is not None else bulks[key]
             if key in comp_bulks.keys():
-                bulks[key] = Shape._batch_boolean_add([bulks[key]] + comp_bulks[key])
+                bulks[key] = Shape.union([bulks[key]] + comp_bulks[key])
         for key, bulk in comp_bulks.items():
             if key not in bulks.keys():
-                bulks[key] = Shape._batch_boolean_add(comp_bulks[key])
+                bulks[key] = Shape.union(comp_bulks[key])
         return bulks
 
     def accumulate_regional_settings(comp: "Component", _top_level: bool = True) -> None:
@@ -424,7 +424,7 @@ def _component_to_manifold(
             # Merge shapes of the same key.
             for key, shape_list in regional_manifolds.items():
                 if len(shape_list) > 0:
-                    regional_manifolds[key] = Shape._batch_boolean_add(shape_list)
+                    regional_manifolds[key] = Shape.union(shape_list)
 
     def get_unconnected_ports(comp: "Component") -> None:
         """
@@ -457,7 +457,10 @@ def _component_to_manifold(
                 "Cannot render do bulk difference without rendering bulk device"
             )
 
-        diff = Shape._batch_boolean_add_then_subtract(list(bulk_manifolds.values()), list(manifolds.values()))
+        union_bulk = Shape.union(list(bulk_manifolds.values()))
+        diff = Shape.difference(union_bulk, list(manifolds.values())) if len(manifolds) > 0 else union_bulk
+        del union_bulk
+        # diff = Shape._batch_boolean_add_then_subtract(list(bulk_manifolds.values()), list(manifolds.values()))
 
     return manifolds, bulk_manifolds, regional_manifolds, diff, ports
 

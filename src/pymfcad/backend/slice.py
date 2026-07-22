@@ -381,7 +381,7 @@ def slice_component(
     # Start by unioning this component's bulk shapes.
     if len(list(device.bulk_shapes.values())) == 0:
         raise RuntimeError("Tried to slice component without bulk shape")
-    composite_shape = Shape._batch_boolean_add(list(device.bulk_shapes.values()))
+    composite_shape = Shape.union(list(device.bulk_shapes.values()))
     
 
     # Accumulate subcomponent bounding boxes and recursively process subcomponents.
@@ -414,7 +414,7 @@ def slice_component(
 
     # Accumulate this component's shapes (e.g., voids or cutouts) and bbox cubes.
     if len(list(device.shapes.values()) + bbox_cubes) > 0:
-        local_shapes = Shape._batch_boolean_add(list(device.shapes.values()) + bbox_cubes)
+        local_shapes = Shape.union(list(device.shapes.values()) + bbox_cubes)
     
 
         # Subtract this component's shapes (e.g., voids or cutouts).
