@@ -165,7 +165,7 @@ You should see a solid block with the “Hello World” void cut out.
 
 ## Notes:
 
-- You cannot run a Python file from the visualizer. Run it with your Python interpreter to generate the .glb files the visualizer reads.
+- **You cannot run a Python file from the visualizer. Run it with your Python interpreter to generate the .glb files the visualizer reads. Every time you change your code, you must re-run it with python view the changes in the visualizer.**
 - Each run overwrites the target preview directory, even if it already exists. If you want to keep multiple outputs (for multiple Python files/device designs), specify a different `preview_dir` for each.
 - If your file is in a folder, run it like this:
     ```
