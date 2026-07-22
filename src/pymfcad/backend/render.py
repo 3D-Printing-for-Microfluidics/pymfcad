@@ -457,10 +457,7 @@ def _component_to_manifold(
                 "Cannot render do bulk difference without rendering bulk device"
             )
 
-        union_bulk = Shape.union(list(bulk_manifolds.values()))
-        diff = Shape.difference(union_bulk, list(manifolds.values())) if len(manifolds) > 0 else union_bulk
-        del union_bulk
-        # diff = Shape._batch_boolean_add_then_subtract(list(bulk_manifolds.values()), list(manifolds.values()))
+        diff = Shape._batch_boolean_union_and_difference(list(bulk_manifolds.values()), list(manifolds.values()))
 
     return manifolds, bulk_manifolds, regional_manifolds, diff, ports
 

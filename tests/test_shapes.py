@@ -325,8 +325,8 @@ def test_batch_boolean():
         Shape.union([])
     with pytest.raises(ValueError):
         Shape.difference(None,[])
-    # with pytest.raises(ValueError):
-    #     Shape._batch_boolean_add_then_subtract([], [])
+    with pytest.raises(ValueError):
+        Shape._batch_boolean_union_and_difference([], [])
 
     Shape.difference(Cube(size=(1,1,1), quiet=False), [])
 
