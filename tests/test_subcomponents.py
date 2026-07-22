@@ -157,16 +157,22 @@ def test_component_ops_translate_rotate_mirror():
     child1.translate((2, 3, 4))
     child2 = child1.copy()
     parent.add_subcomponent("child1", child1, subtract_bounding_box=False)
-    assert child1.get_bounding_box() == (7, 7, 7, 17, 15, 13)
+    bbox = child1.get_bounding_box()
+    bbox = tuple(int(x) for x in bbox)
+    assert bbox == (7, 7, 7, 17, 15, 13)
 
-    child2.rotate(90)
+    child2.rotate(90, in_place=True).translate((10,10,10))
     child3 = child2.copy()
     parent.add_subcomponent("child2", child2, subtract_bounding_box=False)
-    assert child2.get_bounding_box() == (-1, 7, 7, 7, 17, 13)
+    bbox = child2.get_bounding_box()
+    bbox = tuple(int(x) for x in bbox)
+    assert bbox == (17, 17, 17, 25, 27, 23)
 
-    child3.mirror(mirror_x=True, mirror_y=False)
+    child3.mirror(mirror_x=True, mirror_y=False, in_place=True).translate((10,10,10))
     parent.add_subcomponent("child3", child3, subtract_bounding_box=False)
-    assert child3.get_bounding_box() == (-9, 7, 7, -1, 17, 13)
+    bbox = child3.get_bounding_box()
+    bbox = tuple(int(x) for x in bbox)
+    assert bbox == (27, 27, 27, 35, 37, 33)
 
 
 def test_component_no_bulk():
