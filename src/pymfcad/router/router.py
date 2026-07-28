@@ -8,6 +8,7 @@ import numpy as np
 from rtree import index
 from typing import Union
 from copy import deepcopy
+from pymfcad import __version__ as PYMFCAD_VERSION
 
 from .. import Polychannel, PolychannelShape, BezierCurveShape
 from ..backend.manifold3d import _is_integer
@@ -667,7 +668,9 @@ class Router:
             if not self._quiet:
                 print(f"\t\t📦 Loading cached route from {cache_file}...")
             with open(cache_file, "rb") as f:
-                return pickle.load(f)
+                pickle_data = pickle.load(f)
+                if isinstance(pickle_data, dict) and "package_version" in pickle_data and pickle_data["package_version"] == PYMFCAD_VERSION and "data" in pickle_data:
+                    return pickle_data["data"]
         return None, None
 
     def _load_route(self, name: str, route_info: dict, cached_info: dict):
@@ -893,7 +896,7 @@ class Router:
         if len(save_routes) > 0:
             os.makedirs(os.path.dirname(cache_file), exist_ok=True)
             with open(cache_file, "wb") as f:
-                pickle.dump((keepouts, save_routes), f)
+                pickle.dump({"package_version": PYMFCAD_VERSION, "data": (keepouts, save_routes)}, f)
             return True
         return False
 

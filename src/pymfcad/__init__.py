@@ -12,6 +12,13 @@ Advanced structures such as polychannels (complex hulled shapes) and Bézier cur
 complex microfluidic architectures.
 """
 
+import importlib.metadata
+
+try:
+    __version__ = importlib.metadata.version(__name__)
+except importlib.metadata.PackageNotFoundError:
+    __version__ = "0.0.0-development"  # Fallback for editable/uninstalled local runs
+
 from .pymfcad import (
     Port,
     Component,
