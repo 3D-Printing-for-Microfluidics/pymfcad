@@ -879,11 +879,9 @@ class MembraneSettings:
     def __init__(
         self,
         max_membrane_thickness_um: float = 0.0,
-        bulk_exposure_multiplier: float = 1.0,
         dilation_px: int = 0,
-        defocus_um: float = 0.0,
+        exposure_settings: ExposureSettings = ExposureSettings(),
         scan_for_membrane: bool = True,
-        special_image_techniques: list[SpecialImageTechniques] = [],
     ):
         """
         Initialize membrane settings for membrane exposure.
@@ -891,21 +889,15 @@ class MembraneSettings:
         Parameters:
 
         - max_membrane_thickness_um: Maximum membrane thickness in microns.
-        - bulk_exposure_multiplier: Multiplier applied to resin bulk exposure.
         - dilation_px: Dilation in pixels
-        - defocus_um: Defocus position in microns.
+        - exposure_settings: ExposureSettings object for membrane exposure.
         - scan_for_membrane: Whether to scan slices for membranes or use masks directly.
-        - special_image_techniques: List of SpecialImageTechniques to apply.
         """
 
         self.max_membrane_thickness_um = max_membrane_thickness_um
         self.dilation_px = dilation_px
         self.scan_for_membrane = scan_for_membrane
-        self.exposure_settings = ExposureSettings(
-            bulk_exposure_multiplier=bulk_exposure_multiplier,
-            relative_focus_position=defocus_um,
-            special_image_techniques=special_image_techniques,
-        )
+        self.exposure_settings = exposure_settings
 
     def __eq__(self, other):
         # """Check equality of membrane settings."""
@@ -922,11 +914,19 @@ class MembraneSettings:
         """Create a copy of the membrane settings."""
         return MembraneSettings(
             max_membrane_thickness_um=self.max_membrane_thickness_um,
-            bulk_exposure_multiplier=self.exposure_settings.bulk_exposure_multiplier,
+            exposure_settings=self.exposure_settings.copy(),
             dilation_px=self.dilation_px,
-            defocus_um=self.exposure_settings.relative_focus_position,
             scan_for_membrane=self.scan_for_membrane,
-            special_image_techniques=self.exposure_settings.special_image_techniques.copy(),
+        )
+
+class SecondaryDoseSettings:
+    def __init__(
+        self,
+        edge_bulk_exposure_multiplier: float = None,
+        edge_erosion_px: int = 0,
+        edge_dilation_px: int = 0,
+        roof_bulk_exposure_multiplier: float = None,
+        roof_erosion_px: int = 0,
         )
 
 class SecondaryDoseSettings:
