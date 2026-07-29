@@ -407,6 +407,7 @@ class Component(_InstantiationTrackerMixin):
     def __init__(
         self,
         size: tuple[int, int, int],
+        position: tuple[int, int, int],
         px_size: float = 0.0076,
         layer_size: float = 0.01,
         hide_in_render: bool = False,
@@ -416,6 +417,7 @@ class Component(_InstantiationTrackerMixin):
         Parameters:
 
         - size (tuple[int, int, int]): The size of the component in pixels (width, height, depth).
+        - position (tuple[int, int, int]): The position of the component in 3D space (x, y, z).
         - px_size (float): The size of a pixel in mm. Default is 0.0076 m.
         - layer_size (float): The size of a layer in mm. Default is 0.01 m.
         - hide_in_render (bool): Whether to hide the component in renders (nessiary for complex components like TPMS). Default is False.
@@ -426,7 +428,7 @@ class Component(_InstantiationTrackerMixin):
             print(f"Creating {type(self).__name__} component...")
         self._parent = None
         self._name = None
-        self._position = (0,0,0)
+        self._position = position
         self._size = size
         self._px_size = px_size
         self._layer_size = layer_size
