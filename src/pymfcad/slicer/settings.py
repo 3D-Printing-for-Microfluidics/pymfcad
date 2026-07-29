@@ -878,9 +878,9 @@ class ExposureSettings:
 class MembraneSettings:
     def __init__(
         self,
+        exposure_settings: ExposureSettings = ExposureSettings(),
         max_membrane_thickness_um: float = 0.0,
         dilation_px: int = 0,
-        exposure_settings: ExposureSettings = ExposureSettings(),
         scan_for_membrane: bool = True,
     ):
         """
@@ -888,9 +888,9 @@ class MembraneSettings:
 
         Parameters:
 
-        - max_membrane_thickness_um: Maximum membrane thickness in microns.
-        - dilation_px: Dilation in pixels
         - exposure_settings: ExposureSettings object for membrane exposure.
+        - max_membrane_thickness_um: Maximum membrane thickness in microns.
+        - dilation_px: Membrane dilation in pixels
         - scan_for_membrane: Whether to scan slices for membranes or use masks directly.
         """
 
@@ -917,16 +917,6 @@ class MembraneSettings:
             exposure_settings=self.exposure_settings.copy(),
             dilation_px=self.dilation_px,
             scan_for_membrane=self.scan_for_membrane,
-        )
-
-class SecondaryDoseSettings:
-    def __init__(
-        self,
-        edge_bulk_exposure_multiplier: float = None,
-        edge_erosion_px: int = 0,
-        edge_dilation_px: int = 0,
-        roof_bulk_exposure_multiplier: float = None,
-        roof_erosion_px: int = 0,
         )
 
 class SecondaryDoseSettings:
