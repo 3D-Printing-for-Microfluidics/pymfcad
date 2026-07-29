@@ -1,5 +1,4 @@
 from .settings import (
-    Settings,
     ResinType,
     Printer,
     LightEngine,

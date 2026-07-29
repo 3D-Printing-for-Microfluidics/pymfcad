@@ -46,7 +46,6 @@ from .backend import (
 )
 from .router import Router
 from .slicer import (
-    Settings,
     ResinType,
     Printer,
     LightEngine,

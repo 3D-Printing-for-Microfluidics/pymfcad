@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import json
-import datetime
 from pathlib import Path
 
 class SpecialPrintTechniques:
@@ -52,108 +51,6 @@ class PrintUnderVacuum(SpecialPrintTechniques):
             target_vacuum_level_torr=data.get("Target vacuum level (Torr)", 10.0),
             vacuum_wait_time=data.get("Vacuum wait time (sec)", 0.0),
         )
-
-class Settings:
-    def __init__(
-        self,
-        printer: Printer,
-        resin: ResinType,
-        default_position_settings: PositionSettings,
-        default_exposure_settings: ExposureSettings,
-        special_print_techniques: list[SpecialPrintTechniques] = [],
-        user: str = "",
-        purpose: str = "",
-        description: str = "",
-    ):
-        """
-        Initialize the settings for slicer object.
-
-        Parameters:
-
-        - printer: Printer object containing printer settings.
-        - resin: ResinType object containing resin formulation.
-        - default_position_settings: Default PositionSettings for layers.
-        - default_exposure_settings: Default ExposureSettings for layers.
-        - special_print_techniques: List of SpecialPrintTechniques to apply.
-        - user: Name of the user creating the settings.
-        - purpose: Purpose of the print job.
-        - description: Description of the print job.
-        """
-        self.resin = resin
-        self.printer = printer
-        self.user = user
-        self.purpose = purpose
-        self.description = description
-        self.special_print_techniques = special_print_techniques
-
-        # Set default values for position and exposure settings
-        default_position_settings.fill_with_defaults()
-        default_exposure_settings.fill_with_defaults()
-
-        self.default_position_settings = default_position_settings
-        self.default_exposure_settings = default_exposure_settings
-
-        self.settings = {
-            "Schema version": "5.0.0",
-            "User": user,
-            "Purpose": purpose,
-            "Description": description,
-            "Resin": str(resin),
-            "3D printer": printer.name,
-            "Slicer": "PyMFCAD",
-            "Date": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-            "Default layer settings": {
-                "Number of duplications": 1,
-                "Position settings": default_position_settings.to_dict(),
-                "Image settings": default_exposure_settings.to_dict(),
-            }
-        }
-
-        self.settings["Special print techniques"] = SpecialPrintTechniques.to_dict(self.special_print_techniques)
-    
-    def to_dict(self) -> dict:
-        return {
-            "schema_version": "1.0",
-            "printer": self.printer.to_dict(),
-            "resin": self.resin.to_dict(),
-            "default_position_settings": self.default_position_settings.to_dict(),
-            "default_exposure_settings": self.default_exposure_settings.to_dict(),
-            "special_print_techniques": SpecialPrintTechniques.to_dict(self.special_print_techniques),
-            "user": self.user,
-            "purpose": self.purpose,
-            "description": self.description,
-        }
-
-    @classmethod
-    def from_dict(cls, data: dict) -> Settings:
-        printer = Printer.from_dict(data["printer"])
-        resin = ResinType.from_dict(data["resin"])
-        default_position_settings = PositionSettings.from_dict(data.get("default_position_settings", {}))
-        default_exposure_settings = ExposureSettings.from_dict(data.get("default_exposure_settings", {}))
-        special_print_techniques = SpecialPrintTechniques.from_dict(data.get("special_print_techniques", {}))
-        return cls(
-            printer=printer,
-            resin=resin,
-            default_position_settings=default_position_settings,
-            default_exposure_settings=default_exposure_settings,
-            special_print_techniques=special_print_techniques,
-            user=data.get("user", ""),
-            purpose=data.get("purpose", ""),
-            description=data.get("description", ""),
-        )
-
-    def save(self, file_path: str | Path):
-        """Save settings to a JSON file."""
-        path = Path(file_path)
-        with path.open("w", encoding="utf-8") as f:
-            json.dump(self.to_dict(), f, indent=2)
-
-    @classmethod
-    def from_file(cls, file_path: str | Path) -> Settings:
-        """Load settings from a JSON file."""
-        path = Path(file_path)
-        with path.open("r", encoding="utf-8") as f:
-            return cls.from_dict(json.load(f))
 
 class ResinType:
     def __init__(
@@ -304,6 +201,7 @@ class LightEngine:
         max_stitched_px_count=(2560, 1600),
         stitched_px_overlap=(0, 0),
         wavelengths: list[int] = [365],
+        default_exposure_settings: list[ExposureSettings] = [ExposureSettings()],
         grayscale_available: list[bool] = [False],
         settle_time_ms: float = 0.0,
     ):
@@ -319,6 +217,7 @@ class LightEngine:
         - stitched_px_overlap: Tuple of (x_overlap, y_overlap) in pixels for stitched workspaces.
         - wavelengths: List of supported wavelengths in nm.
         - grayscale_available: List of booleans indicating if grayscale is available for each wavelength.
+        - default_exposure_settings: List of default exposure settings for each wavelength.
         - settle_time_ms: Extra wait time in milliseconds for the first exposure
             after switching to this light engine.
         """
@@ -359,6 +258,9 @@ class LightEngine:
         self.max_stitched_px_count = max_stitched_px_count
         self.wavelengths = wavelengths
         self.grayscale_available = grayscale_available
+        self.default_exposure_settings = default_exposure_settings
+        for es in self.default_exposure_settings:
+            es.fill_with_defaults()
         self.settle_time_ms = float(settle_time_ms)
 
     def to_dict(self) -> dict:
@@ -369,6 +271,7 @@ class LightEngine:
             "stitched_px_overlap": list(self.stitched_px_overlap),
             "max_stitched_px_count": list(self.max_stitched_px_count),
             "wavelengths": list(self.wavelengths),
+            "default_exposure_settings": [es.to_dict() for es in self.default_exposure_settings],
             "grayscale_available": list(self.grayscale_available),
             "settle_time_ms": self.settle_time_ms,
         }
@@ -383,6 +286,7 @@ class LightEngine:
             max_stitched_px_count=tuple(data.get("max_stitched_px_count", (2560, 1600))),
             wavelengths=list(data.get("wavelengths", [365])),
             grayscale_available=list(data.get("grayscale_available", [False])),
+            default_exposure_settings=[ExposureSettings.from_dict(es) for es in data.get("default_exposure_settings", [{}])],
             settle_time_ms=data.get("settle_time_ms", 0.0),
         )
 
@@ -393,6 +297,7 @@ class Printer:
         light_engines: list[LightEngine],
         xy_stage_available: bool = False,
         vacuum_available: bool = False,
+        default_position_settings: PositionSettings = PositionSettings(),
     ):
         """
         Initialize a Printer object.
@@ -403,6 +308,7 @@ class Printer:
         - light_engines: List of LightEngine objects.
         - xy_stage_available: Whether the printer has an XY stage.
         - vacuum_available: Whether the printer supports vacuum printing.
+        - default_position_settings: Default position settings for the printer.
         """
         self.name = name
         self.light_engines = (
@@ -410,6 +316,8 @@ class Printer:
         )
         self.xy_stage_available = xy_stage_available
         self.vacuum_available = vacuum_available
+        self.default_position_settings = default_position_settings
+        self.default_position_settings.fill_with_defaults()
 
     def get_light_engine_by_name(self, name: str) -> LightEngine | None:
         """Return the light engine matching the given name, or None if not found."""
@@ -438,6 +346,7 @@ class Printer:
             "light_engines": [le.to_dict() for le in self.light_engines],
             "xy_stage_available": self.xy_stage_available,
             "vacuum_available": self.vacuum_available,
+            "default_position_settings": self.default_position_settings.to_dict(),
         }
 
     @classmethod
@@ -450,6 +359,9 @@ class Printer:
             light_engines=light_engines,
             xy_stage_available=data.get("xy_stage_available", False),
             vacuum_available=data.get("vacuum_available", False),
+            default_position_settings=PositionSettings.from_dict(
+                data.get("default_position_settings", {})
+            )
         )
 
     def save(self, file_path: str | Path):
