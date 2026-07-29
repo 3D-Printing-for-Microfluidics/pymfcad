@@ -8,6 +8,21 @@ class SpecialPrintTechniques:
     def __init__(self):
         pass
 
+    @classmethod
+    def to_dict(cls, techniques_list: list[SpecialPrintTechniques]) -> dict:
+        temp_dict = {}
+        for spt in techniques_list:
+            if isinstance(spt, PrintUnderVacuum):
+                temp_dict["Print under vacuum"] = spt.to_dict()
+        return temp_dict
+
+    @classmethod
+    def from_dict(cls, data: dict) -> SpecialPrintTechniques:
+        if "Enable vacuum" in data:
+            return PrintUnderVacuum.from_dict(data)
+        else:
+            raise ValueError("Unsupported special print technique")
+
 class PrintUnderVacuum(SpecialPrintTechniques):
     def __init__(self, enabled: bool = False, target_vacuum_level_torr: float = 10.0, vacuum_wait_time: float = 0.0):
         """
@@ -21,7 +36,22 @@ class PrintUnderVacuum(SpecialPrintTechniques):
         """
         self.enabled = enabled
         self.target_vacuum_level_torr = target_vacuum_level_torr
-        self.vacuum_wait_time = vacuum_wait_time    
+        self.vacuum_wait_time = vacuum_wait_time
+
+    def to_dict(self):
+        return {
+            "Enable vacuum": self.enabled,
+            "Target vacuum level (Torr)": self.target_vacuum_level_torr,
+            "Vacuum wait time (sec)": self.vacuum_wait_time,
+        }
+
+    @classmethod
+    def from_dict(cls, data: dict) -> PrintUnderVacuum:
+        return cls(
+            enabled=data.get("Enable vacuum", False),
+            target_vacuum_level_torr=data.get("Target vacuum level (Torr)", 10.0),
+            vacuum_wait_time=data.get("Vacuum wait time (sec)", 0.0),
+        )
 
 class Settings:
     def __init__(
@@ -57,37 +87,8 @@ class Settings:
         self.special_print_techniques = special_print_techniques
 
         # Set default values for position and exposure settings
-        if default_position_settings.distance_up is None:
-            default_position_settings.distance_up = 1.0
-        if default_position_settings.initial_wait is None:
-            default_position_settings.initial_wait = 0.0
-        if default_position_settings.up_speed is None:
-            default_position_settings.up_speed = 25.0
-        if default_position_settings.up_acceleration is None:
-            default_position_settings.up_acceleration = 50.0
-        if default_position_settings.up_wait is None:
-            default_position_settings.up_wait = 0.0
-        if default_position_settings.down_speed is None:
-            default_position_settings.down_speed = 20.0
-        if default_position_settings.down_acceleration is None:
-            default_position_settings.down_acceleration = 50.0
-        if default_position_settings.final_wait is None:
-            default_position_settings.final_wait = 0.0
-
-        if default_exposure_settings.grayscale_correction is None:
-            default_exposure_settings.grayscale_correction = False
-        if default_exposure_settings.bulk_exposure_multiplier is None:
-            default_exposure_settings.bulk_exposure_multiplier = 1.0
-        if default_exposure_settings.power_setting is None:
-            default_exposure_settings.power_setting = 100
-        if default_exposure_settings.wavelength is None:
-            default_exposure_settings.wavelength = 365
-        if default_exposure_settings.relative_focus_position is None:
-            default_exposure_settings.relative_focus_position = 0.0
-        if default_exposure_settings.wait_before_exposure is None:
-            default_exposure_settings.wait_before_exposure = 0.0
-        if default_exposure_settings.wait_after_exposure is None:
-            default_exposure_settings.wait_after_exposure = 0.0
+        default_position_settings.fill_with_defaults()
+        default_exposure_settings.fill_with_defaults()
 
         self.default_position_settings = default_position_settings
         self.default_exposure_settings = default_exposure_settings
@@ -108,208 +109,16 @@ class Settings:
             }
         }
 
-        self.settings["Special print techniques"] = {}
-
-        for sps in special_print_techniques:
-            if isinstance(sps, PrintUnderVacuum):
-                self.settings["Special print techniques"]["Print under vacuum"] = {
-                    "Enable vacuum": sps.enabled,
-                    "Target vacuum level (Torr)": sps.target_vacuum_level_torr,
-                    "Vacuum wait time (sec)": sps.vacuum_wait_time,
-                }
-
-    def _serialize_special_print_techniques(self) -> list[dict]:
-        techniques = []
-        for spt in self.special_print_techniques:
-            if isinstance(spt, PrintUnderVacuum):
-                techniques.append(
-                    {
-                        "type": "PrintUnderVacuum",
-                        "enabled": spt.enabled,
-                        "target_vacuum_level_torr": spt.target_vacuum_level_torr,
-                        "vacuum_wait_time": spt.vacuum_wait_time,
-                    }
-                )
-            else:
-                raise ValueError(
-                    f"Unsupported special print technique: {type(spt).__name__}"
-                )
-        return techniques
-
-    @staticmethod
-    def _deserialize_special_print_techniques(data: list[dict]) -> list[SpecialPrintTechniques]:
-        techniques: list[SpecialPrintTechniques] = []
-        for item in data:
-            technique_type = item.get("type")
-            if technique_type == "PrintUnderVacuum":
-                techniques.append(
-                    PrintUnderVacuum(
-                        enabled=item.get("enabled", False),
-                        target_vacuum_level_torr=item.get("target_vacuum_level_torr", 10.0),
-                        vacuum_wait_time=item.get("vacuum_wait_time", 0.0),
-                    )
-                )
-            else:
-                raise ValueError(f"Unsupported special print technique type: {technique_type}")
-        return techniques
-
-    @staticmethod
-    def _serialize_special_layer_techniques(techniques: list[SpecialLayerTechniques]) -> list[dict]:
-        serialized = []
-        for slt in techniques:
-            if isinstance(slt, SqueezeOutResin):
-                serialized.append(
-                    {
-                        "type": "SqueezeOutResin",
-                        "enabled": slt.enabled,
-                        "count": slt.count,
-                        "squeeze_force": slt.squeeze_force,
-                        "squeeze_time": slt.squeeze_time,
-                    }
-                )
-            else:
-                raise ValueError(
-                    f"Unsupported special layer technique: {type(slt).__name__}"
-                )
-        return serialized
-
-    @staticmethod
-    def _deserialize_special_layer_techniques(data: list[dict]) -> list[SpecialLayerTechniques]:
-        techniques: list[SpecialLayerTechniques] = []
-        for item in data:
-            technique_type = item.get("type")
-            if technique_type == "SqueezeOutResin":
-                techniques.append(
-                    SqueezeOutResin(
-                        enabled=item.get("enabled", False),
-                        count=item.get("count", 0),
-                        squeeze_force=item.get("squeeze_force", 0.0),
-                        squeeze_time=item.get("squeeze_time", 0.0),
-                    )
-                )
-            else:
-                raise ValueError(f"Unsupported special layer technique type: {technique_type}")
-        return techniques
-
-    @staticmethod
-    def _serialize_special_image_techniques(techniques: list[SpecialImageTechniques]) -> list[dict]:
-        serialized = []
-        for sit in techniques:
-            if isinstance(sit, ZeroMicronLayer):
-                serialized.append(
-                    {
-                        "type": "ZeroMicronLayer",
-                        "enabled": sit.enabled,
-                        "count": sit.count,
-                    }
-                )
-            elif isinstance(sit, PrintOnFilm):
-                serialized.append(
-                    {
-                        "type": "PrintOnFilm",
-                        "enabled": sit.enabled,
-                        "distance_up_mm": sit.distance_up,
-                        "up_wait": sit.up_wait,
-                    }
-                )
-            else:
-                raise ValueError(
-                    f"Unsupported special image technique: {type(sit).__name__}"
-                )
-        return serialized
-
-    @staticmethod
-    def _deserialize_special_image_techniques(data: list[dict]) -> list[SpecialImageTechniques]:
-        techniques: list[SpecialImageTechniques] = []
-        for item in data:
-            technique_type = item.get("type")
-            if technique_type == "ZeroMicronLayer":
-                techniques.append(
-                    ZeroMicronLayer(
-                        enabled=item.get("enabled", False),
-                        count=item.get("count", 0),
-                    )
-                )
-            elif technique_type == "PrintOnFilm":
-                techniques.append(
-                    PrintOnFilm(
-                        enabled=item.get("enabled", False),
-                        distance_up_mm=item.get("distance_up_mm", 0.3),
-                        up_wait=item.get("up_wait", 20000.0),
-                    )
-                )
-            else:
-                raise ValueError(f"Unsupported special image technique type: {technique_type}")
-        return techniques
-
-    def _serialize_position_settings(self) -> dict:
-        return {
-            "distance_up": self.default_position_settings.distance_up,
-            "initial_wait": self.default_position_settings.initial_wait,
-            "up_speed": self.default_position_settings.up_speed,
-            "up_acceleration": self.default_position_settings.up_acceleration,
-            "up_wait": self.default_position_settings.up_wait,
-            "down_speed": self.default_position_settings.down_speed,
-            "down_acceleration": self.default_position_settings.down_acceleration,
-            "final_wait": self.default_position_settings.final_wait,
-            "special_layer_techniques": self._serialize_special_layer_techniques(
-                self.default_position_settings.special_layer_techniques
-            ),
-        }
-
-    def _serialize_exposure_settings(self) -> dict:
-        return {
-            "grayscale_correction": self.default_exposure_settings.grayscale_correction,
-            "bulk_exposure_multiplier": self.default_exposure_settings.bulk_exposure_multiplier,
-            "power_setting": self.default_exposure_settings.power_setting,
-            "wavelength": self.default_exposure_settings.wavelength,
-            "relative_focus_position": self.default_exposure_settings.relative_focus_position,
-            "wait_before_exposure": self.default_exposure_settings.wait_before_exposure,
-            "wait_after_exposure": self.default_exposure_settings.wait_after_exposure,
-            "special_image_techniques": self._serialize_special_image_techniques(
-                self.default_exposure_settings.special_image_techniques
-            ),
-        }
-
-    @staticmethod
-    def _deserialize_position_settings(data: dict) -> PositionSettings:
-        return PositionSettings(
-            distance_up=data.get("distance_up"),
-            initial_wait=data.get("initial_wait"),
-            up_speed=data.get("up_speed"),
-            up_acceleration=data.get("up_acceleration"),
-            up_wait=data.get("up_wait"),
-            down_speed=data.get("down_speed"),
-            down_acceleration=data.get("down_acceleration"),
-            final_wait=data.get("final_wait"),
-            special_layer_techniques=Settings._deserialize_special_layer_techniques(
-                data.get("special_layer_techniques", [])
-            ),
-        )
-
-    @staticmethod
-    def _deserialize_exposure_settings(data: dict) -> ExposureSettings:
-        return ExposureSettings(
-            grayscale_correction=data.get("grayscale_correction"),
-            bulk_exposure_multiplier=data.get("bulk_exposure_multiplier"),
-            power_setting=data.get("power_setting"),
-            wavelength=data.get("wavelength"),
-            relative_focus_position=data.get("relative_focus_position"),
-            wait_before_exposure=data.get("wait_before_exposure"),
-            wait_after_exposure=data.get("wait_after_exposure"),
-            special_image_techniques=Settings._deserialize_special_image_techniques(
-                data.get("special_image_techniques", [])
-            ),
-        )
-
+        self.settings["Special print techniques"] = SpecialPrintTechniques.to_dict(self.special_print_techniques)
+    
     def to_dict(self) -> dict:
         return {
             "schema_version": "1.0",
             "printer": self.printer.to_dict(),
             "resin": self.resin.to_dict(),
-            "default_position_settings": self._serialize_position_settings(),
-            "default_exposure_settings": self._serialize_exposure_settings(),
-            "special_print_techniques": self._serialize_special_print_techniques(),
+            "default_position_settings": self.default_position_settings.to_dict(),
+            "default_exposure_settings": self.default_exposure_settings.to_dict(),
+            "special_print_techniques": SpecialPrintTechniques.to_dict(self.special_print_techniques),
             "user": self.user,
             "purpose": self.purpose,
             "description": self.description,
@@ -319,15 +128,9 @@ class Settings:
     def from_dict(cls, data: dict) -> Settings:
         printer = Printer.from_dict(data["printer"])
         resin = ResinType.from_dict(data["resin"])
-        default_position_settings = cls._deserialize_position_settings(
-            data.get("default_position_settings", {})
-        )
-        default_exposure_settings = cls._deserialize_exposure_settings(
-            data.get("default_exposure_settings", {})
-        )
-        special_print_techniques = cls._deserialize_special_print_techniques(
-            data.get("special_print_techniques", [])
-        )
+        default_position_settings = PositionSettings.from_dict(data.get("default_position_settings", {}))
+        default_exposure_settings = ExposureSettings.from_dict(data.get("default_exposure_settings", {}))
+        special_print_techniques = SpecialPrintTechniques.from_dict(data.get("special_print_techniques", {}))
         return cls(
             printer=printer,
             resin=resin,
@@ -666,6 +469,21 @@ class SpecialLayerTechniques:
     def __init__(self):
         pass
 
+    @classmethod
+    def to_dict(cls, techniques_list: list[SpecialLayerTechniques]) -> dict:
+        temp_dict = {}
+        for slt in techniques_list:
+            if isinstance(slt, SqueezeOutResin):
+                temp_dict["Squeeze out resin"] = slt.to_dict()
+        return temp_dict
+
+    @classmethod
+    def from_dict(cls, data: dict) -> SpecialLayerTechniques:
+        if "Enable Squeeze" in data:
+            return SqueezeOutResin.from_dict(data)
+        else:
+            raise ValueError("Unsupported special layer technique")
+
 class SqueezeOutResin(SpecialLayerTechniques):
     def __init__(self, enabled: bool = False, count: int = 0, squeeze_force: float = 0.0, squeeze_time: float = 0.0):
         """
@@ -682,6 +500,23 @@ class SqueezeOutResin(SpecialLayerTechniques):
         self.count = count
         self.squeeze_force = squeeze_force
         self.squeeze_time = squeeze_time
+
+    def to_dict(self):
+        return {
+            "Enable squeeze": self.enabled,
+            "Squeeze count": self.count,
+            "Squeeze force (N)": self.squeeze_force,
+            "Squeeze time (ms)": self.squeeze_time,
+        }
+
+    @classmethod
+    def from_dict(cls, data: dict) -> SqueezeOutResin:
+        return cls(
+            enabled=data.get("Enable squeeze", False),
+            count=data.get("Squeeze count", 0),
+            squeeze_force=data.get("Squeeze force (N)", 0.0),
+            squeeze_time=data.get("Squeeze time (ms)", 0.0),
+        )
 
 class PositionSettings:
     def __init__(
@@ -735,31 +570,6 @@ class PositionSettings:
         self.final_wait = final_wait
         self.special_layer_techniques = special_layer_techniques
 
-    def to_dict(self):
-        # """Convert position settings to a dictionary."""
-        temp_dict = {
-            "Layer thickness (um)": self.layer_thickness,
-            "Distance up (mm)": self.distance_up,
-            "Initial wait (ms)": self.initial_wait,
-            "BP up speed (mm/sec)": self.up_speed,
-            "BP up acceleration (mm/sec^2)": self.up_acceleration,
-            "Up wait (ms)": self.up_wait,
-            "BP down speed (mm/sec)": self.down_speed,
-            "BP down acceleration (mm/sec^2)": self.down_acceleration,
-            "Final wait (ms)": self.final_wait,
-        }
-        if len(self.special_layer_techniques) > 0:
-            temp_dict["Special layer techniques"] = {}
-            for slt in self.special_layer_techniques:
-                if isinstance(slt, SqueezeOutResin):
-                    temp_dict["Special layer techniques"]["Squeeze out resin"] = {
-                        "Enable squeeze": slt.enabled,
-                        "Squeeze count": slt.count,
-                        "Squeeze force (N)": slt.squeeze_force,
-                        "Squeeze time (ms)": slt.squeeze_time,
-                    }
-        return temp_dict
-
     def __eq__(self, other):
         # """Check equality of position settings."""
         if not isinstance(other, PositionSettings):
@@ -784,6 +594,17 @@ class PositionSettings:
     def fill_with_defaults(
         self, defaults: PositionSettings, exceptions: list[str] = None
     ):
+        if defaults is None:
+            defaults = PositionSettings(
+                distance_up=1.0,
+                initial_wait=0.0,
+                up_speed=25.0,
+                up_acceleration=50.0,
+                up_wait=0.0,
+                down_speed=20.0,
+                down_acceleration=50.0,
+                final_wait=0.0,
+            )
         # """Fill in None values with defaults."""
         for var in vars(self):
             if exceptions and var in exceptions:
@@ -791,9 +612,61 @@ class PositionSettings:
             if getattr(self, var) is None:
                 setattr(self, var, getattr(defaults, var))
 
+    def to_dict(self):
+        # """Convert position settings to a dictionary."""
+        temp_dict = {
+            "Layer thickness (um)": self.layer_thickness,
+            "Distance up (mm)": self.distance_up,
+            "Initial wait (ms)": self.initial_wait,
+            "BP up speed (mm/sec)": self.up_speed,
+            "BP up acceleration (mm/sec^2)": self.up_acceleration,
+            "Up wait (ms)": self.up_wait,
+            "BP down speed (mm/sec)": self.down_speed,
+            "BP down acceleration (mm/sec^2)": self.down_acceleration,
+            "Final wait (ms)": self.final_wait,
+        }
+        if len(self.special_layer_techniques) > 0:
+            temp_dict["Special layer techniques"] = SpecialImageTechniques.to_dict(self.special_layer_techniques)
+        return temp_dict
+
+    @classmethod
+    def from_dict(cls, data: dict) -> PositionSettings:
+        c = cls(
+            distance_up=data.get("Distance up (mm)"),
+            initial_wait=data.get("Initial wait (ms)"),
+            up_speed=data.get("BP up speed (mm/sec)"),
+            up_acceleration=data.get("BP up acceleration (mm/sec^2)"),
+            up_wait=data.get("Up wait (ms)"),
+            down_speed=data.get("BP down speed (mm/sec)"),
+            down_acceleration=data.get("BP down acceleration (mm/sec^2)"),
+            final_wait=data.get("Final wait (ms)"),
+            special_layer_techniques=[SpecialLayerTechniques.from_dict(slt) for slt in data.get("Special layer techniques", [])],
+        )
+        c.layer_thickness = data.get("Layer thickness (um)")
+        return c
+
 class SpecialImageTechniques:
     def __init__(self):
         pass
+
+    @classmethod
+    def to_dict(cls, techniques_list: list[SpecialImageTechniques]) -> dict:
+        temp_dict = {}
+        for sit in techniques_list:
+            if isinstance(sit, ZeroMicronLayer):
+                temp_dict["Zero micron layer"] = sit.to_dict()
+            elif isinstance(sit, PrintOnFilm):
+                temp_dict["Print on film"] = sit.to_dict()
+        return temp_dict
+
+    @classmethod
+    def from_dict(cls, data: dict) -> SpecialImageTechniques:
+        if "Enable zero micron" in data:
+            return ZeroMicronLayer.from_dict(data)
+        elif "Enable print on film" in data:
+            return PrintOnFilm.from_dict(data)
+        else:
+            raise ValueError("Unsupported special image technique")
 
 class ZeroMicronLayer(SpecialImageTechniques):
     def __init__(self, enabled: bool = False, count: int = 0):
@@ -807,6 +680,19 @@ class ZeroMicronLayer(SpecialImageTechniques):
         """
         self.enabled = enabled
         self.count = count
+
+    def to_dict(self):
+        return {
+            "Enable zero micron": self.enabled,
+            "Zero micron count": self.count,
+        }
+
+    @classmethod
+    def from_dict(cls, data: dict) -> ZeroMicronLayer:
+        return cls(
+            enabled=data.get("Enable zero micron", False),
+            count=data.get("Zero micron count", 0),
+        )
 
 class PrintOnFilm(SpecialImageTechniques):
     def __init__(self, enabled: bool = False, distance_up_mm: float = 0.3, up_wait: float = 20000.0):
@@ -822,6 +708,21 @@ class PrintOnFilm(SpecialImageTechniques):
         self.enabled = enabled
         self.distance_up = distance_up_mm
         self.up_wait = up_wait
+
+    def to_dict(self):
+        return {
+            "Enable print on film": self.enabled,
+            "Distance up (mm)": self.distance_up,
+            "Up wait (ms)": self.up_wait,
+        }
+
+    @classmethod
+    def from_dict(cls, data: dict) -> PrintOnFilm:
+        return cls(
+            enabled=data.get("Enable print on film", False),
+            distance_up_mm=data.get("Distance up (mm)", 0.3),
+            up_wait=data.get("Up wait (ms)", 20000.0),
+        )
 
 class ExposureSettings:
     def __init__(
@@ -879,36 +780,6 @@ class ExposureSettings:
         self.special_image_techniques = special_image_techniques
         self.burnin = False
 
-    def to_dict(self):
-        # """Convert exposure settings to a dictionary."""
-        temp_dict = {
-            "Image file": self.image_file,
-            "Do grayscale correction": self.grayscale_correction,
-            "Image x offset (um)": self.image_x_offset,
-            "Image y offset (um)": self.image_y_offset,
-            "Layer exposure multiplier": self.bulk_exposure_multiplier,
-            "Light engine": self.light_engine,
-            "Light engine power setting": self.power_setting,
-            "Light engine wavelength (nm)": self.wavelength,
-            "Relative focus position (um)": self.relative_focus_position,
-            "Wait before exposure (ms)": self.wait_before_exposure,
-            "Wait after exposure (ms)": self.wait_after_exposure,
-        }
-        if len(self.special_image_techniques) > 0:
-            temp_dict["Special image techniques"] = {}
-            for sit in self.special_image_techniques:
-                if isinstance(sit, ZeroMicronLayer):
-                    temp_dict["Special image techniques"]["Zero micron layer"] = {
-                        "Enable zero micron": sit.enabled,
-                        "Zero micron count": sit.count,
-                    }
-                if isinstance(sit, PrintOnFilm):
-                    temp_dict["Special image techniques"]["Print on film"] = {
-                        "Enable print on film": sit.enabled,
-                        "Distance up (mm)": sit.distance_up,
-                    }
-        return temp_dict
-
     def __eq__(self, other):
         # """Check equality of exposure settings."""
         if not isinstance(other, ExposureSettings):
@@ -941,44 +812,68 @@ class ExposureSettings:
             + resin.exposure_offset
         )
 
-    def to_print_dict(self, resin: "ResinType") -> dict:
-        temp_dict = {
-            "Image file": self.image_file,
-            "Do grayscale correction": self.grayscale_correction,
-            "Image x offset (um)": self.image_x_offset,
-            "Image y offset (um)": self.image_y_offset,
-            "Layer exposure time (ms)": self.get_exposure_time(resin),
-            "Light engine": self.light_engine,
-            "Light engine power setting": self.power_setting,
-            "Light engine wavelength (nm)": self.wavelength,
-            "Relative focus position (um)": self.relative_focus_position,
-            "Wait before exposure (ms)": self.wait_before_exposure,
-            "Wait after exposure (ms)": self.wait_after_exposure,
-        }
-        if len(self.special_image_techniques) > 0:
-            temp_dict["Special image techniques"] = {}
-            for sit in self.special_image_techniques:
-                if isinstance(sit, ZeroMicronLayer):
-                    temp_dict["Special image techniques"]["Zero micron layer"] = {
-                        "Enable zero micron": sit.enabled,
-                        "Zero micron count": sit.count,
-                    }
-                if isinstance(sit, PrintOnFilm):
-                    temp_dict["Special image techniques"]["Print on film"] = {
-                        "Enable print on film": sit.enabled,
-                        "Distance up (mm)": sit.distance_up,
-                    }
-        return temp_dict
-
     def fill_with_defaults(
         self, defaults: ExposureSettings, exceptions: list[str] = None
     ):
+        if defaults is None:
+            defaults = ExposureSettings(
+                grayscale_correction=False,
+                bulk_exposure_multiplier=1.0,
+                power_setting=100,
+                wavelength=365,
+                relative_focus_position=0.0,
+                wait_before_exposure=0.0,
+                wait_after_exposure=0.0,
+            )
+
         # """Fill in None values with defaults."""
         for var in vars(self):
             if exceptions and var in exceptions:
                 continue
             if getattr(self, var) is None:
                 setattr(self, var, getattr(defaults, var))
+
+    def to_dict(self, resin=None):
+        # """Convert exposure settings to a dictionary."""
+        temp_dict = {
+            "Image file": self.image_file,
+            "Do grayscale correction": self.grayscale_correction,
+            "Image x offset (um)": self.image_x_offset,
+            "Image y offset (um)": self.image_y_offset,
+        }
+        if resin is not None:
+            temp_dict["Layer exposure time (ms)"] = self.get_exposure_time(resin)
+        else:
+            temp_dict["Layer exposure multiplier"] = self.bulk_exposure_multiplier
+        temp_dict.update({
+            "Light engine": self.light_engine,
+            "Light engine power setting": self.power_setting,
+            "Light engine wavelength (nm)": self.wavelength,
+            "Relative focus position (um)": self.relative_focus_position,
+            "Wait before exposure (ms)": self.wait_before_exposure,
+            "Wait after exposure (ms)": self.wait_after_exposure,
+        })
+        if len(self.special_image_techniques) > 0:
+            temp_dict["Special image techniques"] = SpecialImageTechniques.to_dict(self.special_image_techniques)
+        return temp_dict
+
+    @classmethod
+    def from_dict(cls, data: dict) -> ExposureSettings:
+        c = cls(
+            grayscale_correction=data.get("Do grayscale correction"),
+            bulk_exposure_multiplier=data.get("Layer exposure multiplier"),
+            power_setting=data.get("Light engine power setting"),
+            wavelength=data.get("Light engine wavelength (nm)"),
+            relative_focus_position=data.get("Relative focus position (um)"),
+            wait_before_exposure=data.get("Wait before exposure (ms)"),
+            wait_after_exposure=data.get("Wait after exposure (ms)"),
+            special_image_techniques=[SpecialImageTechniques.from_dict(sit) for sit in data.get("Special image techniques", [])],
+        )
+        c.image_file = data.get("Image file")
+        c.image_x_offset = data.get("Image x offset (um)")
+        c.image_y_offset = data.get("Image y offset (um)")
+        c.light_engine = data.get("Light engine")
+        return c
 
 class MembraneSettings:
     def __init__(

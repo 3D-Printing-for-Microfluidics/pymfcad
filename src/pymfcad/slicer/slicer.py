@@ -911,10 +911,6 @@ class Slicer:
                     break
 
             if not match_found:
-                # print("Adding new group")
-                # print(slice_info["exposure_settings"].to_dict())
-                # for group in grouped_slices:
-                #     print(group[0]["exposure_settings"].to_dict())
                 grouped_slices.append([slice_info])
 
         grouped_slices.sort(
@@ -1172,7 +1168,7 @@ class Slicer:
             }
 
             print_settings["Default layer settings"]["Image settings"] = (
-                self.settings.default_exposure_settings.to_print_dict(
+                self.settings.default_exposure_settings.to_dict(
                     self.settings.resin
                 )
             )
@@ -1278,7 +1274,7 @@ class Slicer:
                     # Update image settings from slice (just the max of wait times)
                     for g, slice_info in enumerate(group):
                         new_image_settings = (
-                            slice_info["exposure_settings"].to_print_dict(
+                            slice_info["exposure_settings"].to_dict(
                                 self.settings.resin
                             )
                         )
