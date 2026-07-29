@@ -498,6 +498,8 @@ class LightEngine:
         name: str = "visitech",
         px_size: float = 0.0076,
         px_count: tuple[int, int] = (2560, 1600),
+        max_stitched_px_count=(2560, 1600),
+        stitched_px_overlap=(0, 0),
         wavelengths: list[int] = [365],
         grayscale_available: list[bool] = [False],
         settle_time_ms: float = 0.0,
@@ -510,6 +512,8 @@ class LightEngine:
         - name: Name of the light engine.
         - px_size: Pixel size in mm.
         - px_count: Tuple of (width, height) pixel count.
+        - max_stitched_px_count: Tuple of (max_width, max_height) pixel count for stitched workspaces.
+        - stitched_px_overlap: Tuple of (x_overlap, y_overlap) in pixels for stitched workspaces.
         - wavelengths: List of supported wavelengths in nm.
         - grayscale_available: List of booleans indicating if grayscale is available for each wavelength.
         - settle_time_ms: Extra wait time in milliseconds for the first exposure
@@ -523,6 +527,18 @@ class LightEngine:
             or not all(isinstance(x, int) and x > 0 for x in px_count)
         ):
             raise ValueError("Pixel count must be a tuple of two positive integers")
+        if (
+            not (isinstance(stitched_px_overlap, tuple) or isinstance(stitched_px_overlap, list))
+            or len(stitched_px_overlap) != 2
+            or not all(isinstance(x, int) and x >= 0 for x in stitched_px_overlap)
+        ):
+            raise ValueError("Stitched pixel overlap must be a tuple of two non-negative integers")
+        if (
+            not (isinstance(max_stitched_px_count, tuple) or isinstance(max_stitched_px_count, list))
+            or len(max_stitched_px_count) != 2
+            or not all(isinstance(x, int) and x > 0 for x in max_stitched_px_count)
+        ):
+            raise ValueError("Stitched pixel count max must be a tuple of two positive integers")
         if not isinstance(wavelengths, list) or not all(
             isinstance(x, int) and x > 0 for x in wavelengths
         ):
@@ -536,6 +552,8 @@ class LightEngine:
         self.name = name
         self.px_size = px_size
         self.px_count = px_count
+        self.stitched_px_overlap = stitched_px_overlap
+        self.max_stitched_px_count = max_stitched_px_count
         self.wavelengths = wavelengths
         self.grayscale_available = grayscale_available
         self.settle_time_ms = float(settle_time_ms)
@@ -545,6 +563,8 @@ class LightEngine:
             "name": self.name,
             "px_size": self.px_size,
             "px_count": list(self.px_count),
+            "stitched_px_overlap": list(self.stitched_px_overlap),
+            "max_stitched_px_count": list(self.max_stitched_px_count),
             "wavelengths": list(self.wavelengths),
             "grayscale_available": list(self.grayscale_available),
             "settle_time_ms": self.settle_time_ms,
@@ -556,6 +576,8 @@ class LightEngine:
             name=data.get("name", "visitech"),
             px_size=data.get("px_size", 0.0076),
             px_count=tuple(data.get("px_count", (2560, 1600))),
+            stitched_px_overlap=tuple(data.get("stitched_px_overlap", (0, 0))),
+            max_stitched_px_count=tuple(data.get("max_stitched_px_count", (2560, 1600))),
             wavelengths=list(data.get("wavelengths", [365])),
             grayscale_available=list(data.get("grayscale_available", [False])),
             settle_time_ms=data.get("settle_time_ms", 0.0),
