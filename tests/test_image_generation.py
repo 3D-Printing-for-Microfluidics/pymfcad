@@ -6,7 +6,7 @@ from pathlib import Path
 from pymfcad import Device
 from pymfcad.backend import Color, Cube
 
-from pymfcad.slicer import (
+from pymfcad.print_file_gen import (
     ExposureSettings,
     LightEngine,
     PositionSettings,

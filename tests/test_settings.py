@@ -4,7 +4,7 @@ from pathlib import Path
 
 import pytest
 
-from pymfcad.slicer import (
+from pymfcad.print_file_gen import (
 	ExposureSettings,
 	LightEngine,
 	MembraneSettings,
@@ -299,7 +299,7 @@ def test_printer_get_light_engine_error():
 	printer = Printer(name="Printer", light_engines=[light_engine])
 
 	with pytest.raises(ValueError, match="No matching light engine found"):
-		printer._get_light_engine(0.02, (100, 50), 365)
+		printer._get_light_engine(0.02, 365)
 
 
 def test_secondary_dose_settings_validation_errors():

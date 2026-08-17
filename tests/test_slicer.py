@@ -4,7 +4,7 @@ from pathlib import Path
 
 import pytest
 
-from pymfcad.slicer import (
+from pymfcad.print_file_gen import (
     ExposureSettings,
     LightEngine,
     PositionSettings,
@@ -83,7 +83,7 @@ def test_printer_light_engine_selection():
     le_2 = LightEngine(name="B", px_size=0.0152, px_count=(2560, 1600), wavelengths=[365])
     printer = Printer(name="Printer", light_engines=[le_1, le_2])
 
-    selected = printer._get_light_engine(0.0152, (2560, 1600), 365)
+    selected = printer._get_light_engine(0.0152, 365)
     assert selected.name == "B"
 
 

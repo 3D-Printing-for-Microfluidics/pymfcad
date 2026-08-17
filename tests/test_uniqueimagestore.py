@@ -5,7 +5,7 @@ from pathlib import Path
 import numpy as np
 import pytest
 
-from pymfcad.slicer.uniqueimagestore import (
+from pymfcad.print_file_gen.uniqueimagestore import (
     UniqueImageStore,
     _ensure_path,
     get_unique_path,
