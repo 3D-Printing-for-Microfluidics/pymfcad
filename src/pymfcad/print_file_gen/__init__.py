@@ -2,6 +2,7 @@ from .settings import (
     ResinType,
     Printer,
     LightEngine,
+    SpecialPrintTechniques,
     PositionSettings,
     ExposureSettings,
     MembraneSettings,
@@ -11,7 +12,7 @@ from .settings import (
     ZeroMicronLayer,
     PrintOnFilm,
 )
-from .slicer import Slicer
+from .print_file_gen import PrintFileGenerator, ComponentGroup
 from .image_generation import (
     generate_membrane_images_from_folders,
     generate_secondary_images_from_folders,

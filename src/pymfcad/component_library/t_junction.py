@@ -29,7 +29,6 @@ class TJunction(Component):
                 channel_size[1] + channel_margin[1] * 2,
                 channel_size[2] + channel_margin[2] * 2,
             ),
-            position=(0, 0, 0),
             px_size=0.0076,
             layer_size=0.01,
             quiet=quiet,

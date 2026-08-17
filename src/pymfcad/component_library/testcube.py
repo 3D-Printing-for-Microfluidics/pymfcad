@@ -10,7 +10,7 @@ class TestCube(Component):
         """Initialize a TestCube component."""
 
         super().__init__(
-            size=(30, 30, 15), position=(0, 0, 0), px_size=0.0076, layer_size=0.01
+            size=(30, 30, 15), px_size=0.0076, layer_size=0.01
         )  # px_size=1.0, layer_size=1.0)
 
         self.add_label("cube", Color.from_name("aqua", 255))

@@ -650,8 +650,8 @@ class Router:
         """
         instantiation_dir = self._component.instantiation_dir
         file_stem = self._component.instantiating_file_stem
-        from .. import Component, Device, VariableLayerThicknessComponent, StitchedDevice
-        if type(self._component) in (Component, Device, VariableLayerThicknessComponent, StitchedDevice):
+        from .. import Component, VariableLayerThicknessComponent
+        if type(self._component) in (Component, VariableLayerThicknessComponent):
             if self._component._name is not None:
                 file_name = self._component._name
             else:
@@ -856,8 +856,8 @@ class Router:
         """
         instantiation_dir = self._component.instantiation_dir
         file_stem = self._component.instantiating_file_stem
-        from .. import Component, Device, VariableLayerThicknessComponent, StitchedDevice
-        if type(self._component) in (Component, Device, VariableLayerThicknessComponent, StitchedDevice):
+        from .. import Component, VariableLayerThicknessComponent
+        if type(self._component) in (Component, VariableLayerThicknessComponent):
             if self._component._name is not None:
                 file_name = self._component._name
             else:

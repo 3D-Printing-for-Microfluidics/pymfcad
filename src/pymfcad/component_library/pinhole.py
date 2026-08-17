@@ -23,7 +23,6 @@ class Pinhole(Component):
 
         super().__init__(
             size=(total_length, pinhole_height, pinhole_width),
-            position=(0, 0, 0),
             px_size=0.0076,
             layer_size=0.01,
             quiet=quiet,

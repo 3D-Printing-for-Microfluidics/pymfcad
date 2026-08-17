@@ -192,18 +192,170 @@ class ResinType:
         with path.open("r", encoding="utf-8") as f:
             return cls.from_dict(json.load(f))
 
+class ExposureSettings:
+    def __init__(
+        self,
+        # image_file: str = None,
+        grayscale_correction: bool = None,
+        # image_x_offset: float = None,
+        # image_y_offset: float = None,
+        bulk_exposure_multiplier: float = None,
+        # light_engine: str = None,
+        power_setting: int = None,
+        wavelength: int = None,
+        relative_focus_position: float = None,
+        wait_before_exposure: float = None,
+        wait_after_exposure: float = None,
+        special_image_techniques: list[SpecialImageTechniques] = [],
+        **kwargs,
+    ):
+        """
+        Initialize exposure settings for layer exposure.
+
+        Parameters:
+
+        - grayscale_correction: Whether to apply grayscale correction.
+        - bulk_exposure_multiplier: Multiplier applied to resin bulk exposure.
+        - power_setting: Power setting of the light engine in percentage.
+        - wavelength: Wavelength of the light engine in nm.
+        - relative_focus_position: Relative focus position in microns.
+        - wait_before_exposure: Wait time before exposure in milliseconds.
+        - wait_after_exposure: Wait time after exposure in milliseconds.
+        - special_image_techniques: List of SpecialImageTechniques to apply.
+
+        Default Values:
+
+        - grayscale_correction: bool = False,
+        - bulk_exposure_multiplier: float = 1.0,
+        - power_setting: int = 100,
+        - wavelength: int = 365,
+        - relative_focus_position: float = 0.0,
+        - wait_before_exposure: float = 0.0,
+        - wait_after_exposure: float = 0.0,
+        """
+        
+        self.image_file = None
+        self.grayscale_correction = grayscale_correction
+        self.image_x_offset = None
+        self.image_y_offset = None
+        self.bulk_exposure_multiplier = bulk_exposure_multiplier
+        self.light_engine = None
+        self.power_setting = power_setting
+        self.wavelength = wavelength
+        self.relative_focus_position = relative_focus_position
+        self.wait_before_exposure = wait_before_exposure
+        self.wait_after_exposure = wait_after_exposure
+        self.special_image_techniques = special_image_techniques
+        self.burnin = False
+
+    def __eq__(self, other):
+        # """Check equality of exposure settings."""
+        if not isinstance(other, ExposureSettings):
+            return False
+        return self.to_dict() == other.to_dict()
+
+    def copy(self):
+        """Create a copy of the exposure settings."""
+        return ExposureSettings(
+            # image_file=self.image_file,
+            grayscale_correction=self.grayscale_correction,
+            # image_x_offset=self.image_x_offset,
+            # image_y_offset=self.image_y_offset,
+            bulk_exposure_multiplier=self.bulk_exposure_multiplier,
+            # light_engine=self.light_engine,
+            power_setting=self.power_setting,
+            wavelength=self.wavelength,
+            relative_focus_position=self.relative_focus_position,
+            wait_before_exposure=self.wait_before_exposure,
+            wait_after_exposure=self.wait_after_exposure,
+            special_image_techniques=self.special_image_techniques.copy(),
+        )
+
+    def get_exposure_time(self, resin: "ResinType") -> float | None:
+        if self.bulk_exposure_multiplier is None:
+            return None
+        return (
+            (resin.bulk_exposure - resin.exposure_offset)
+            * self.bulk_exposure_multiplier
+            + resin.exposure_offset
+        )
+
+    def fill_with_defaults(
+        self, defaults: ExposureSettings = None, exceptions: list[str] = None
+    ):
+        if defaults is None:
+            defaults = ExposureSettings(
+                grayscale_correction=False,
+                bulk_exposure_multiplier=1.0,
+                power_setting=100,
+                wavelength=365,
+                relative_focus_position=0.0,
+                wait_before_exposure=0.0,
+                wait_after_exposure=0.0,
+            )
+
+        # """Fill in None values with defaults."""
+        for var in vars(self):
+            if exceptions and var in exceptions:
+                continue
+            if getattr(self, var) is None:
+                setattr(self, var, getattr(defaults, var))
+
+    def to_dict(self, resin=None):
+        # """Convert exposure settings to a dictionary."""
+        temp_dict = {
+            "Image file": self.image_file,
+            "Do grayscale correction": self.grayscale_correction,
+            "Image x offset (um)": self.image_x_offset,
+            "Image y offset (um)": self.image_y_offset,
+        }
+        if resin is not None:
+            temp_dict["Layer exposure time (ms)"] = self.get_exposure_time(resin)
+        else:
+            temp_dict["Layer exposure multiplier"] = self.bulk_exposure_multiplier
+        temp_dict.update({
+            "Light engine": self.light_engine,
+            "Light engine power setting": self.power_setting,
+            "Light engine wavelength (nm)": self.wavelength,
+            "Relative focus position (um)": self.relative_focus_position,
+            "Wait before exposure (ms)": self.wait_before_exposure,
+            "Wait after exposure (ms)": self.wait_after_exposure,
+        })
+        if len(self.special_image_techniques) > 0:
+            temp_dict["Special image techniques"] = SpecialImageTechniques.to_dict(self.special_image_techniques)
+        return temp_dict
+
+    @classmethod
+    def from_dict(cls, data: dict) -> ExposureSettings:
+        c = cls(
+            grayscale_correction=data.get("Do grayscale correction"),
+            bulk_exposure_multiplier=data.get("Layer exposure multiplier"),
+            power_setting=data.get("Light engine power setting"),
+            wavelength=data.get("Light engine wavelength (nm)"),
+            relative_focus_position=data.get("Relative focus position (um)"),
+            wait_before_exposure=data.get("Wait before exposure (ms)"),
+            wait_after_exposure=data.get("Wait after exposure (ms)"),
+            special_image_techniques=[SpecialImageTechniques.from_dict(sit) for sit in data.get("Special image techniques", [])],
+        )
+        c.image_file = data.get("Image file")
+        c.image_x_offset = data.get("Image x offset (um)")
+        c.image_y_offset = data.get("Image y offset (um)")
+        c.light_engine = data.get("Light engine")
+        return c
+
 class LightEngine:
     def __init__(
         self,
         name: str = "visitech",
         px_size: float = 0.0076,
         px_count: tuple[int, int] = (2560, 1600),
-        max_stitched_px_count=(2560, 1600),
-        stitched_px_overlap=(0, 0),
         wavelengths: list[int] = [365],
         default_exposure_settings: list[ExposureSettings] = [ExposureSettings()],
         grayscale_available: list[bool] = [False],
         settle_time_ms: float = 0.0,
+        stitched_px_overlap=(0, 0),
+        x_offset_limits: tuple[(int, float), (int, float)] = (0, 0),
+        y_offset_limits: tuple[(int, float), (int, float)] = (0, 0),
     ):
         """
         Initialize a LightEngine object.
@@ -213,13 +365,14 @@ class LightEngine:
         - name: Name of the light engine.
         - px_size: Pixel size in mm.
         - px_count: Tuple of (width, height) pixel count.
-        - max_stitched_px_count: Tuple of (max_width, max_height) pixel count for stitched workspaces.
-        - stitched_px_overlap: Tuple of (x_overlap, y_overlap) in pixels for stitched workspaces.
-        - wavelengths: List of supported wavelengths in nm.
+        - wavelengths: List of supported wavelengths in nm (first wavelength is the default).
         - grayscale_available: List of booleans indicating if grayscale is available for each wavelength.
         - default_exposure_settings: List of default exposure settings for each wavelength.
         - settle_time_ms: Extra wait time in milliseconds for the first exposure
             after switching to this light engine.
+        - x_offset_limits: Tuple of (min_x, max_x) exposure position offset limits in microns.
+        - y_offset_limits: Tuple of (min_y, max_y) exposure position offset limits in microns.
+        - stitched_px_overlap: Tuple of (x_overlap, y_overlap) in pixels for stitched workspaces.
         """
         if not isinstance(px_size, (int, float)) or px_size <= 0:
             raise ValueError("Pixel size must be a positive number")
@@ -236,11 +389,21 @@ class LightEngine:
         ):
             raise ValueError("Stitched pixel overlap must be a tuple of two non-negative integers")
         if (
-            not (isinstance(max_stitched_px_count, tuple) or isinstance(max_stitched_px_count, list))
-            or len(max_stitched_px_count) != 2
-            or not all(isinstance(x, int) and x > 0 for x in max_stitched_px_count)
+            not (isinstance(x_offset_limits, tuple) or isinstance(x_offset_limits, list))
+            or len(x_offset_limits) != 2
+            or not all(isinstance(x, (int, float)) for x in x_offset_limits)
         ):
-            raise ValueError("Stitched pixel count max must be a tuple of two positive integers")
+            raise ValueError("X offset limits must be a tuple of two numbers")
+        if (
+            not (isinstance(y_offset_limits, tuple) or isinstance(y_offset_limits, list))
+            or len(y_offset_limits) != 2
+            or not all(isinstance(y, (int, float)) for y in y_offset_limits)
+        ):
+            raise ValueError("Y offset limits must be a tuple of two numbers")
+        if x_offset_limits[0] > x_offset_limits[1]:
+            raise ValueError("X offset limits must be in the order (min_x, max_x)")
+        if y_offset_limits[0] > y_offset_limits[1]:
+            raise ValueError("Y offset limits must be in the order (min_y, max_y)")
         if not isinstance(wavelengths, list) or not all(
             isinstance(x, int) and x > 0 for x in wavelengths
         ):
@@ -255,7 +418,8 @@ class LightEngine:
         self.px_size = px_size
         self.px_count = px_count
         self.stitched_px_overlap = stitched_px_overlap
-        self.max_stitched_px_count = max_stitched_px_count
+        self.x_offset_limits = x_offset_limits
+        self.y_offset_limits = y_offset_limits
         self.wavelengths = wavelengths
         self.grayscale_available = grayscale_available
         self.default_exposure_settings = default_exposure_settings
@@ -268,12 +432,13 @@ class LightEngine:
             "name": self.name,
             "px_size": self.px_size,
             "px_count": list(self.px_count),
-            "stitched_px_overlap": list(self.stitched_px_overlap),
-            "max_stitched_px_count": list(self.max_stitched_px_count),
             "wavelengths": list(self.wavelengths),
             "default_exposure_settings": [es.to_dict() for es in self.default_exposure_settings],
             "grayscale_available": list(self.grayscale_available),
             "settle_time_ms": self.settle_time_ms,
+            "stitched_px_overlap": list(self.stitched_px_overlap),
+            "x_offset_limits": list(self.x_offset_limits),
+            "y_offset_limits": list(self.y_offset_limits),
         }
 
     @classmethod
@@ -283,12 +448,140 @@ class LightEngine:
             px_size=data.get("px_size", 0.0076),
             px_count=tuple(data.get("px_count", (2560, 1600))),
             stitched_px_overlap=tuple(data.get("stitched_px_overlap", (0, 0))),
-            max_stitched_px_count=tuple(data.get("max_stitched_px_count", (2560, 1600))),
+            x_offset_limits=tuple(data.get("x_offset_limits", (0, 0))),
+            y_offset_limits=tuple(data.get("y_offset_limits", (0, 0))),
             wavelengths=list(data.get("wavelengths", [365])),
             grayscale_available=list(data.get("grayscale_available", [False])),
             default_exposure_settings=[ExposureSettings.from_dict(es) for es in data.get("default_exposure_settings", [{}])],
             settle_time_ms=data.get("settle_time_ms", 0.0),
         )
+
+class PositionSettings:
+    def __init__(
+        self,
+        # layer_thickness: float = None,
+        distance_up: float = None,
+        initial_wait: float = None,
+        up_speed: float = None,
+        up_acceleration: float = None,
+        up_wait: float = None,
+        down_speed: float = None,
+        down_acceleration: float = None,
+        final_wait: float = None,
+        special_layer_techniques: list[SpecialLayerTechniques] = [],
+    ):
+        """
+        Initialize position settings for layer movement.
+
+        Parameters:
+
+        - distance_up: Distance to move up in mm.
+        - initial_wait: Initial wait time in milliseconds.
+        - up_speed: Speed to move up in mm/sec.
+        - up_acceleration: Acceleration to move up in mm/sec^2.
+        - up_wait: Wait time after moving up in milliseconds.
+        - down_speed: Speed to move down in mm/sec.
+        - down_acceleration: Acceleration to move down in mm/sec^2.
+        - final_wait: Final wait time in milliseconds.
+        - special_layer_techniques: List of SpecialLayerTechniques to apply.
+
+        Default Values:
+
+        - distance_up: float = 1.0,
+        - initial_wait: float = 0.0,
+        - up_speed: float = 25.0,
+        - up_acceleration: float = 50.0,
+        - up_wait: float = 0.0,
+        - down_speed: float = 20.0,
+        - down_acceleration: float = 50.0,
+        - final_wait: float = 0.0,
+        """
+
+        self.layer_thickness = None
+        self.distance_up = distance_up
+        self.initial_wait = initial_wait
+        self.up_speed = up_speed
+        self.up_acceleration = up_acceleration
+        self.up_wait = up_wait
+        self.down_speed = down_speed
+        self.down_acceleration = down_acceleration
+        self.final_wait = final_wait
+        self.special_layer_techniques = special_layer_techniques
+
+    def __eq__(self, other):
+        # """Check equality of position settings."""
+        if not isinstance(other, PositionSettings):
+            return False
+        return self.to_dict() == other.to_dict()
+
+    def copy(self):
+        """Create a copy of the position settings."""
+        return PositionSettings(
+            # layer_thickness=self.layer_thickness,
+            distance_up=self.distance_up,
+            initial_wait=self.initial_wait,
+            up_speed=self.up_speed,
+            up_acceleration=self.up_acceleration,
+            up_wait=self.up_wait,
+            down_speed=self.down_speed,
+            down_acceleration=self.down_acceleration,
+            final_wait=self.final_wait,
+            special_layer_techniques=self.special_layer_techniques.copy(),
+        )
+
+    def fill_with_defaults(
+        self, defaults: PositionSettings = None, exceptions: list[str] = None
+    ):
+        if defaults is None:
+            defaults = PositionSettings(
+                distance_up=1.0,
+                initial_wait=0.0,
+                up_speed=25.0,
+                up_acceleration=50.0,
+                up_wait=0.0,
+                down_speed=20.0,
+                down_acceleration=50.0,
+                final_wait=0.0,
+            )
+        # """Fill in None values with defaults."""
+        for var in vars(self):
+            if exceptions and var in exceptions:
+                continue
+            if getattr(self, var) is None:
+                setattr(self, var, getattr(defaults, var))
+
+    def to_dict(self):
+        # """Convert position settings to a dictionary."""
+        temp_dict = {
+            "Layer thickness (um)": self.layer_thickness,
+            "Distance up (mm)": self.distance_up,
+            "Initial wait (ms)": self.initial_wait,
+            "BP up speed (mm/sec)": self.up_speed,
+            "BP up acceleration (mm/sec^2)": self.up_acceleration,
+            "Up wait (ms)": self.up_wait,
+            "BP down speed (mm/sec)": self.down_speed,
+            "BP down acceleration (mm/sec^2)": self.down_acceleration,
+            "Final wait (ms)": self.final_wait,
+        }
+        if len(self.special_layer_techniques) > 0:
+            temp_dict["Special layer techniques"] = SpecialImageTechniques.to_dict(self.special_layer_techniques)
+        return temp_dict
+
+    @classmethod
+    def from_dict(cls, data: dict) -> PositionSettings:
+        c = cls(
+            distance_up=data.get("Distance up (mm)"),
+            initial_wait=data.get("Initial wait (ms)"),
+            up_speed=data.get("BP up speed (mm/sec)"),
+            up_acceleration=data.get("BP up acceleration (mm/sec^2)"),
+            up_wait=data.get("Up wait (ms)"),
+            down_speed=data.get("BP down speed (mm/sec)"),
+            down_acceleration=data.get("BP down acceleration (mm/sec^2)"),
+            final_wait=data.get("Final wait (ms)"),
+            special_layer_techniques=[SpecialLayerTechniques.from_dict(slt) for slt in data.get("Special layer techniques", [])],
+        )
+        c.layer_thickness = data.get("Layer thickness (um)")
+        return c
 
 class Printer:
     def __init__(
@@ -326,18 +619,19 @@ class Printer:
                 return le
         return None
 
-    def _get_light_engine(self, px_size, px_count, wavelength):
+    def _get_light_engine(self, px_size, wavelength=None):
         """Get the light engine with the specified pixel size, pixel count, and wavelength."""
         for le in self.light_engines:
+            if wavelength is None:
+                if le.px_size == px_size:
+                    return le
             if (
                 le.px_size == px_size
-                and le.px_count[0] == px_count[0]
-                and le.px_count[1] == px_count[1]
                 and wavelength in le.wavelengths
             ):
                 return le
         raise ValueError(
-            f"No matching light engine found (px_size={px_size}, px_count={px_count}, wavelength={wavelength})"
+            f"No matching light engine found (px_size={px_size}, wavelength={wavelength})"
         )
 
     def to_dict(self) -> dict:
@@ -430,133 +724,6 @@ class SqueezeOutResin(SpecialLayerTechniques):
             squeeze_time=data.get("Squeeze time (ms)", 0.0),
         )
 
-class PositionSettings:
-    def __init__(
-        self,
-        # layer_thickness: float = None,
-        distance_up: float = None,
-        initial_wait: float = None,
-        up_speed: float = None,
-        up_acceleration: float = None,
-        up_wait: float = None,
-        down_speed: float = None,
-        down_acceleration: float = None,
-        final_wait: float = None,
-        special_layer_techniques: list[SpecialLayerTechniques] = [],
-    ):
-        """
-        Initialize position settings for layer movement.
-
-        Parameters:
-
-        - distance_up: Distance to move up in mm.
-        - initial_wait: Initial wait time in milliseconds.
-        - up_speed: Speed to move up in mm/sec.
-        - up_acceleration: Acceleration to move up in mm/sec^2.
-        - up_wait: Wait time after moving up in milliseconds.
-        - down_speed: Speed to move down in mm/sec.
-        - down_acceleration: Acceleration to move down in mm/sec^2.
-        - final_wait: Final wait time in milliseconds.
-        - special_layer_techniques: List of SpecialLayerTechniques to apply.
-
-        Default Values:
-
-        - distance_up: float = 1.0,
-        - initial_wait: float = 0.0,
-        - up_speed: float = 25.0,
-        - up_acceleration: float = 50.0,
-        - up_wait: float = 0.0,
-        - down_speed: float = 20.0,
-        - down_acceleration: float = 50.0,
-        - final_wait: float = 0.0,
-        """
-
-        self.layer_thickness = None
-        self.distance_up = distance_up
-        self.initial_wait = initial_wait
-        self.up_speed = up_speed
-        self.up_acceleration = up_acceleration
-        self.up_wait = up_wait
-        self.down_speed = down_speed
-        self.down_acceleration = down_acceleration
-        self.final_wait = final_wait
-        self.special_layer_techniques = special_layer_techniques
-
-    def __eq__(self, other):
-        # """Check equality of position settings."""
-        if not isinstance(other, PositionSettings):
-            return False
-        return self.to_dict() == other.to_dict()
-
-    def copy(self):
-        """Create a copy of the position settings."""
-        return PositionSettings(
-            # layer_thickness=self.layer_thickness,
-            distance_up=self.distance_up,
-            initial_wait=self.initial_wait,
-            up_speed=self.up_speed,
-            up_acceleration=self.up_acceleration,
-            up_wait=self.up_wait,
-            down_speed=self.down_speed,
-            down_acceleration=self.down_acceleration,
-            final_wait=self.final_wait,
-            special_layer_techniques=self.special_layer_techniques.copy(),
-        )
-
-    def fill_with_defaults(
-        self, defaults: PositionSettings, exceptions: list[str] = None
-    ):
-        if defaults is None:
-            defaults = PositionSettings(
-                distance_up=1.0,
-                initial_wait=0.0,
-                up_speed=25.0,
-                up_acceleration=50.0,
-                up_wait=0.0,
-                down_speed=20.0,
-                down_acceleration=50.0,
-                final_wait=0.0,
-            )
-        # """Fill in None values with defaults."""
-        for var in vars(self):
-            if exceptions and var in exceptions:
-                continue
-            if getattr(self, var) is None:
-                setattr(self, var, getattr(defaults, var))
-
-    def to_dict(self):
-        # """Convert position settings to a dictionary."""
-        temp_dict = {
-            "Layer thickness (um)": self.layer_thickness,
-            "Distance up (mm)": self.distance_up,
-            "Initial wait (ms)": self.initial_wait,
-            "BP up speed (mm/sec)": self.up_speed,
-            "BP up acceleration (mm/sec^2)": self.up_acceleration,
-            "Up wait (ms)": self.up_wait,
-            "BP down speed (mm/sec)": self.down_speed,
-            "BP down acceleration (mm/sec^2)": self.down_acceleration,
-            "Final wait (ms)": self.final_wait,
-        }
-        if len(self.special_layer_techniques) > 0:
-            temp_dict["Special layer techniques"] = SpecialImageTechniques.to_dict(self.special_layer_techniques)
-        return temp_dict
-
-    @classmethod
-    def from_dict(cls, data: dict) -> PositionSettings:
-        c = cls(
-            distance_up=data.get("Distance up (mm)"),
-            initial_wait=data.get("Initial wait (ms)"),
-            up_speed=data.get("BP up speed (mm/sec)"),
-            up_acceleration=data.get("BP up acceleration (mm/sec^2)"),
-            up_wait=data.get("Up wait (ms)"),
-            down_speed=data.get("BP down speed (mm/sec)"),
-            down_acceleration=data.get("BP down acceleration (mm/sec^2)"),
-            final_wait=data.get("Final wait (ms)"),
-            special_layer_techniques=[SpecialLayerTechniques.from_dict(slt) for slt in data.get("Special layer techniques", [])],
-        )
-        c.layer_thickness = data.get("Layer thickness (um)")
-        return c
-
 class SpecialImageTechniques:
     def __init__(self):
         pass
@@ -635,157 +802,6 @@ class PrintOnFilm(SpecialImageTechniques):
             distance_up_mm=data.get("Distance up (mm)", 0.3),
             up_wait=data.get("Up wait (ms)", 20000.0),
         )
-
-class ExposureSettings:
-    def __init__(
-        self,
-        # image_file: str = None,
-        grayscale_correction: bool = None,
-        # image_x_offset: float = None,
-        # image_y_offset: float = None,
-        bulk_exposure_multiplier: float = None,
-        # light_engine: str = None,
-        power_setting: int = None,
-        wavelength: int = None,
-        relative_focus_position: float = None,
-        wait_before_exposure: float = None,
-        wait_after_exposure: float = None,
-        special_image_techniques: list[SpecialImageTechniques] = [],
-        **kwargs,
-    ):
-        """
-        Initialize exposure settings for layer exposure.
-
-        Parameters:
-
-        - grayscale_correction: Whether to apply grayscale correction.
-        - bulk_exposure_multiplier: Multiplier applied to resin bulk exposure.
-        - power_setting: Power setting of the light engine in percentage.
-        - wavelength: Wavelength of the light engine in nm.
-        - relative_focus_position: Relative focus position in microns.
-        - wait_before_exposure: Wait time before exposure in milliseconds.
-        - wait_after_exposure: Wait time after exposure in milliseconds.
-        - special_image_techniques: List of SpecialImageTechniques to apply.
-
-        Default Values:
-
-        - grayscale_correction: bool = False,
-        - bulk_exposure_multiplier: float = 1.0,
-        - power_setting: int = 100,
-        - wavelength: int = 365,
-        - relative_focus_position: float = 0.0,
-        - wait_before_exposure: float = 0.0,
-        - wait_after_exposure: float = 0.0,
-        """
-        
-        self.image_file = None
-        self.grayscale_correction = grayscale_correction
-        self.image_x_offset = None
-        self.image_y_offset = None
-        self.bulk_exposure_multiplier = bulk_exposure_multiplier
-        self.light_engine = None
-        self.power_setting = power_setting
-        self.wavelength = wavelength
-        self.relative_focus_position = relative_focus_position
-        self.wait_before_exposure = wait_before_exposure
-        self.wait_after_exposure = wait_after_exposure
-        self.special_image_techniques = special_image_techniques
-        self.burnin = False
-
-    def __eq__(self, other):
-        # """Check equality of exposure settings."""
-        if not isinstance(other, ExposureSettings):
-            return False
-        return self.to_dict() == other.to_dict()
-
-    def copy(self):
-        """Create a copy of the exposure settings."""
-        return ExposureSettings(
-            # image_file=self.image_file,
-            grayscale_correction=self.grayscale_correction,
-            # image_x_offset=self.image_x_offset,
-            # image_y_offset=self.image_y_offset,
-            bulk_exposure_multiplier=self.bulk_exposure_multiplier,
-            # light_engine=self.light_engine,
-            power_setting=self.power_setting,
-            wavelength=self.wavelength,
-            relative_focus_position=self.relative_focus_position,
-            wait_before_exposure=self.wait_before_exposure,
-            wait_after_exposure=self.wait_after_exposure,
-            special_image_techniques=self.special_image_techniques.copy(),
-        )
-
-    def get_exposure_time(self, resin: "ResinType") -> float | None:
-        if self.bulk_exposure_multiplier is None:
-            return None
-        return (
-            (resin.bulk_exposure - resin.exposure_offset)
-            * self.bulk_exposure_multiplier
-            + resin.exposure_offset
-        )
-
-    def fill_with_defaults(
-        self, defaults: ExposureSettings, exceptions: list[str] = None
-    ):
-        if defaults is None:
-            defaults = ExposureSettings(
-                grayscale_correction=False,
-                bulk_exposure_multiplier=1.0,
-                power_setting=100,
-                wavelength=365,
-                relative_focus_position=0.0,
-                wait_before_exposure=0.0,
-                wait_after_exposure=0.0,
-            )
-
-        # """Fill in None values with defaults."""
-        for var in vars(self):
-            if exceptions and var in exceptions:
-                continue
-            if getattr(self, var) is None:
-                setattr(self, var, getattr(defaults, var))
-
-    def to_dict(self, resin=None):
-        # """Convert exposure settings to a dictionary."""
-        temp_dict = {
-            "Image file": self.image_file,
-            "Do grayscale correction": self.grayscale_correction,
-            "Image x offset (um)": self.image_x_offset,
-            "Image y offset (um)": self.image_y_offset,
-        }
-        if resin is not None:
-            temp_dict["Layer exposure time (ms)"] = self.get_exposure_time(resin)
-        else:
-            temp_dict["Layer exposure multiplier"] = self.bulk_exposure_multiplier
-        temp_dict.update({
-            "Light engine": self.light_engine,
-            "Light engine power setting": self.power_setting,
-            "Light engine wavelength (nm)": self.wavelength,
-            "Relative focus position (um)": self.relative_focus_position,
-            "Wait before exposure (ms)": self.wait_before_exposure,
-            "Wait after exposure (ms)": self.wait_after_exposure,
-        })
-        if len(self.special_image_techniques) > 0:
-            temp_dict["Special image techniques"] = SpecialImageTechniques.to_dict(self.special_image_techniques)
-        return temp_dict
-
-    @classmethod
-    def from_dict(cls, data: dict) -> ExposureSettings:
-        c = cls(
-            grayscale_correction=data.get("Do grayscale correction"),
-            bulk_exposure_multiplier=data.get("Layer exposure multiplier"),
-            power_setting=data.get("Light engine power setting"),
-            wavelength=data.get("Light engine wavelength (nm)"),
-            relative_focus_position=data.get("Relative focus position (um)"),
-            wait_before_exposure=data.get("Wait before exposure (ms)"),
-            wait_after_exposure=data.get("Wait after exposure (ms)"),
-            special_image_techniques=[SpecialImageTechniques.from_dict(sit) for sit in data.get("Special image techniques", [])],
-        )
-        c.image_file = data.get("Image file")
-        c.image_x_offset = data.get("Image x offset (um)")
-        c.image_y_offset = data.get("Image y offset (um)")
-        c.light_engine = data.get("Light engine")
-        return c
 
 class MembraneSettings:
     def __init__(

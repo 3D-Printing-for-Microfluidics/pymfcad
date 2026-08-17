@@ -33,7 +33,7 @@ class Valve20px(Component):
         """Initialize a 20px Valve component."""
 
         super().__init__(
-            size=(36, 36, 24), position=(0, 0, 0), px_size=0.0076, layer_size=0.01, quiet=quiet
+            size=(36, 36, 24), px_size=0.0076, layer_size=0.01, quiet=quiet
         )  # px_size=1.0, layer_size=1.0)
 
         self.add_label("device", Color.from_name("cyan", 255))

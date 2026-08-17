@@ -18,7 +18,7 @@ from .backend import (
     render_component,
 )
 
-from .slicer import (
+from .print_file_gen import (
     ExposureSettings,
     PositionSettings,
     MembraneSettings,
@@ -64,9 +64,9 @@ class _InstantiationTrackerMixin:
 
     @property
     def instantiation_dir(self) -> Path:
-        from . import Component, Device, VariableLayerThicknessComponent, StitchedDevice, TPMSComponent
+        from . import Component, VariableLayerThicknessComponent, TPMSComponent
 
-        if type(self) in (Component, Device, VariableLayerThicknessComponent, StitchedDevice, TPMSComponent):
+        if type(self) in (Component, VariableLayerThicknessComponent, TPMSComponent):
             return self._instantiation_path.parent
 
         return self._class_definition_path().parent
@@ -75,9 +75,9 @@ class _InstantiationTrackerMixin:
 
     @property
     def instantiating_file_stem(self) -> str:
-        from . import Component, Device, VariableLayerThicknessComponent, StitchedDevice, TPMSComponent
+        from . import Component, VariableLayerThicknessComponent, TPMSComponent
 
-        if type(self) in (Component, Device, VariableLayerThicknessComponent, StitchedDevice, TPMSComponent):
+        if type(self) in (Component, VariableLayerThicknessComponent, TPMSComponent):
             return self._instantiation_path.stem
 
         return self._class_definition_path().stem
@@ -914,23 +914,6 @@ class Component(_InstantiationTrackerMixin):
                 f"Component '{component._name}' has already been added to component '{component._parent._name}' and cannot be added again."
             )
 
-        is_device = isinstance(component, Device)
-        if not is_device and component._px_size != self._px_size:
-            raise ValueError(
-                "Non-device subcomponent px_size must match parent component px_size. "
-                f"Parent px_size={self._px_size}, subcomponent px_size={component._px_size}."
-            )
-        if (
-            not is_device
-            and not isinstance(self, VariableLayerThicknessComponent)
-            and not isinstance(component, VariableLayerThicknessComponent)
-            and component._layer_size != self._layer_size
-        ):
-            raise ValueError(
-                "Non-device subcomponent layer_size must match parent component layer_size. "
-                f"Parent layer_size={self._layer_size}, subcomponent layer_size={component._layer_size}."
-            )
-
         component._name = name
         component._parent = self
         component._subtract_bounding_box = subtract_bounding_box
@@ -1731,7 +1714,6 @@ class VariableLayerThicknessComponent(Component):
     def __init__(
         self,
         size: tuple[int, int, int],
-        position: tuple[int, int, int],
         px_size: float = 0.0076,
         layer_sizes: list[tuple[int, float]] = [(1, 0.01)],
         quiet: bool = False,
@@ -1742,7 +1724,6 @@ class VariableLayerThicknessComponent(Component):
         Parameters:
 
         - size (tuple[int, int, int]): The size of the component in pixels/layers (width, height, depth).
-        - position (tuple[int, int, int]): The position of the component in parent pixels/layers (x, y, z).
         - px_size (float): The pixel size in mm. Default is 0.0076.
         - layer_sizes (list[tuple[int, float]]): A list of layer sizes (as tuples) where each tuple contains the number of duplicates and its size in mm.
         - quiet (bool): If True, suppresses informational output. Default is False.
@@ -1770,7 +1751,7 @@ class VariableLayerThicknessComponent(Component):
             self.expanded_sizes.extend([s] * i)
         sum_layer_size = sum(self.expanded_sizes)
         z_height = sum_layer_size / layer_size
-        super().__init__((size[0], size[1], z_height), position, px_size, layer_size, quiet=quiet)
+        super().__init__((size[0], size[1], z_height), px_size, layer_size, quiet=quiet)
 
     def _expand_layer_sizes(self) -> list[float]:
         """Expand the layer sizes into a list of heights for each layer."""
@@ -1860,335 +1841,3 @@ class TPMSComponent(Component):
 
     def add_subcomponent(self, *args, **kwargs):
         raise ValueError("TPMSComponent does not support subcomponents.")
-
-
-class Device(Component):
-    def __init__(
-        self,
-        name: str,
-        position: tuple[int, int, int],
-        layers: int = 0,
-        layer_size: float = 0.01,
-        px_count: tuple[int, int] = (2560, 1600),
-        px_size: float = 0.0076,
-        quiet: bool = False,
-    ):
-        """
-        Initialize a generic Device.
-
-        Parameters:
-
-        - name (str): The name of the device.
-        - position (tuple[int, int, int]): The position of the device in parent pixels/layers (x, y, z).
-        - layers (int): The number of layers in the device.
-        - layer_size (float): The layer size in mm.
-        - px_count (tuple[int, int]): The pixel count of the device (width, height). Default is (2560, 1600).
-        - px_size (float): The pixel size in mm. Default is 0.0076.
-        - quiet (bool): If True, suppresses informational output. Default is False.
-        """
-
-        super().__init__(
-            (px_count[0], px_count[1], layers),
-            position,
-            px_size,
-            layer_size,
-            quiet=quiet,
-        )
-        self._name = name
-
-    @classmethod
-    def with_visitech_1x(
-        cls,
-        name: str,
-        position: tuple[int, int, int],
-        layers: int = 0,
-        layer_size: float = 0.01,
-        quiet: bool = False,
-    ) -> Device:
-        """
-        Create a Device with specifications for a Visitech light engine with LRS10 Lens.
-
-        Parameters:
-
-        - name (str): The name of the device.
-        - position (tuple[int, int, int]): The position of the device in parent pixels/layers (x, y, z).
-        - layers (int): The number of layers in the device.
-        - layer_size (float): The layer size in mm.
-        - quiet (bool): If True, suppresses informational output. Default is False.
-
-        Returns:
-
-        - Device: A Device instance with specifications for a Visitech light engine with LRS10 Lens.
-        """
-
-        return cls(
-            name,
-            position,
-            layers,
-            layer_size,
-            px_count=(2560, 1600),
-            px_size=0.0076,
-            quiet=quiet,
-        )
-
-    @classmethod
-    def with_visitech_2x(
-        cls,
-        name: str,
-        position: tuple[int, int, int],
-        layers: int = 0,
-        layer_size: float = 0.015,
-        quiet: bool = False,
-    ) -> Device:
-        """
-        Create a Device with specifications for a Visitech light engine with LRS20 Lens.
-
-        Parameters:
-
-        - name (str): The name of the device.
-        - position (tuple[int, int, int]): The position of the device in parent pixels/layers (x, y, z).
-        - layers (int): The number of layers in the device.
-        - layer_size (float): The layer size in mm.
-        - quiet (bool): If True, suppresses informational output. Default is False.
-
-        Returns:
-
-        - Device: A Device instance with specifications for a Visitech light engine with LRS20 Lens.
-        """
-
-        return cls(
-            name,
-            position,
-            layers,
-            layer_size,
-            px_count=(2560, 1600),
-            px_size=0.0152,
-            quiet=quiet,
-        )
-
-    @classmethod
-    def with_wintech(
-        cls,
-        name: str,
-        position: tuple[int, int, int],
-        layers: int = 0,
-        layer_size: float = 0.0015,
-        quiet: bool = False,
-    ) -> Device:
-        """
-        Create a Device with specifications for a Wintech light engine.
-
-        Parameters:
-
-        - name (str): The name of the device.
-        - position (tuple[int, int, int]): The position of the device in parent pixels/layers (x, y, z).
-        - layers (int): The number of layers in the device.
-        - layer_size (float): The layer size in mm.
-        - quiet (bool): If True, suppresses informational output. Default is False.
-
-        Returns:
-
-        - Device: A Device instance with specifications for a Wintech light engine.
-        """
-
-        return cls(
-            name,
-            position,
-            layers,
-            layer_size,
-            px_count=(1920, 1080),
-            px_size=0.00075,
-            quiet=quiet,
-        )
-
-
-
-class StitchedDevice(Device):
-    def __init__(
-        self,
-        name: str,
-        position: tuple[int, int, int],
-        layers: int,
-        layer_size: float,
-        tiles_x: int,
-        tiles_y: int,
-        base_px_count: tuple[int, int] = (2560, 1600),
-        overlap_px: int = 0,
-        px_size: float = 0.0076,
-        quiet: bool = False,
-    ):
-        """
-        Initialize a StitchedDevice.
-
-        Parameters:
-
-        - name (str): The name of the device.
-        - position (tuple[int, int, int]): The position of the device in parent pixels/layers (x, y, z).
-        - layers (int): The number of layers in the device.
-        - layer_size (float): The layer size in mm.
-        - tiles_x (int): The number of tiles in the X direction.
-        - tiles_y (int): The number of tiles in the Y direction.
-        - base_px_count (tuple[int, int]): The pixel count of a single tile (width, height). Default is (2560, 1600).
-        - overlap_px (int): The number of overlapping pixels between tiles. Default is 0.
-        - px_size (float): The pixel size in mm. Default is 0.0076.
-        - quiet (bool): If True, suppresses informational output. Default is False.
-        """
-
-        if tiles_x < 1 or tiles_y < 1:
-            raise ValueError("tiles_x and tiles_y must be >= 1")
-        if overlap_px < 0:
-            raise ValueError("overlap_px must be >= 0")
-        if overlap_px >= base_px_count[0] or overlap_px >= base_px_count[1]:
-            raise ValueError(
-                "overlap_px must be smaller than base_px_count in both dimensions"
-            )
-
-        stitched_px_count = (
-            base_px_count[0] * tiles_x - overlap_px * (tiles_x - 1),
-            base_px_count[1] * tiles_y - overlap_px * (tiles_y - 1),
-        )
-        super().__init__(
-            name,
-            position,
-            layers,
-            layer_size,
-            px_count=stitched_px_count,
-            px_size=px_size,
-            quiet=quiet,
-        )
-        self.tiles_x = tiles_x
-        self.tiles_y = tiles_y
-        self.base_px_count = base_px_count
-        self.overlap_px = overlap_px
-
-    @classmethod
-    def with_visitech_1x(
-        cls,
-        name: str,
-        position: tuple[int, int, int],
-        layers: int = 0,
-        layer_size: float = 0.01,
-        tiles_x: int = 1,
-        tiles_y: int = 1,
-        overlap_px: int = 0,
-        quiet: bool = False,
-    ) -> StitchedDevice:
-        """
-        Create a StitchedDevice with specifications for a Visitech light engine with LRS10 Lens.
-
-        Parameters:
-
-        - name (str): The name of the device.
-        - position (tuple[int, int, int]): The position of the device in parent pixels/layers (x, y, z).
-        - layers (int): The number of layers in the device.
-        - layer_size (float): The layer size in mm.
-        - tiles_x (int): The number of tiles in the X direction.
-        - tiles_y (int): The number of tiles in the Y direction.
-        - overlap_px (int): The number of overlapping pixels between tiles. Default is 0.
-        - quiet (bool): If True, suppresses informational output. Default is False.
-
-        Returns:
-
-        - StitchedDevice: A StitchedDevice instance with specifications for a Visitech light engine with LRS10 Lens.
-        """
-
-        return cls(
-            name,
-            position,
-            layers,
-            layer_size,
-            tiles_x,
-            tiles_y,
-            base_px_count=(2560, 1600),
-            overlap_px=overlap_px,
-            px_size=0.0076,
-            quiet=quiet,
-        )
-    
-    @classmethod
-    def with_visitech_2x(
-        cls,
-        name: str,
-        position: tuple[int, int, int],
-        layers: int = 0,
-        layer_size: float = 0.015,
-        tiles_x: int = 1,
-        tiles_y: int = 1,
-        overlap_px: int = 0,
-        quiet: bool = False,
-    ) -> StitchedDevice:
-        """
-        Create a StitchedDevice with specifications for a Visitech light engine with LRS20 Lens.
-
-        Parameters:
-
-        - name (str): The name of the device.
-        - position (tuple[int, int, int]): The position of the device in parent pixels/layers (x, y, z).
-        - layers (int): The number of layers in the device.
-        - layer_size (float): The layer size in mm.
-        - tiles_x (int): The number of tiles in the X direction.
-        - tiles_y (int): The number of tiles in the Y direction.
-        - overlap_px (int): The number of overlapping pixels between tiles. Default is 0.
-        - quiet (bool): If True, suppresses informational output. Default is False.
-
-        Returns:
-
-        - StitchedDevice: A StitchedDevice instance with specifications for a Visitech light engine with LRS20 Lens.
-        """
-
-        return cls(
-            name,
-            position,
-            layers,
-            layer_size,
-            tiles_x,
-            tiles_y,
-            base_px_count=(2560, 1600),
-            overlap_px=overlap_px,
-            px_size=0.0152,
-            quiet=quiet,
-        )
-    
-    @classmethod
-    def with_wintech(
-        cls,
-        name: str,
-        position: tuple[int, int, int],
-        layers: int = 0,
-        layer_size: float = 0.0015,
-        tiles_x: int = 1,
-        tiles_y: int = 1,
-        overlap_px: int = 0,
-        quiet: bool = False,
-    ) -> StitchedDevice:
-        """
-        Create a StitchedDevice with specifications for a Wintech light engine.
-
-        Parameters:
-
-        - name (str): The name of the device.
-        - position (tuple[int, int, int]): The position of the device in parent pixels/layers (x, y, z).
-        - layers (int): The number of layers in the device.
-        - layer_size (float): The layer size in mm.
-        - tiles_x (int): The number of tiles in the X direction.
-        - tiles_y (int): The number of tiles in the Y direction.
-        - overlap_px (int): The number of overlapping pixels between tiles. Default is 0.
-        - quiet (bool): If True, suppresses informational output. Default is False.
-
-        Returns:
-
-        - StitchedDevice: A StitchedDevice instance with specifications for a Wintech light engine.
-        """
-
-        return cls(
-            name,
-            position,
-            layers,
-            layer_size,
-            tiles_x,
-            tiles_y,
-            base_px_count=(1920, 1080),
-            overlap_px=overlap_px,
-            px_size=0.00075,
-            quiet=quiet,
-        )

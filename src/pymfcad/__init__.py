@@ -23,9 +23,7 @@ from .pymfcad import (
     Port,
     Component,
     VariableLayerThicknessComponent,
-    TPMSComponent,
-    Device,
-    StitchedDevice,
+    TPMSComponent
 )
 
 from .backend import (
@@ -45,10 +43,11 @@ from .backend import (
     BezierCurveShape,
 )
 from .router import Router
-from .slicer import (
+from .print_file_gen import (
     ResinType,
     Printer,
     LightEngine,
+    SpecialPrintTechniques,
     PositionSettings,
     ExposureSettings,
     MembraneSettings,
@@ -57,5 +56,6 @@ from .slicer import (
     SqueezeOutResin,
     ZeroMicronLayer,
     PrintOnFilm,
-    Slicer,
+    PrintFileGenerator,
+    ComponentGroup,
 )

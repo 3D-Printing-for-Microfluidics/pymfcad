@@ -99,7 +99,11 @@ def generate_exposure_images_from_folders(
         stem = Path(name).stem
         if save_temp_files:
             image_path = image_dir / name
-            print(f"\t\tOverwriting image at {image_path.name} without exposure region")
+            print(
+                f"\r\t\tOverwriting image at {image_path.name} without exposure region",
+                end="",
+                flush=True,
+            )
             Image.fromarray(image).save(image_path)
         meta["image_data"] = rle_encode_packed(image)
 
@@ -118,7 +122,11 @@ def generate_exposure_images_from_folders(
                 }
             )
             if save_temp_files:
-                print(f"\t\tSaving exposure image to {exposure_path.name}")
+                print(
+                    f"\r\t\tSaving exposure image to {exposure_path.name}",
+                    end="",
+                    flush=True,
+                )
                 Image.fromarray(exposure_image).save(exposure_path)
 
 
@@ -171,7 +179,11 @@ def generate_membrane_images_from_folders(
             # Overwrite original image
             if save_temp_files:
                 curr_path = image_dir / curr_name
-                print(f"\t\tOverwriting image at {curr_path.name} without membrane")
+                print(
+                    f"\r\t\tOverwriting image at {curr_path.name} without membrane",
+                    end="",
+                    flush=True,
+                )
                 cv2.imwrite(str(curr_path.resolve()), image_minus_membrane)
             meta["image_data"] = rle_encode_packed(image_minus_membrane)
 
@@ -191,7 +203,11 @@ def generate_membrane_images_from_folders(
                 }
             )
             if save_temp_files:
-                print(f"\t\tSaving membrane image to {membrane_output_path.name}")
+                print(
+                    f"\r\t\tSaving membrane image to {membrane_output_path.name}",
+                    end="",
+                    flush=True,
+                )
                 cv2.imwrite(str(membrane_output_path), dilated_membrane)
         return
 
@@ -267,7 +283,11 @@ def generate_membrane_images_from_folders(
             # Overwrite original image
             if save_temp_files:
                 curr_path = image_dir / curr_name
-                print(f"\t\tOverwriting image at {curr_path.name} without membrane")
+                print(
+                    f"\r\t\tOverwriting image at {curr_path.name} without membrane",
+                    end="",
+                    flush=True,
+                )
                 cv2.imwrite(str(curr_path.resolve()), image_minus_membrane)
             slices[j]["image_data"] = rle_encode_packed(image_minus_membrane)
 
@@ -287,7 +307,11 @@ def generate_membrane_images_from_folders(
                 }
             )
             if save_temp_files:
-                print(f"\t\tSaving membrane image to {membrane_output_path.name}")
+                print(
+                    f"\r\t\tSaving membrane image to {membrane_output_path.name}",
+                    end="",
+                    flush=True,
+                )
                 cv2.imwrite(str(membrane_output_path), dilated_membrane)
 
 def generate_secondary_images_from_folders(
@@ -460,7 +484,11 @@ def generate_secondary_images_from_folders(
             meta["image_data"] = rle_encode_packed(bulk_image)
             if save_temp_files:
                 image_path = image_dir / name
-                print(f"\t\tOverwriting image at {image_path.name} without secondary regions")
+                print(
+                    f"\r\t\tOverwriting image at {image_path.name} without secondary regions",
+                    end="",
+                    flush=True,
+                )
                 cv2.imwrite(str(image_path), bulk_image)
         if edge_image is not None:
             edge_path = get_unique_path(image_dir, stem, postfix="edge")
@@ -474,7 +502,11 @@ def generate_secondary_images_from_folders(
                 }
             )
             if save_temp_files:
-                print(f"\t\tSaving edge image to {edge_path.name}")
+                print(
+                    f"\r\t\tSaving edge image to {edge_path.name}",
+                    end="",
+                    flush=True,
+                )
                 cv2.imwrite(str(edge_path), edge_image)
         if roof_image is not None:
             roof_path = get_unique_path(image_dir, stem, postfix="roof")
@@ -488,5 +520,9 @@ def generate_secondary_images_from_folders(
                 }
             )
             if save_temp_files:
-                print(f"\t\tSaving roof image to {roof_path.name}")
+                print(
+                    f"\r\t\tSaving roof image to {roof_path.name}",
+                    end="",
+                    flush=True,
+                )
                 cv2.imwrite(str(roof_path), roof_image)
