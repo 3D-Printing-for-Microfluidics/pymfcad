@@ -158,7 +158,7 @@ export function createModelSelector({ formEl, toggleBtn }) {
       resetSelectionState();
     }
 
-    const groups = { bulk: [], void: [], regional: [], ports: [], device: [], 'bounding box': [] };
+    const groups = { bulk: [], void: [], regional: [], ports: [], component: [], 'bounding box': [] };
     const regionalSubgroups = {};
 
     const versionEntries = glbFiles.filter((entry) => Array.isArray(entry?.versions) && entry.versions.length > 0);
@@ -301,7 +301,7 @@ export function createModelSelector({ formEl, toggleBtn }) {
       formEl.appendChild(globalRow);
     }
 
-    const topTypes = ['device', 'bounding box', 'ports'];
+    const topTypes = ['component', 'bounding box', 'ports'];
     function buildVersionSelect(entry, idx) {
       const versions = entry?.versions || [];
       const currentVersion = entry?.versionId || versions[0]?.id || 'v0';

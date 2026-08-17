@@ -213,7 +213,7 @@ export function createModelManager({ scene, world }) {
     if (type === 'void' || type === 'voids') return 10;
     if (type.startsWith('regional')) return 20;
     if (type === 'bulk') return 30;
-    if (type === 'device' || type === 'diff') return 30;
+    if (type === 'component' || type === 'diff') return 30;
     return 0;
   }
 
@@ -233,7 +233,7 @@ export function createModelManager({ scene, world }) {
   function ensureDeviceBackfaces(scene, idx) {
     if (!scene) return;
     const type = (modelEntries[idx]?.type || '').toLowerCase();
-    if (type !== 'device' && type !== 'diff') return;
+    if (type !== 'component' && type !== 'diff') return;
     scene.traverse((child) => {
       if (!child.isMesh) return;
       if (child.userData && child.userData.isBackface) return;

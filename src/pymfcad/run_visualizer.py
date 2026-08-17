@@ -104,9 +104,9 @@ def start_server():
                 elif name_key == "ports":
                     name = "Unconnected Ports"
                     type_str = "ports"
-                elif name_key == "device":
-                    name = "Device"
-                    type_str = "device"
+                elif name_key == "component":
+                    name = "Component"
+                    type_str = "component"
                 elif name_key == "bounding_box":
                     name = "Bounding Box"
                     type_str = "bounding box"

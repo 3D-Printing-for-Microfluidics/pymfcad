@@ -61,17 +61,17 @@
         "name": "Bounding Box",
         "type": "bounding box"
       },
-      "bulk|bulk_device": {
+      "bulk|bulk_component": {
         "visible": true,
         "version": "v0",
-        "name": "Device",
+        "name": "Component",
         "type": "bulk"
       },
-      "device|device": {
+      "component|component": {
         "visible": true,
         "version": "v0",
-        "name": "Device",
-        "type": "device"
+        "name": "Component",
+        "type": "component"
       },
       "regional exposure settings|regional_exposure_settings_edge": {
         "visible": true,
@@ -133,10 +133,10 @@
         "name": "Control",
         "type": "void"
       },
-      "void|void_device": {
+      "void|void_component": {
         "visible": true,
         "version": "v0",
-        "name": "Device",
+        "name": "Component",
         "type": "void"
       },
       "void|void_fluidic": {
@@ -257,17 +257,17 @@
               "version": "v0",
               "visible": true
             },
-            "bulk|bulk_device": {
+            "bulk|bulk_component": {
               "visible": false,
               "version": "v0",
-              "name": "Device",
+              "name": "Component",
               "type": "bulk"
             },
-            "device|device": {
+            "component|component": {
               "visible": true,
               "version": "v0",
-              "name": "Device",
-              "type": "device"
+              "name": "Component",
+              "type": "component"
             },
             "ports|ports": {
               "name": "Unconnected Ports",
@@ -335,10 +335,10 @@
               "name": "Control",
               "type": "void"
             },
-            "void|void_device": {
+            "void|void_component": {
               "visible": false,
               "version": "v0",
-              "name": "Device",
+              "name": "Component",
               "type": "void"
             },
             "void|void_fluidic": {
@@ -417,17 +417,17 @@
               "version": "v0",
               "visible": true
             },
-            "bulk|bulk_device": {
+            "bulk|bulk_component": {
               "visible": false,
               "version": "v0",
-              "name": "Device",
+              "name": "Component",
               "type": "bulk"
             },
-            "device|device": {
+            "component|component": {
               "visible": true,
               "version": "v0",
-              "name": "Device",
-              "type": "device"
+              "name": "Component",
+              "type": "component"
             },
             "ports|ports": {
               "name": "Unconnected Ports",
@@ -495,10 +495,10 @@
               "name": "Control",
               "type": "void"
             },
-            "void|void_device": {
+            "void|void_component": {
               "visible": false,
               "version": "v0",
-              "name": "Device",
+              "name": "Component",
               "type": "void"
             },
             "void|void_fluidic": {

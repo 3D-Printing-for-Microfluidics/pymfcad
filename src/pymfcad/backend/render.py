@@ -527,7 +527,7 @@ def render_component(
             mesh = _manifold3d_shape_to_trimesh(diff)
             diff_scene.add_geometry(mesh)
             del mesh
-            diff_scene.export(f"{path}/{preview_name('device')}")
+            diff_scene.export(f"{path}/{preview_name('component')}")
             del diff_scene
         if len(manifolds) > 0:
             for k, v in manifolds.items():
@@ -569,7 +569,7 @@ def render_component(
             del manifolds
             manifolds = {}
             del bulk_manifolds
-            bulk_manifolds = {"device": diff}
+            bulk_manifolds = {"component": diff}
 
         scene = Scene()
         for m in manifolds.values():
