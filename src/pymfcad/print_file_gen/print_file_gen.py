@@ -530,22 +530,22 @@ class PrintFileGenerator:
                         )
             return sliced_components, sliced_components_data
 
-    def _sort_sliced_devices(self, sliced_devices, sliced_devices_data):
-        info_by_id = {id(dev): info for dev, info in zip(sliced_devices, sliced_devices_data)}
+    def _sort_sliced_components(self, sliced_components, sliced_components_data):
+        info_by_id = {id(dev): info for dev, info in zip(sliced_components, sliced_components_data)}
         
-        # Sort by dependency order. We need to find the devices with no subcomponents first, then their parents, and so on.
-        _sliced_devices = []
-        while len(_sliced_devices) < len(sliced_devices):
-            for device, info in zip(sliced_devices, sliced_devices_data):
-                if device in _sliced_devices:
+        # Sort by dependency order. We need to find the components with no subcomponents first, then their parents, and so on.
+        _sliced_components = []
+        while len(_sliced_components) < len(sliced_components):
+            for component, info in zip(sliced_components, sliced_components_data):
+                if component in _sliced_components:
                     continue
                 positions = info.get("positions", [])
                 if all(
-                    component._parent is None or component._parent in _sliced_devices for component, _, _, _ in positions
+                    component._parent is None or component._parent in _sliced_components for component, _, _, _ in positions
                 ):
-                    _sliced_devices.append(device)
-        _sliced_devices_data = [info_by_id[id(dev)] for dev in _sliced_devices]
-        return reversed(_sliced_devices), reversed(_sliced_devices_data)
+                    _sliced_components.append(component)
+        _sliced_components_data = [info_by_id[id(dev)] for dev in _sliced_components]
+        return reversed(_sliced_components), reversed(_sliced_components_data)
 
     def _get_unique_slice_image_path(self, base_name, temp_directory, parent_fqn, z):
         # Build a unique filename including z (and keep original name suffix)
@@ -575,47 +575,47 @@ class PrintFileGenerator:
 
     def _embed_component_slices(
             self,
-            sliced_devices,
-            sliced_devices_data,
+            sliced_components,
+            sliced_components_data,
             temp_directory,
             save_temp_files
         ):
-        embedded_devices = []
-        info_by_id = {id(dev): info for dev, info in zip(sliced_devices, sliced_devices_data)}
+        embedded_components = []
+        info_by_id = {id(dev): info for dev, info in zip(sliced_components, sliced_components_data)}
 
-        # Embed the slices for each device
-        _sorted_devices, _sorted_devices_data = self._sort_sliced_devices(sliced_devices, sliced_devices_data)
-        for device, info in zip(_sorted_devices, _sorted_devices_data): # Sort sliced devices by dependency order
-            print(f"\tEmbedding {device.get_fully_qualified_name()}...")
+        # Embed the slices for each component
+        _sorted_components, _sorted_components_data = self._sort_sliced_components(sliced_components, sliced_components_data)
+        for component, info in zip(_sorted_components, _sorted_components_data): # Sort sliced components by dependency order
+            print(f"\tEmbedding {component.get_fully_qualified_name()}...")
             slice_list = []
             slice_list.extend(info.get("slices", []))
             slice_list.extend(info.get("membrane_slices", []))
             slice_list.extend(info.get("secondary_slices", []))
             slice_list.extend(info.get("exposure_slices", []))
 
-            # group device instances by parent device
+            # group component instances by parent component
             parents = {}
             for pos in info["positions"]:
                 parent = pos[0]._parent
                 _id = id(parent) if parent is not None else "TOP_LEVEL"
                 if _id not in parents.keys():
-                    parents[_id] = {"device": parent, "positions": [pos]}
+                    parents[_id] = {"component": parent, "positions": [pos]}
                 else:
                     parents[id(parent)]["positions"].append(pos) 
 
-            # copy slices from component into image the size of the device (translated correctly)
+            # copy slices from component into parent component (translated correctly)
             for _parent_data in parents.values():
                 # get parent information
-                parent_device = _parent_data["device"]
+                parent_component = _parent_data["component"]
                 parent_positions = _parent_data["positions"]
 
                 light_engine_resolution = self.printer._get_light_engine(
-                    device._px_size, device.default_exposure_settings.wavelength
+                    component._px_size, component.default_exposure_settings.wavelength
                 ).px_count
 
                 # handle top level components and embedded alt-resolutions
                 for pos in parent_positions:
-                    if parent_device is None or parent_device._px_size != device._px_size:
+                    if parent_component is None or parent_component._px_size != component._px_size:
                         # duplicate info for each if more than 1 copy
                         if len(parent_positions) > 1:
                             _info = copy.deepcopy(info)
@@ -630,19 +630,19 @@ class PrintFileGenerator:
                         # update slices with instance position
                         self._fill_component_default_settings(pos[0], _info)
 
-                        # add to final device list
-                        embedded_devices.append((pos[0], _info))
+                        # add to final component list
+                        embedded_components.append((pos[0], _info))
 
                     else:
-                        parent_fqn = parent_device.get_fully_qualified_name()
-                        parent_info = info_by_id.get(id(parent_device))
+                        parent_fqn = parent_component.get_fully_qualified_name()
+                        parent_info = info_by_id.get(id(parent_component))
                         if parent_info is None:
                             continue
                         parent_info.setdefault("slices", [])
 
                         resolution = (
-                            int(parent_device.get_size()[0]),
-                            int(parent_device.get_size()[1]),
+                            int(parent_component.get_size()[0]),
+                            int(parent_component.get_size()[1]),
                         )
                     
                         # handle remaining components
@@ -682,7 +682,7 @@ class PrintFileGenerator:
                                         "image_name": slice_image_path.name,
                                         "parent": None,
                                         "image_data": rle_encode_packed(embedded_slice_image),
-                                        "device": None,
+                                        "component": None,
                                         "position": None,
                                         "layer_position": (
                                             round(slice["layer_position"] + z * 1000, 1)
@@ -700,7 +700,7 @@ class PrintFileGenerator:
 
         ################################################################################
 
-        return embedded_devices
+        return embedded_components
 
     ########## Stitch Slices ##########
 

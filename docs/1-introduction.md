@@ -18,7 +18,7 @@ This guide is a **step‑by‑step learning path**. Each part builds on earlier 
 
 ## Key features
 
-- **Component‑based design:** Build microfluidic models—called "devices"—from reusable parts (components and subcomponents) to share and standardize designs.
+- **Component‑based design:** Build microfluidic models from reusable parts (components and subcomponents) to share and standardize designs.
 - **Flexible geometry:** Create and combine shapes such as cubes, spheres, rounded cubes, and text extrusions. Advanced structures like polychannels and Bézier curves are also easily accessible.
 - **Pixel/layer precision:** Specify geometry in pixels and layers to match DLP‑SLA 3D print resolution.
 - **Routing tools:** Connect ports and features using manual or automatic routing for complex layouts.
@@ -37,10 +37,9 @@ This guide is a **step‑by‑step learning path**. Each part builds on earlier 
 ## Mental model (30‑second version)
 
 - **Component**: a reusable block made of **bulk** material (solid) and negative **voids** (channels).
-- **Device**: a printable assembly bound to a printer’s pixel/layer resolution.
 - **Labels**: named color groups used to organize geometry and visualization.
 - **Ports + routing**: define and connect fluidic interfaces between components.
-- **Slicer**: converts the device into a JSON print job plus an image stack.
+- **PrintFileGenerator**: converts the device into a JSON print job plus an image stack.
 
 You will gain a greater understanding of this mental model throughout the tutorial.
 
