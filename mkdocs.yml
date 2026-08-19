@@ -53,6 +53,8 @@ nav:
       - "Special Techniques": api/special_techniques.md
       - "Slicer": api/slicer.md
       - "Component Library": api/component_library.md
+      - "Printer Library": api/printer_library.md
+      - "Resin Library": api/resin_library.md
 
 
 theme:
