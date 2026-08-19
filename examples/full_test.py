@@ -789,7 +789,7 @@ for preview in [
 
     devices.append(dev)
 
-# Component.preview_components(devices)
+Component.preview_components(devices)
 
 print_file_gen = PrintFileGenerator(
     filename="full_test_demo",

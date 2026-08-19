@@ -4,6 +4,7 @@ import cv2
 import sys
 import json
 import copy
+import math
 import shutil
 import datetime
 import numpy as np
@@ -13,8 +14,6 @@ from pathlib import Path
 from typing import Union
 from types import ModuleType
 from datetime import datetime
-
-from numpy import ma
 
 from pymfcad import __version__ as PYMFCAD_VERSION
 from ..backend import slice_component, rle_encode_packed, rle_decode_packed
@@ -57,7 +56,7 @@ class ComponentGroup:
         self.stitching = light_engine_stitching
         self.exposure_abs_pos_um = exposure_abs_pos_um
         self.components = []
-        self.positions = []
+        self.centered = []
         self.subcomponent_adjustments = {}
 
         # validate that the stitching configuration is compatible with the light engine's pixel count and overlap
@@ -77,13 +76,14 @@ class ComponentGroup:
                 f"Configuration results in exposure region y position limits ({region_min_y_pos}, {region_max_y_pos}) that exceed the light engine's y offset limits {self.le.y_offset_limits}."
             )
 
-    def add_component(self, component: "Component", rel_position_px: tuple[float, float]):
+    def add_component(self, component: "Component", centered: bool = True):
         """
-        Add a component to the group at a relative position in pixels (centered at 0, 0).
+        Add a component to the group. To position component use standard translation functions
+        Component is centered in group by default with translations modifying that position relative to the group's center.
 
         Parameters:
         - component: The component to add.
-        - rel_position_px: The relative position of the component in pixels.
+        - centered: Whether to center the component in the group. Default is True.
         """
 
         # validate that the component's pixel size matches the group's pixel size
@@ -96,23 +96,32 @@ class ComponentGroup:
         px_count = self.le.px_count
         stitched_px_overlap=self.le.stitched_px_overlap
 
+        if self.stitching == (0,0):
+            # calculate the number of tiles needed in x and y directions
+            stitching_x = max(1, math.ceil((component.get_size()[0] - px_count[0]) / (px_count[0] - stitched_px_overlap[0])) + 1)
+            stitching_y = max(1, math.ceil((component.get_size()[1] - px_count[1]) / (px_count[1] - stitched_px_overlap[1])) + 1)
+            self.stitching = (stitching_x, stitching_y)
+            if self.stitching[0] > 1 or self.stitching[1] > 1:
+                print(f"⚠️ Warning: Component size {component.get_size()} exceeds light engine pixel count {px_count} with overlap {stitched_px_overlap}. Automatically adjusting stitching to {self.stitching}.")
+
+
         region_width_px = px_count[0] * self.stitching[0] - stitched_px_overlap[0] * (self.stitching[0] - 1)
         region_height_px = px_count[1] * self.stitching[1] - stitched_px_overlap[1] * (self.stitching[1] - 1)
         component_width_px, component_height_px, _ = component.get_size(self.pixel_size, component._layer_size)
-        if rel_position_px[0] - component_width_px / 2 < -region_width_px / 2 or rel_position_px[0] + component_width_px / 2 > region_width_px / 2:
+        if component._position[0] - component_width_px / 2 < -region_width_px / 2 or component._position[0] + component_width_px / 2 > region_width_px / 2:
             raise ValueError(
-                f"Component at relative position {rel_position_px} with width {component_width_px} exceeds the light engine's exposure region width {region_width_px}."
+                f"Component at relative position {component._position} with width {component_width_px} exceeds the light engine's exposure region width {region_width_px}."
             )
-        if rel_position_px[1] - component_height_px / 2 < -region_height_px / 2 or rel_position_px[1] + component_height_px / 2 > region_height_px / 2:
+        if component._position[1] - component_height_px / 2 < -region_height_px / 2 or component._position[1] + component_height_px / 2 > region_height_px / 2:
             raise ValueError(
-                f"Component at relative position {rel_position_px} with height {component_height_px} exceeds the light engine's exposure region height {region_height_px}."
+                f"Component at relative position {component._position} with height {component_height_px} exceeds the light engine's exposure region height {region_height_px}."
             )
-
+        
+        self.centered.append(centered)
         component._name = f"Component_{len(self.components)}"
         self.components.append(component)
-        self.positions.append(rel_position_px)
 
-    def adjust_subcomponent_light_engine(self, subcomponent_fqn: str, exposure_rel_pos_um: tuple[float, float]):
+    def adjust_subcomponent_light_engine_position(self, subcomponent_fqn: str, exposure_rel_pos_um: tuple[float, float]):
         """
         Adjust the light engine exposure position for a subcomponent which uses a different light engine than the parent component.
 
@@ -120,7 +129,28 @@ class ComponentGroup:
         - subcomponent_fqn: The fully qualified name of the subcomponent.
         - exposure_rel_pos_um: The relative position of the exposure region in micrometers.
         """
+        # check that top-level component is in group
+        subcomponent_fqn_parts = subcomponent_fqn.strip().split(".")
+        top_level_component = subcomponent_fqn_parts[0]
+        if top_level_component not in [comp.get_fully_qualified_name() for comp in self.components]:
+            raise ValueError(
+                f"Subcomponent {subcomponent_fqn} is not part of this component group."
+            )
+
+        # check that subcomponent_fqn is a valid subcomponent of the top-level component
+        component = next(comp for comp in self.components if comp.get_fully_qualified_name() == top_level_component)
+        for part in subcomponent_fqn_parts[1:]:
+            if not hasattr(component, "subcomponents") or part not in component.subcomponents:
+                raise ValueError(
+                    f"Subcomponent {subcomponent_fqn} is not part of this component group."
+                )
+            component = component.subcomponents[part]
+
         # check that subcomponent_fqn is a different light engine than the parent component
+        if component._px_size == component._parent._px_size:
+            raise ValueError(
+                f"Subcomponent {subcomponent_fqn} uses the same light engine as its parent component. No adjustment needed."
+            )
 
         self.subcomponent_adjustments[subcomponent_fqn] = exposure_rel_pos_um
 
@@ -143,7 +173,12 @@ class ComponentGroup:
             _component = _component._parent
         root_component = _component
 
-        if component not in self.components and root_component not in self.components:
+        found = False
+        for comp in self.components:
+            if component is comp or root_component is comp:
+                found = True
+                break
+        if not found:
             return None, None
         elif not is_different_px_size:
             return self.exposure_abs_pos_um
@@ -152,23 +187,16 @@ class ComponentGroup:
             x_offset_um = self.exposure_abs_pos_um[0]
             y_offset_um = self.exposure_abs_pos_um[1]
 
-            # add the top level component's relative position
-            root_index = self.components.index(root_component)
-            x_offset_um += self.positions[root_index][0] * self.pixel_size * 1000
-            y_offset_um += self.positions[root_index][1] * self.pixel_size * 1000
-
-            # add the component's position within the top level component (center to center)
+            # add component position (center) relative to the root component (center)
             component_pos = component.get_position(px_size=root_component._px_size, layer_size=root_component._layer_size)
-            componet_size = component.get_size(px_size=root_component._px_size, layer_size=root_component._layer_size)
-            x_offset_um += ((component_pos[0] + componet_size[0] / 2) - (componet_size[0] / 2)) * root_component._px_size * 1000
-            y_offset_um += ((component_pos[1] + componet_size[1] / 2) - (componet_size[1] / 2)) * root_component._px_size * 1000
+            component_size = component.get_size(px_size=root_component._px_size, layer_size=root_component._layer_size)
+            x_offset_um += (component_pos[0] + (component_size[0] - root_component._size[0] ) / 2) * root_component._px_size * 1000
+            y_offset_um += (component_pos[1] + (component_size[1] - root_component._size[1]) / 2) * root_component._px_size * 1000
 
-            # add any subcomponent adjustments for the component and its parents
-            for key in component.get_fully_qualified_name():
-                if key.startswith(root_component.get_fully_qualified_name()):
-                    x_offset_um += self.subcomponent_adjustments.get(key, (0.0, 0.0))[0]
-                    y_offset_um += self.subcomponent_adjustments.get(key, (0.0, 0.0))[1]
-
+            if component.get_fully_qualified_name() in self.subcomponent_adjustments:
+                x_offset_um += self.subcomponent_adjustments[component.get_fully_qualified_name()][0]
+                y_offset_um += self.subcomponent_adjustments[component.get_fully_qualified_name()][1]
+                
             return x_offset_um, y_offset_um
 
 
@@ -213,8 +241,8 @@ class PrintFileGenerator:
             )
         if component is not None:
             # create a component group for the single component
-            component_groups = [ComponentGroup(printer, component._px_size, (0, 0))]
-            component_groups[0].add_component(component, (0, 0))
+            component_groups = [ComponentGroup(printer, component._px_size, exposure_abs_pos_um=(0, 0), light_engine_stitching=(0,0))]
+            component_groups[0].add_component(component)
 
         if special_print_techniques is None:
             special_print_techniques = []
@@ -402,7 +430,6 @@ class PrintFileGenerator:
                 component, root_component
             )
             z_offset_um = origin_z_mm * 1000
-            print("z_offset_um ({}):".format(component.get_fully_qualified_name()), z_offset_um)
             for slice_info in info["slices"]:
                 slice_info["layer_position"] = round(
                     slice_info["layer_position"] + z_offset_um, 1
@@ -609,10 +636,6 @@ class PrintFileGenerator:
                 parent_component = _parent_data["component"]
                 parent_positions = _parent_data["positions"]
 
-                light_engine_resolution = self.printer._get_light_engine(
-                    component._px_size, component.default_exposure_settings.wavelength
-                ).px_count
-
                 # handle top level components and embedded alt-resolutions
                 for pos in parent_positions:
                     if parent_component is None or parent_component._px_size != component._px_size:
@@ -675,8 +698,6 @@ class PrintFileGenerator:
                                 flush=True,
                             )
                             if parent_info is not None:
-                                if parent_fqn == "Component_0.Pump1":
-                                    print(slice_image_path.name, z*1000, slice["layer_position"], round(slice["layer_position"] + z * 1000, 1))
                                 parent_info["slices"].append(
                                     {
                                         "image_name": slice_image_path.name,
@@ -702,7 +723,144 @@ class PrintFileGenerator:
 
         return embedded_components
 
-    ########## Stitch Slices ##########
+    def _calculate_stitching_sizes(self, le, stitching_parameters):
+        max_width = le.px_count[0]*stitching_parameters[0] - le.stitched_px_overlap[0]*(stitching_parameters[0]-1)
+        max_height = le.px_count[1]*stitching_parameters[1] - le.stitched_px_overlap[1]*(stitching_parameters[1]-1)
+        step_x = le.px_count[0] - le.stitched_px_overlap[0]
+        step_y = le.px_count[1] - le.stitched_px_overlap[1]
+
+        return max_width, max_height, step_x, step_y
+
+    def _px_to_um(self, px: float, px_size: float) -> float:
+        return px * px_size * 1000
+
+    def _calculate_tile_xy_offset(self, le, stitching, tile_x, tile_y):
+        """
+        Calculate the x and y offset (in um) for a specific tile in a stitched image. (center of both group and tile is 0,0)
+        """
+        max_width, max_height, step_x, step_y = self._calculate_stitching_sizes(le, stitching)
+
+        # calculate the offset of the tile in px
+        x_offset_px =  (le.px_count[0] - max_width) / 2 + (tile_x * step_x)
+        y_offset_px = (le.px_count[1] - max_height) / 2 + (tile_y * step_y)
+
+        # convert the offset to um
+        x_offset_um = self._px_to_um(x_offset_px, le.px_size)
+        y_offset_um = self._px_to_um(y_offset_px, le.px_size)
+
+        return x_offset_um, y_offset_um
+
+    def _create_projectable_images(self, component, info):
+        # we need to create projectable images for each slice in the component's info
+        # the images need to be the size of the light engine's exposure region, and the component's slice needs to be placed in the correct position within that region.
+        # The position of the component's slice within the light engine's exposure region is determined by the component's position
+        # if the group has stitching parameters > 1,1 then the component's slice needs to be placed in the correct tile(s) within the light engine's exposure region
+        # the stitching parameters are determined by the group; and the light engine's px_count, stitched_px_overlay, and x/y_offset_limits
+
+        # check if component is in a group
+        group = None
+        for g in self.component_groups:
+            for comp in g.components:
+                if component is comp:
+                    group = g
+                    break
+
+        # calculate the position of the component's slice within the light engine's exposure region (and stitching if not available)
+        if group is not None and (group.stitching != (0,0) and self.printer.xy_stage_available):
+            index = group.components.index(component)
+            position = [group.components[index].get_position()[0], group.components[index].get_position()[1]]
+            stitching = group.stitching 
+
+            if group.centered[index]:
+                max_width, max_height, step_x, step_y = self._calculate_stitching_sizes(self.printer._get_light_engine(component._px_size, component.default_exposure_settings.wavelength), stitching)
+                position[0] += (max_width - component.get_size()[0]) / 2
+                position[1] += (max_height - component.get_size()[1]) / 2
+            position = (int(position[0]), int(position[1]))
+        else:
+            # calculate needed stitching parameters based on the component's size and the light engine's exposure region size
+            le = self.printer._get_light_engine(
+                component._px_size,
+                component.default_exposure_settings.wavelength,
+            )
+            le_region_size_px = le.px_count
+            le_stitched_px_overlap = le.stitched_px_overlap
+
+            # calculate the number of tiles needed in x and y directions
+            stitching_x = max(1, math.ceil((component.get_size()[0] - le_region_size_px[0]) / (le_region_size_px[0] - le_stitched_px_overlap[0])) + 1)
+            stitching_y = max(1, math.ceil((component.get_size()[1] - le_region_size_px[1]) / (le_region_size_px[1] - le_stitched_px_overlap[1])) + 1)
+            stitching = (stitching_x, stitching_y)
+            if stitching != (1, 1):
+                print(f"\t⚠️ Component {component.get_fully_qualified_name()} requires stitching: {stitching} (light engine: {le.name})")
+
+            max_width, max_height, step_x, step_y = self._calculate_stitching_sizes(le, stitching)
+
+            # calculate the position of the component within the light engine's exposure region (centered)
+            position = (int((max_width - component.get_size()[0]) / 2), int((max_height - component.get_size()[1]) / 2))
+
+
+        # Handle case where the component is part of a group with stitching parameters
+        expanded_slices = []
+        for slice_info in info["slices"]:
+            print(
+                f"\r\tProcessing slice {slice_info['image_name']}... ",
+                end="",
+                flush=True,
+            )
+            
+            # get the light engine for the component
+            le = self.printer._get_light_engine(
+                component._px_size,
+                component.default_exposure_settings.wavelength,
+            )
+            le_region_size_px = le.px_count
+            le_x_offset_limits = le.x_offset_limits
+            le_y_offset_limits = le.y_offset_limits
+
+            max_width, max_height, step_x, step_y = self._calculate_stitching_sizes(le, stitching)
+
+            # create a blank image
+            full_image = np.zeros((max_height, max_width), dtype=np.uint8)
+
+            # place slice in full image
+            data = rle_decode_packed(*slice_info["image_data"])
+            full_image[position[1]:position[1]+data.shape[0], position[0]:position[0]+data.shape[1]] = data
+
+            # dice the full image into tiles based on stitching parameters
+            for ty in range(stitching[1]):
+                for tx in range(stitching[0]):
+                    x0 = tx * step_x
+                    x1 = x0 + le_region_size_px[0]
+                    y0 = ty * step_y
+                    y1 = y0 + le_region_size_px[1]
+
+                    tile = full_image[y0:y1, x0:x1]
+
+                    tile_slice = slice_info.copy()
+                    tile_slice["image_data"] = rle_encode_packed(tile)
+
+                    exposure_settings = copy.deepcopy(component.default_exposure_settings)
+
+                    x_offset_um, y_offset_um = self._calculate_tile_xy_offset(le, stitching, tx, ty)
+                    exposure_settings.image_x_offset += x_offset_um
+                    exposure_settings.image_y_offset += y_offset_um
+                    exposure_settings.image_x_offset = round(exposure_settings.image_x_offset, 1)
+                    exposure_settings.image_y_offset = round(exposure_settings.image_y_offset, 1)
+
+                    # check if limits are exceeded
+                    if exposure_settings.image_x_offset < le_x_offset_limits[0] or exposure_settings.image_y_offset < le_y_offset_limits[0] or exposure_settings.image_x_offset > le_x_offset_limits[1] or exposure_settings.image_y_offset > le_y_offset_limits[1]:
+                        raise ValueError(f"Tile offsets exceed light engine limits: x_offset={exposure_settings.image_x_offset}, y_offset={exposure_settings.image_y_offset}, limits_x={le_x_offset_limits}, limits_y={le_y_offset_limits}")
+
+                    if exposure_settings.image_x_offset == -0.0:
+                        exposure_settings.image_x_offset = 0.0
+                    if exposure_settings.image_y_offset == -0.0:
+                        exposure_settings.image_y_offset = 0.0
+                    exposure_settings.light_engine = le.name
+
+                    tile_slice["exposure_settings"] = exposure_settings
+                    expanded_slices.append(tile_slice)
+
+        info["slices"] = expanded_slices
+        print()
 
     def _make_json_file_with_header(self, main_file_path, embedded_components):
             print_settings = {
@@ -1296,6 +1454,7 @@ class PrintFileGenerator:
 
             # set expanded named image settings
             expanded_named_position_settings[match_key] = position_settings
+        return match_key
 
     def _minimize_json(self, print_settings: dict, layers: list):
         # Minimize json
@@ -1413,7 +1572,7 @@ class PrintFileGenerator:
             # Check if output already exists
             if not overwrite and self._check_output_exists(self.filename):
                 print(
-                    f"Output already exists at {self.filename}. Please select a different path."
+                    f"❌ Output already exists at {self.filename}. Please select a different path."
                 )
                 return False
 
@@ -1459,9 +1618,9 @@ class PrintFileGenerator:
                 sliced_components, sliced_components_data, temp_directory, save_temp_files
             )
 
-            # # Process stitched slices (numpy slice the images)
-            # print("Processing stitched slices...")
-            # for component, info in embedded_components:
+            print("Processing slices...")
+            for component, info in embedded_components:
+                self._create_projectable_images(component, info)
 
 
             # Make JSON file

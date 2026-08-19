@@ -223,7 +223,6 @@ stitched_wintech.add_bulk("bulk_shape", TPMSGrid(
 # calculate translation (center inner device within outer device)
 translation_x = (outer._size[0]*outer._px_size - stitched_wintech._size[0]*stitched_wintech._px_size) / 2
 translation_y = (outer._size[1]*outer._px_size - stitched_wintech._size[1]*stitched_wintech._px_size) / 2
-print(outer._size, stitched_wintech._size, translation_x, translation_y, translation_x / outer._px_size, translation_y / outer._px_size)
 stitched_wintech.translate((translation_x / outer._px_size, translation_y / outer._px_size, 90))  # translation in outer device pixels/layers
 outer.add_subcomponent("stitched_wintech", stitched_wintech, subtract_bounding_box=False, hide_in_render=False)
 
