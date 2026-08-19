@@ -731,9 +731,6 @@ class PrintFileGenerator:
 
         return max_width, max_height, step_x, step_y
 
-    def _px_to_um(self, px: float, px_size: float) -> float:
-        return px * px_size * 1000
-
     def _calculate_tile_xy_offset(self, le, stitching, tile_x, tile_y):
         """
         Calculate the x and y offset (in um) for a specific tile in a stitched image. (center of both group and tile is 0,0)
@@ -745,8 +742,8 @@ class PrintFileGenerator:
         y_offset_px = (le.px_count[1] - max_height) / 2 + (tile_y * step_y)
 
         # convert the offset to um
-        x_offset_um = self._px_to_um(x_offset_px, le.px_size)
-        y_offset_um = self._px_to_um(y_offset_px, le.px_size)
+        x_offset_um = x_offset_px * le.px_size * 1000
+        y_offset_um = y_offset_px * le.px_size * 1000
 
         return x_offset_um, y_offset_um
 
