@@ -1,47 +1,47 @@
-import * as THREE from 'three';
+import * as THREE from "three";
 
-const THEME_STORAGE_KEY = 'pymfcad_theme';
-const THEME_DEFS_KEY = 'pymfcad_theme_defs_v1';
+const THEME_STORAGE_KEY = "pymfcad_theme";
+const THEME_DEFS_KEY = "pymfcad_theme_defs_v1";
 
 const DEFAULT_THEMES = {
   dark: {
-    '--bg': '#222222',
-    '--panel': '#222222',
-    '--section-bg': '#1a1a1a',
-    '--text': '#ffffff',
-    '--button-bg': '#3a3a3a',
-    '--button-text': '#ffffff',
-    '--button-border': '#555555',
-    '--button-bg-active': '#888888',
-    '--axis-x': '#aa4444',
-    '--axis-y': '#44aa44',
-    '--axis-z': '#4444aa',
+    "--bg": "#222222",
+    "--panel": "#222222",
+    "--section-bg": "#1a1a1a",
+    "--text": "#ffffff",
+    "--button-bg": "#3a3a3a",
+    "--button-text": "#ffffff",
+    "--button-border": "#555555",
+    "--button-bg-active": "#888888",
+    "--axis-x": "#aa4444",
+    "--axis-y": "#44aa44",
+    "--axis-z": "#4444aa",
   },
   light: {
-    '--bg': '#f5f5f5',
-    '--panel': '#ffffff',
-    '--section-bg': '#f0f0f0',
-    '--text': '#111111',
-    '--button-bg': '#ffffff',
-    '--button-text': '#111111',
-    '--button-border': '#bbbbbb',
-    '--button-bg-active': '#f0f0f0',
-    '--axis-x': '#dd0000',
-    '--axis-y': '#00aa00',
-    '--axis-z': '#0000cc',
+    "--bg": "#f5f5f5",
+    "--panel": "#ffffff",
+    "--section-bg": "#f0f0f0",
+    "--text": "#111111",
+    "--button-bg": "#ffffff",
+    "--button-text": "#111111",
+    "--button-border": "#bbbbbb",
+    "--button-bg-active": "#f0f0f0",
+    "--axis-x": "#dd0000",
+    "--axis-y": "#00aa00",
+    "--axis-z": "#0000cc",
   },
   custom: {
-    '--bg': '#1f1f1f',
-    '--panel': '#2a2a2a',
-    '--section-bg': '#1a1a1a',
-    '--text': '#f5f5f5',
-    '--button-bg': '#3d3d3d',
-    '--button-text': '#f5f5f5',
-    '--button-border': '#5a5a5a',
-    '--button-bg-active': '#7a7a7a',
-    '--axis-x': '#aa4444',
-    '--axis-y': '#44aa44',
-    '--axis-z': '#4444aa',
+    "--bg": "#1f1f1f",
+    "--panel": "#2a2a2a",
+    "--section-bg": "#1a1a1a",
+    "--text": "#f5f5f5",
+    "--button-bg": "#3d3d3d",
+    "--button-text": "#f5f5f5",
+    "--button-border": "#5a5a5a",
+    "--button-bg-active": "#7a7a7a",
+    "--axis-x": "#aa4444",
+    "--axis-y": "#44aa44",
+    "--axis-z": "#4444aa",
   },
 };
 
@@ -75,32 +75,34 @@ function updateAxesColors(axes, vars) {
   if (!axes || !axes.setColors) return;
   const parse = (value, fallback) => {
     if (!value) return fallback;
-    return Number.parseInt(value.replace('#', ''), 16);
+    return Number.parseInt(value.replace("#", ""), 16);
   };
-  const x = parse(vars['--axis-x'], 0xaa4444);
-  const y = parse(vars['--axis-y'], 0x44aa44);
-  const z = parse(vars['--axis-z'], 0x4444aa);
+  const x = parse(vars["--axis-x"], 0xaa4444);
+  const y = parse(vars["--axis-y"], 0x44aa44);
+  const z = parse(vars["--axis-z"], 0x4444aa);
   axes.setColors(x, y, z);
 }
 
 export function createThemeManager({ scene, axes }) {
   let themes = loadThemeDefs();
-  let activeTheme = localStorage.getItem(THEME_STORAGE_KEY) || 'dark';
+  let activeTheme = localStorage.getItem(THEME_STORAGE_KEY) || "dark";
 
   function applyTheme(themeName) {
     if (!themes[themeName]) return;
     activeTheme = themeName;
     localStorage.setItem(THEME_STORAGE_KEY, themeName);
     applyThemeVars(themes[themeName]);
-    const bg = themes[themeName]['--bg'] || '#222222';
+    const bg = themes[themeName]["--bg"] || "#222222";
     scene.background = new THREE.Color(bg);
     updateAxesColors(axes, themes[themeName]);
-    window.dispatchEvent(new CustomEvent('pymfcad-theme-changed', {
-      detail: {
-        theme: themeName,
-        vars: { ...themes[themeName] },
-      },
-    }));
+    window.dispatchEvent(
+      new CustomEvent("pymfcad-theme-changed", {
+        detail: {
+          theme: themeName,
+          vars: { ...themes[themeName] },
+        },
+      }),
+    );
   }
 
   function resetTheme(themeName) {
@@ -115,7 +117,7 @@ export function createThemeManager({ scene, axes }) {
   function resetAllThemes() {
     themes = { ...DEFAULT_THEMES };
     saveThemeDefs(themes);
-    activeTheme = 'dark';
+    activeTheme = "dark";
     localStorage.setItem(THEME_STORAGE_KEY, activeTheme);
     applyTheme(activeTheme);
   }
@@ -133,7 +135,7 @@ export function createThemeManager({ scene, axes }) {
     if (!themes[sourceTheme]) return;
     themes.custom = { ...themes[sourceTheme] };
     saveThemeDefs(themes);
-    applyTheme('custom');
+    applyTheme("custom");
   }
 
   function initTheme() {
@@ -153,14 +155,15 @@ export function createThemeManager({ scene, axes }) {
       const theme = themes[themeName];
       if (!theme) return;
       Object.entries(themeInputs).forEach(([key, input]) => {
-        if (input) input.value = theme[key] || DEFAULT_THEMES.dark[key] || '#000000';
+        if (input)
+          input.value = theme[key] || DEFAULT_THEMES.dark[key] || "#000000";
       });
     }
 
-    themeSelect.value = themes[activeTheme] ? activeTheme : 'dark';
+    themeSelect.value = themes[activeTheme] ? activeTheme : "dark";
     syncInputs(themeSelect.value);
 
-    themeSelect.addEventListener('change', () => {
+    themeSelect.addEventListener("change", () => {
       const nextTheme = themeSelect.value;
       applyTheme(nextTheme);
       syncInputs(nextTheme);
@@ -168,20 +171,20 @@ export function createThemeManager({ scene, axes }) {
 
     Object.entries(themeInputs).forEach(([key, input]) => {
       if (!input) return;
-      input.addEventListener('input', () => {
+      input.addEventListener("input", () => {
         updateThemeValue(themeSelect.value, key, input.value);
       });
     });
 
     if (resetBtn) {
-      resetBtn.addEventListener('click', () => {
+      resetBtn.addEventListener("click", () => {
         resetTheme(themeSelect.value);
         syncInputs(themeSelect.value);
       });
     }
 
     if (resetAllBtn) {
-      resetAllBtn.addEventListener('click', () => {
+      resetAllBtn.addEventListener("click", () => {
         resetAllThemes();
         themeSelect.value = activeTheme;
         syncInputs(activeTheme);
@@ -189,10 +192,10 @@ export function createThemeManager({ scene, axes }) {
     }
 
     if (saveCustomBtn) {
-      saveCustomBtn.addEventListener('click', () => {
+      saveCustomBtn.addEventListener("click", () => {
         saveAsCustom(themeSelect.value);
-        themeSelect.value = 'custom';
-        syncInputs('custom');
+        themeSelect.value = "custom";
+        syncInputs("custom");
       });
     }
   }
@@ -207,13 +210,16 @@ export function createThemeManager({ scene, axes }) {
       themes: { ...themes },
     }),
     setThemeState: (state) => {
-      if (!state || typeof state !== 'object') return;
+      if (!state || typeof state !== "object") return;
       const incomingThemes = state.themes || state.themeDefs;
-      if (incomingThemes && typeof incomingThemes === 'object') {
+      if (incomingThemes && typeof incomingThemes === "object") {
         themes = {
           dark: { ...DEFAULT_THEMES.dark, ...(incomingThemes.dark || {}) },
           light: { ...DEFAULT_THEMES.light, ...(incomingThemes.light || {}) },
-          custom: { ...DEFAULT_THEMES.custom, ...(incomingThemes.custom || {}) },
+          custom: {
+            ...DEFAULT_THEMES.custom,
+            ...(incomingThemes.custom || {}),
+          },
         };
         saveThemeDefs(themes);
       }

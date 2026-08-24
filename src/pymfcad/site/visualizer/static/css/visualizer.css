@@ -28,7 +28,11 @@ body {
   overflow: hidden;
   background: var(--bg);
   color: var(--text);
-  font-family: "Inter", system-ui, -apple-system, sans-serif;
+  font-family:
+    "Inter",
+    system-ui,
+    -apple-system,
+    sans-serif;
 }
 
 body.is-loading #topRightOverlay,
@@ -78,11 +82,26 @@ body.is-loading canvas {
   font-size: 0.85rem;
   line-height: 1.25rem;
 }
-.measurement-component { margin-top: 0.25rem; }
-.measurement-dx { color: var(--axis-x); font-weight: 600; }
-.measurement-dy { color: var(--axis-y); font-weight: 600; }
-.measurement-dz { color: var(--axis-z); font-weight: 600; }
-.measurement-value { font-weight: 500; color: var(--text); margin-left: 0.35rem; }
+.measurement-component {
+  margin-top: 0.25rem;
+}
+.measurement-dx {
+  color: var(--axis-x);
+  font-weight: 600;
+}
+.measurement-dy {
+  color: var(--axis-y);
+  font-weight: 600;
+}
+.measurement-dz {
+  color: var(--axis-z);
+  font-weight: 600;
+}
+.measurement-value {
+  font-weight: 500;
+  color: var(--text);
+  margin-left: 0.35rem;
+}
 
 #loadingOverlay {
   position: fixed;
@@ -547,7 +566,6 @@ canvas {
   background: var(--button-bg-active);
 }
 
-
 .control-btn.is-warning {
   border-color: #d4a000;
   color: #ffd166;
@@ -786,12 +804,14 @@ canvas {
 }
 
 #cwdValue {
-  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+  font-family:
+    ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
 }
 
 #modelSourceValue,
 #previewDirInput {
-  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+  font-family:
+    ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
 }
 
 .viewer-pane {

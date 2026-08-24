@@ -1,544 +1,1115 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>PyMFCAD Visualizer</title>
+    <link rel="icon" href="/favicon.ico" />
+  </head>
 
-<head>
-	<meta charset="UTF-8">
-	<title>PyMFCAD Visualizer</title>
-	<link rel="icon" href="/favicon.ico" />
-</head>
+  <body class="is-loading">
+    <div id="loadingOverlay" aria-live="polite">
+      <div class="loading-spinner" aria-hidden="true"></div>
+      <div class="loading-text">Loading visualizer…</div>
+    </div>
+    <div id="toast" class="toast" role="status" aria-live="polite"></div>
+    <div id="topLeftMenu" class="menu-bar" role="menubar" aria-label="Main">
+      <div class="menu-group" role="none">
+        <button
+          id="fileMenuBtn"
+          class="menu-button"
+          type="button"
+          role="menuitem"
+          aria-haspopup="true"
+        >
+          File
+        </button>
+        <div class="menu-dropdown" role="menu">
+          <button
+            id="menuOpenBtn"
+            class="menu-item"
+            type="button"
+            role="menuitem"
+          >
+            Open Model <span class="menu-shortcut">Ctrl+O</span>
+          </button>
+          <button
+            id="menuSaveBtn"
+            class="menu-item"
+            type="button"
+            role="menuitem"
+          >
+            Save Settings<span class="menu-shortcut">Ctrl+S</span>
+          </button>
+          <button
+            id="menuSaveSettingsBtn"
+            class="menu-item"
+            type="button"
+            role="menuitem"
+          >
+            Export Settings
+          </button>
+          <button
+            id="menuLoadSettingsBtn"
+            class="menu-item"
+            type="button"
+            role="menuitem"
+          >
+            Import Settings
+          </button>
+          <button
+            id="menuSettingsBtn"
+            class="menu-item"
+            type="button"
+            role="menuitem"
+          >
+            Settings
+          </button>
+        </div>
+      </div>
+      <div class="menu-group" role="none">
+        <button
+          id="editMenuBtn"
+          class="menu-button"
+          type="button"
+          role="menuitem"
+          aria-haspopup="true"
+        >
+          Edit
+        </button>
+        <div class="menu-dropdown" role="menu">
+          <button
+            id="menuUndoBtn"
+            class="menu-item"
+            type="button"
+            role="menuitem"
+          >
+            Undo <span class="menu-shortcut">Ctrl+Z</span>
+          </button>
+          <button
+            id="menuRedoBtn"
+            class="menu-item"
+            type="button"
+            role="menuitem"
+          >
+            Redo <span class="menu-shortcut">Ctrl+Y</span>
+          </button>
+        </div>
+      </div>
+    </div>
+    <div id="topRightOverlay">
+      <div id="rightOverlayStack">
+        <div id="viewCube" aria-hidden="true"></div>
+        <div id="modelSelector">
+          <div
+            style="
+              display: flex;
+              align-items: center;
+              justify-content: space-between;
+              gap: 0.5rem;
+            "
+          >
+            <strong>Models</strong>
+            <button
+              id="toggleModelSelectorBtn"
+              class="control-btn"
+              style="padding: 0.2rem 0.4rem; font-size: 0.75rem"
+            >
+              –
+            </button>
+          </div>
+          <form id="glbForm"></form>
+        </div>
+        <div id="animationPanel">
+          <div class="panel-header">
+            <strong>Animation</strong>
+          </div>
+          <div id="animationPanelBody" style="display: none">
+            <div class="keyframe-header">
+              <div class="keyframe-header-row">
+                <span class="keyframe-header-label">Keyframe</span>
+                <span class="keyframe-header-label">Hold (s)</span>
+              </div>
+              <div class="keyframe-header-row">
+                <span class="keyframe-header-label">Transition</span>
+                <span class="keyframe-header-label">Duration (s)</span>
+              </div>
+            </div>
+            <div id="keyframeEmpty">No keyframes yet.</div>
+            <div id="keyframeList" class="keyframe-list"></div>
+            <div
+              class="row-actions"
+              style="gap: 0.5rem; flex-wrap: wrap; justify-content: flex-start"
+            >
+              <button
+                id="addKeyframeBtn"
+                class="control-btn icon-btn"
+                type="button"
+                title="Add Keyframe"
+              >
+                <i class="fa-solid fa-plus"></i>
+              </button>
+              <button
+                id="moveKeyframeUpBtn"
+                class="control-btn icon-btn"
+                type="button"
+                title="Move Keyframe Up"
+              >
+                <i class="fa-solid fa-arrow-up"></i>
+              </button>
+              <button
+                id="moveKeyframeDownBtn"
+                class="control-btn icon-btn"
+                type="button"
+                title="Move Keyframe Down"
+              >
+                <i class="fa-solid fa-arrow-down"></i>
+              </button>
+              <button
+                id="removeKeyframeBtn"
+                class="control-btn icon-btn"
+                type="button"
+                title="Remove Keyframe"
+              >
+                <i class="fa-solid fa-minus"></i>
+              </button>
+            </div>
+            <div class="keyframe-section-title">Playback Control</div>
+            <div class="keyframe-playback">
+              <button
+                id="keyframePlayBtn"
+                class="control-btn"
+                type="button"
+                title="Play Keyframes"
+              >
+                <i class="fa-solid fa-play"></i>
+                <span>Play</span>
+              </button>
+              <button
+                id="keyframePlayFromStartBtn"
+                class="control-btn"
+                type="button"
+                title="Play From Beginning"
+              >
+                <i class="fa-solid fa-backward-step"></i>
+                <span>From Start</span>
+              </button>
+            </div>
+            <div class="keyframe-section-title">Export</div>
+            <div class="keyframe-playback">
+              <button
+                id="animationExportBtn"
+                class="control-btn"
+                type="button"
+                title="Export Animation"
+              >
+                <i class="fa-solid fa-film"></i>
+                <span>Export</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
 
-<body class="is-loading">
-	<div id="loadingOverlay" aria-live="polite">
-		<div class="loading-spinner" aria-hidden="true"></div>
-		<div class="loading-text">Loading visualizer…</div>
-	</div>
-	<div id="toast" class="toast" role="status" aria-live="polite"></div>
-	<div id="topLeftMenu" class="menu-bar" role="menubar" aria-label="Main">
-		<div class="menu-group" role="none">
-			<button id="fileMenuBtn" class="menu-button" type="button" role="menuitem" aria-haspopup="true">File</button>
-			<div class="menu-dropdown" role="menu">
-				<button id="menuOpenBtn" class="menu-item" type="button" role="menuitem">Open Model <span class="menu-shortcut">Ctrl+O</span></button>
-				<button id="menuSaveBtn" class="menu-item" type="button" role="menuitem">Save Settings<span class="menu-shortcut">Ctrl+S</span></button>
-				<button id="menuSaveSettingsBtn" class="menu-item" type="button" role="menuitem">Export Settings</button>
-				<button id="menuLoadSettingsBtn" class="menu-item" type="button" role="menuitem">Import Settings</button>
-				<button id="menuSettingsBtn" class="menu-item" type="button" role="menuitem">Settings</button>
-			</div>
-		</div>
-		<div class="menu-group" role="none">
-			<button id="editMenuBtn" class="menu-button" type="button" role="menuitem" aria-haspopup="true">Edit</button>
-			<div class="menu-dropdown" role="menu">
-				<button id="menuUndoBtn" class="menu-item" type="button" role="menuitem">Undo <span class="menu-shortcut">Ctrl+Z</span></button>
-				<button id="menuRedoBtn" class="menu-item" type="button" role="menuitem">Redo <span class="menu-shortcut">Ctrl+Y</span></button>
-			</div>
-		</div>
-	</div>
-	<div id="topRightOverlay">
-		<div id="rightOverlayStack">
-			<div id="viewCube" aria-hidden="true"></div>
-			<div id="modelSelector">
-				<div style="display:flex;align-items:center;justify-content:space-between;gap:0.5rem;">
-					<strong>Models</strong>
-					<button id="toggleModelSelectorBtn" class="control-btn" style="padding:0.2rem 0.4rem;font-size:0.75rem;">–</button>
-				</div>
-				<form id="glbForm"></form>
-			</div>
-			<div id="animationPanel">
-				<div class="panel-header">
-					<strong>Animation</strong>
-				</div>
-				<div id="animationPanelBody" style="display:none;">
-					<div class="keyframe-header">
-						<div class="keyframe-header-row">
-							<span class="keyframe-header-label">Keyframe</span>
-							<span class="keyframe-header-label">Hold (s)</span>
-						</div>
-						<div class="keyframe-header-row">
-							<span class="keyframe-header-label">Transition</span>
-							<span class="keyframe-header-label">Duration (s)</span>
-						</div>
-					</div>
-					<div id="keyframeEmpty">No keyframes yet.</div>
-					<div id="keyframeList" class="keyframe-list"></div>
-					<div class="row-actions" style="gap:0.5rem;flex-wrap:wrap;justify-content:flex-start;">
-						<button id="addKeyframeBtn" class="control-btn icon-btn" type="button" title="Add Keyframe">
-							<i class="fa-solid fa-plus"></i>
-						</button>
-						<button id="moveKeyframeUpBtn" class="control-btn icon-btn" type="button" title="Move Keyframe Up">
-							<i class="fa-solid fa-arrow-up"></i>
-						</button>
-						<button id="moveKeyframeDownBtn" class="control-btn icon-btn" type="button" title="Move Keyframe Down">
-							<i class="fa-solid fa-arrow-down"></i>
-						</button>
-						<button id="removeKeyframeBtn" class="control-btn icon-btn" type="button" title="Remove Keyframe">
-							<i class="fa-solid fa-minus"></i>
-						</button>
-					</div>
-					<div class="keyframe-section-title">Playback Control</div>
-					<div class="keyframe-playback">
-						<button id="keyframePlayBtn" class="control-btn" type="button" title="Play Keyframes">
-							<i class="fa-solid fa-play"></i>
-							<span>Play</span>
-						</button>
-						<button id="keyframePlayFromStartBtn" class="control-btn" type="button" title="Play From Beginning">
-							<i class="fa-solid fa-backward-step"></i>
-							<span>From Start</span>
-						</button>
-					</div>
-					<div class="keyframe-section-title">Export</div>
-					<div class="keyframe-playback">
-						<button id="animationExportBtn" class="control-btn" type="button" title="Export Animation">
-							<i class="fa-solid fa-film"></i>
-							<span>Export</span>
-						</button>
-					</div>
-				</div>
-			</div>
-		</div>
-	</div>
+    <div id="controls">
+      <button id="reloadModelBtn" class="control-btn">Auto Reload: ON</button>
+      <div id="measurementPanel" class="measurement-panel is-hidden">
+        <div class="measurement-panel-header">Measurement</div>
+        <div class="measurement-actions">
+          <button
+            id="measurementToggleBtn"
+            class="control-btn"
+            type="button"
+            title="Enable measurement mode"
+          >
+            Measure: Off
+          </button>
+          <button
+            id="measurementClearBtn"
+            class="control-btn"
+            type="button"
+            title="Clear current measurement"
+          >
+            Clear
+          </button>
+        </div>
+        <div class="measurement-units-row">
+          <div
+            id="measurementUnitsHost"
+            class="measurement-units-host"
+            role="tablist"
+            aria-label="Measurement units"
+          >
+            <button
+              class="control-btn measurement-units-btn"
+              data-unit="m"
+              type="button"
+              aria-pressed="false"
+            >
+              m
+            </button>
+            <button
+              class="control-btn measurement-units-btn"
+              data-unit="cm"
+              type="button"
+              aria-pressed="false"
+            >
+              cm
+            </button>
+            <button
+              class="control-btn measurement-units-btn"
+              data-unit="mm"
+              type="button"
+              aria-pressed="false"
+            >
+              mm
+            </button>
+            <button
+              class="control-btn measurement-units-btn"
+              data-unit="μm"
+              type="button"
+              aria-pressed="false"
+            >
+              μm
+            </button>
+            <button
+              class="control-btn measurement-units-btn"
+              data-unit="custom"
+              type="button"
+              aria-pressed="false"
+            >
+              Custom
+            </button>
+          </div>
+        </div>
+        <div
+          id="measurementCustomUnitsHost"
+          class="measurement-custom-units is-hidden"
+        >
+          <div class="input-grid">
+            <label
+              >X/Y (mm)
+              <input
+                id="measurementCustomXY"
+                type="text"
+                inputmode="decimal"
+                autocomplete="off"
+                spellcheck="false"
+                value="1"
+            /></label>
+            <label
+              >Z (mm)
+              <input
+                id="measurementCustomZ"
+                type="text"
+                inputmode="decimal"
+                autocomplete="off"
+                spellcheck="false"
+                value="1"
+            /></label>
+          </div>
+        </div>
+        <div id="measurementReadout" class="measurement-readout">
+          Measurement is off. Enable Measure to start.
+        </div>
+      </div>
+    </div>
 
-	<div id="controls">
-		<button id="reloadModelBtn" class="control-btn">Auto Reload: ON</button>
-		<div id="measurementPanel" class="measurement-panel is-hidden">
-			<div class="measurement-panel-header">Measurement</div>
-			<div class="measurement-actions">
-				<button id="measurementToggleBtn" class="control-btn" type="button" title="Enable measurement mode">Measure: Off</button>
-				<button id="measurementClearBtn" class="control-btn" type="button" title="Clear current measurement">Clear</button>
-			</div>
-			<div class="measurement-units-row">
-				<div id="measurementUnitsHost" class="measurement-units-host" role="tablist" aria-label="Measurement units">
-					<button class="control-btn measurement-units-btn" data-unit="m" type="button" aria-pressed="false">m</button>
-					<button class="control-btn measurement-units-btn" data-unit="cm" type="button" aria-pressed="false">cm</button>
-					<button class="control-btn measurement-units-btn" data-unit="mm" type="button" aria-pressed="false">mm</button>
-					<button class="control-btn measurement-units-btn" data-unit="μm" type="button" aria-pressed="false">μm</button>
-					<button class="control-btn measurement-units-btn" data-unit="custom" type="button" aria-pressed="false">Custom</button>
-				</div>
-			</div>
-			<div id="measurementCustomUnitsHost" class="measurement-custom-units is-hidden">
-				<div class="input-grid">
-					<label>X/Y (mm) <input id="measurementCustomXY" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" value="1"></label>
-					<label>Z (mm) <input id="measurementCustomZ" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" value="1"></label>
-				</div>
-			</div>
-			<div id="measurementReadout" class="measurement-readout">Measurement is off. Enable Measure to start.</div>
-		</div>
-	</div>
+    <div id="cameraStripWrapper">
+      <button
+        id="updateCameraBtn"
+        class="control-btn"
+        title="Update Camera"
+        style="
+          display: none;
+          position: absolute;
+          bottom: 100%;
+          left: 50%;
+          transform: translate(-50%, -0.5rem);
+        "
+      >
+        Update Camera
+      </button>
+      <div class="camera-bar-group">
+        <span class="camera-bar-label">Cameras</span>
+        <button id="homeCameraBtn" class="control-btn" title="Home Camera">
+          <i class="fa-solid fa-house"></i>
+        </button>
+        <div id="cameraStrip"></div>
+        <button id="addCameraBtn" class="control-btn" title="Add Camera">
+          <i class="fa-solid fa-plus"></i>
+        </button>
+      </div>
+      <div class="camera-strip-divider" aria-hidden="true"></div>
+      <div class="camera-bar-group">
+        <span class="camera-bar-label">Tools</span>
+        <button
+          id="measurementPanelToggleBtn"
+          class="control-btn"
+          title="Toggle Measurement Pane"
+        >
+          <i class="fa-solid fa-ruler"></i>
+        </button>
+        <button id="docsBtn" class="control-btn" title="Documentation">
+          <i class="fa-solid fa-book-open"></i>
+        </button>
+        <button id="saveSnapshotBtn" class="control-btn" title="Save Snapshot">
+          <i class="fa-solid fa-camera"></i>
+        </button>
+        <button
+          id="animationToggleBtn"
+          class="control-btn"
+          title="Toggle Animation Panel"
+        >
+          <i class="fa-solid fa-film"></i>
+        </button>
+        <button id="settingsDialogBtn" class="control-btn" title="Settings">
+          <i class="fa-solid fa-gear"></i>
+        </button>
+      </div>
+    </div>
 
-	<div id="cameraStripWrapper">
-		<button id="updateCameraBtn" class="control-btn" title="Update Camera" style="display:none;position:absolute;bottom:100%;left:50%;transform:translate(-50%,-0.5rem);">Update Camera</button>
-		<div class="camera-bar-group">
-			<span class="camera-bar-label">Cameras</span>
-			<button id="homeCameraBtn" class="control-btn" title="Home Camera">
-				<i class="fa-solid fa-house"></i>
-			</button>
-			<div id="cameraStrip"></div>
-			<button id="addCameraBtn" class="control-btn" title="Add Camera">
-				<i class="fa-solid fa-plus"></i>
-			</button>
-		</div>
-		<div class="camera-strip-divider" aria-hidden="true"></div>
-		<div class="camera-bar-group">
-			<span class="camera-bar-label">Tools</span>
-            <button id="measurementPanelToggleBtn" class="control-btn" title="Toggle Measurement Pane">
-				<i class="fa-solid fa-ruler"></i>
-			</button>
-			<button id="docsBtn" class="control-btn" title="Documentation">
-				<i class="fa-solid fa-book-open"></i>
-			</button>
-			<button id="saveSnapshotBtn" class="control-btn" title="Save Snapshot">
-				<i class="fa-solid fa-camera"></i>
-			</button>
-			<button id="animationToggleBtn" class="control-btn" title="Toggle Animation Panel">
-				<i class="fa-solid fa-film"></i>
-			</button>
-			<button id="settingsDialogBtn" class="control-btn" title="Settings">
-				<i class="fa-solid fa-gear"></i>
-			</button>
-		</div>
-	</div>
+    <div id="settingsDialog" class="modal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3>Settings</h3>
+          <button id="settingsDialogClose" class="control-btn">Close</button>
+        </div>
+        <div class="settings-tabs">
+          <button class="tab-btn is-active" data-tab="general">General</button>
+          <button class="tab-btn" data-tab="appearance">Appearance</button>
+          <button class="tab-btn" data-tab="keyframes" style="display: none">
+            Transitions
+          </button>
+          <button
+            class="tab-btn"
+            data-tab="keyframe-models"
+            style="display: none"
+          >
+            Models
+          </button>
+          <button class="tab-btn" data-tab="camera">Camera</button>
+          <button class="tab-btn" data-tab="lights">Lights</button>
+        </div>
+        <div class="tab-panels">
+          <div class="tab-panel" data-tab-panel="general">
+            <div class="general-grid">
+              <div class="modal-section">
+                <h4>Auto Reload</h4>
+                <div class="input-grid">
+                  <label
+                    >Interval (ms)
+                    <input
+                      id="autoReloadIntervalInput"
+                      type="number"
+                      min="250"
+                      step="250"
+                    />
+                  </label>
+                </div>
+              </div>
+              <div class="modal-section">
+                <h4>Model Defaults</h4>
+                <div class="input-grid">
+                  <label
+                    >Default Model Version
+                    <select id="defaultModelVersionSelect">
+                      <option value="smallest">Smallest</option>
+                      <option value="largest">Largest</option>
+                    </select>
+                  </label>
+                </div>
+              </div>
+              <div class="modal-section">
+                <h4>Controls</h4>
+                <div class="input-grid">
+                  <label
+                    >Default Controls
+                    <select id="defaultControlTypeSelect">
+                      <option value="orbit">Orbit</option>
+                      <option value="trackball">Trackball</option>
+                    </select>
+                  </label>
+                </div>
+              </div>
+              <div class="modal-section">
+                <h4>Reset Settings</h4>
+                <div
+                  class="row-actions"
+                  style="
+                    margin-top: 0.25rem;
+                    gap: 0.5rem;
+                    flex-wrap: wrap;
+                    justify-content: flex-start;
+                  "
+                >
+                  <label
+                    >Reset
+                    <select id="resetSettingsSelect" class="control-btn">
+                      <option value="general">General</option>
+                      <option value="theme">Theme</option>
+                      <option value="camera">Camera</option>
+                      <option value="lighting">Lighting</option>
+                      <option value="animation">Animation</option>
+                      <option value="all">All Settings</option>
+                    </select>
+                  </label>
+                  <button
+                    id="resetSettingsApplyBtn"
+                    class="control-btn"
+                    type="button"
+                  >
+                    Reset
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="tab-panel" data-tab-panel="appearance">
+            <div class="appearance-grid">
+              <div class="modal-section">
+                <h4>Axes</h4>
+                <div class="row-actions">
+                  <button
+                    id="rulerVisibilityBtn"
+                    class="control-btn"
+                    type="button"
+                  >
+                    Ruler: All
+                  </button>
+                </div>
+                <h4>Ruler Units</h4>
+                <div class="measurement-units-row">
+                  <div
+                    id="rulerUnitsHost"
+                    class="measurement-units-host"
+                    role="tablist"
+                    aria-label="Ruler units"
+                  >
+                    <button
+                      class="control-btn ruler-units-btn"
+                      data-unit="m"
+                      type="button"
+                      aria-pressed="false"
+                    >
+                      m
+                    </button>
+                    <button
+                      class="control-btn ruler-units-btn"
+                      data-unit="cm"
+                      type="button"
+                      aria-pressed="false"
+                    >
+                      cm
+                    </button>
+                    <button
+                      class="control-btn ruler-units-btn"
+                      data-unit="mm"
+                      type="button"
+                      aria-pressed="false"
+                    >
+                      mm
+                    </button>
+                    <button
+                      class="control-btn ruler-units-btn"
+                      data-unit="μm"
+                      type="button"
+                      aria-pressed="false"
+                    >
+                      μm
+                    </button>
+                    <button
+                      class="control-btn ruler-units-btn"
+                      data-unit="custom"
+                      type="button"
+                      aria-pressed="false"
+                    >
+                      Custom
+                    </button>
+                  </div>
+                </div>
+                <div
+                  id="rulerCustomUnitsHost"
+                  class="measurement-custom-units is-hidden"
+                >
+                  <div class="input-grid">
+                    <label
+                      >X/Y (mm)
+                      <input
+                        id="rulerCustomXY"
+                        type="text"
+                        inputmode="decimal"
+                        autocomplete="off"
+                        spellcheck="false"
+                        value="1"
+                    /></label>
+                    <label
+                      >Z (mm)
+                      <input
+                        id="rulerCustomZ"
+                        type="text"
+                        inputmode="decimal"
+                        autocomplete="off"
+                        spellcheck="false"
+                        value="1"
+                    /></label>
+                  </div>
+                </div>
+              </div>
+              <div class="modal-section">
+                <h4>Themes</h4>
+                <div class="input-grid" style="margin-bottom: 0.5rem">
+                  <label
+                    >Theme
+                    <select
+                      id="themeSelect"
+                      class="control-btn"
+                      style="padding: 0.35rem 0.4rem"
+                    >
+                      <option value="dark">Dark</option>
+                      <option value="light">Light</option>
+                      <option value="custom">Custom</option>
+                    </select>
+                  </label>
+                </div>
+                <div class="input-grid">
+                  <label>Background <input id="themeBg" type="color" /></label>
+                  <label>Panel <input id="themePanel" type="color" /></label>
+                  <label
+                    >Section <input id="themeSection" type="color"
+                  /></label>
+                  <label>Text <input id="themeText" type="color" /></label>
+                  <label
+                    >Button BG <input id="themeButtonBg" type="color"
+                  /></label>
+                  <label
+                    >Button Text <input id="themeButtonText" type="color"
+                  /></label>
+                  <label
+                    >Button Border <input id="themeButtonBorder" type="color"
+                  /></label>
+                  <label
+                    >Button Active <input id="themeButtonActive" type="color"
+                  /></label>
+                  <label>Axis X <input id="themeAxisX" type="color" /></label>
+                  <label>Axis Y <input id="themeAxisY" type="color" /></label>
+                  <label>Axis Z <input id="themeAxisZ" type="color" /></label>
+                </div>
+                <div class="row-actions">
+                  <button
+                    id="themeToCustomBtn"
+                    class="control-btn"
+                    type="button"
+                  >
+                    Save as Custom
+                  </button>
+                  <button id="themeResetBtn" class="control-btn" type="button">
+                    Reset Theme
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="tab-panel is-active" data-tab-panel="camera">
+            <div class="modal-body">
+              <div class="viewer-pane" id="lightDialogViewer"></div>
+              <div class="controls-pane">
+                <div class="modal-section">
+                  <div class="section-header">
+                    <h4>Camera</h4>
+                    <div class="section-actions">
+                      <button
+                        id="addCameraBtnSettings"
+                        class="control-btn icon-btn"
+                        type="button"
+                        title="Add Camera"
+                      >
+                        <i class="fa-solid fa-plus"></i>
+                      </button>
+                      <button
+                        id="removeCameraBtnSettings"
+                        class="control-btn icon-btn"
+                        type="button"
+                        title="Remove Camera"
+                      >
+                        <i class="fa-solid fa-minus"></i>
+                      </button>
+                    </div>
+                  </div>
+                  <div class="camera-list" id="cameraList"></div>
+                  <div
+                    class="camera-action-row"
+                    style="
+                      display: flex;
+                      gap: 0.5rem;
+                      margin-bottom: 0.5rem;
+                      flex-wrap: wrap;
+                    "
+                  >
+                    <button
+                      id="cameraModeBtn"
+                      class="control-btn"
+                      type="button"
+                    >
+                      Camera: Perspective
+                    </button>
+                    <button
+                      id="centerTargetBtn"
+                      class="control-btn"
+                      type="button"
+                    >
+                      Center Target
+                    </button>
+                    <button
+                      id="resetCameraBtn"
+                      class="control-btn"
+                      type="button"
+                    >
+                      Reset Camera
+                    </button>
+                  </div>
+                  <div class="input-grid" style="margin-bottom: 0.5rem">
+                    <label
+                      >Camera Controls
+                      <select id="cameraControlTypeSelect">
+                        <option value="orbit">Orbit</option>
+                        <option value="trackball">Trackball</option>
+                      </select>
+                    </label>
+                  </div>
+                  <div class="input-grid">
+                    <label
+                      >Yaw (deg)
+                      <input
+                        id="camYaw"
+                        type="text"
+                        inputmode="decimal"
+                        step="1"
+                    /></label>
+                    <label
+                      >Pitch (deg)
+                      <input
+                        id="camPitch"
+                        type="text"
+                        inputmode="decimal"
+                        step="1"
+                        min="-89.9999"
+                        max="89.9999"
+                    /></label>
+                    <label
+                      >Roll (deg)
+                      <input
+                        id="camRoll"
+                        type="text"
+                        inputmode="decimal"
+                        step="1"
+                    /></label>
+                    <label
+                      >Target X
+                      <input
+                        id="camTargetX"
+                        type="text"
+                        inputmode="decimal"
+                        step="0.1"
+                    /></label>
+                    <label
+                      >Target Y
+                      <input
+                        id="camTargetY"
+                        type="text"
+                        inputmode="decimal"
+                        step="0.1"
+                    /></label>
+                    <label
+                      >Target Z
+                      <input
+                        id="camTargetZ"
+                        type="text"
+                        inputmode="decimal"
+                        step="0.1"
+                    /></label>
+                    <label
+                      >Distance
+                      <input
+                        id="camDistance"
+                        type="text"
+                        inputmode="decimal"
+                        step="0.1"
+                        min="0"
+                    /></label>
+                    <label
+                      >FOV (deg)
+                      <input
+                        id="camFov"
+                        type="text"
+                        inputmode="decimal"
+                        step="1"
+                        min="5"
+                        max="120"
+                    /></label>
+                  </div>
+                  <div class="row-actions row-actions-center">
+                    <button
+                      class="control-btn"
+                      type="button"
+                      data-camera-preset="front"
+                    >
+                      Front
+                    </button>
+                    <button
+                      class="control-btn"
+                      type="button"
+                      data-camera-preset="back"
+                    >
+                      Back
+                    </button>
+                    <button
+                      class="control-btn"
+                      type="button"
+                      data-camera-preset="left"
+                    >
+                      Left
+                    </button>
+                    <button
+                      class="control-btn"
+                      type="button"
+                      data-camera-preset="right"
+                    >
+                      Right
+                    </button>
+                    <button
+                      class="control-btn"
+                      type="button"
+                      data-camera-preset="top"
+                    >
+                      Top
+                    </button>
+                    <button
+                      class="control-btn"
+                      type="button"
+                      data-camera-preset="bottom"
+                    >
+                      Bottom
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="tab-panel" data-tab-panel="lights">
+            <div class="modal-body">
+              <div class="viewer-pane" id="lightsDialogViewer"></div>
+              <div class="controls-pane">
+                <div class="modal-section">
+                  <h4>Ambient Light</h4>
+                  <div class="input-grid">
+                    <label
+                      >Color <input id="ambientColor" type="color"
+                    /></label>
+                    <label
+                      >Intensity
+                      <input
+                        id="ambientIntensity"
+                        type="text"
+                        inputmode="decimal"
+                        step="0.1"
+                        min="0"
+                    /></label>
+                  </div>
+                </div>
 
-	<div id="settingsDialog" class="modal">
-		<div class="modal-content">
-			<div class="modal-header">
-				<h3>Settings</h3>
-				<button id="settingsDialogClose" class="control-btn">Close</button>
-			</div>
-			<div class="settings-tabs">
-				<button class="tab-btn is-active" data-tab="general">General</button>
-				<button class="tab-btn" data-tab="appearance">Appearance</button>
-				<button class="tab-btn" data-tab="keyframes" style="display:none;">Transitions</button>
-				<button class="tab-btn" data-tab="keyframe-models" style="display:none;">Models</button>
-				<button class="tab-btn" data-tab="camera">Camera</button>
-				<button class="tab-btn" data-tab="lights">Lights</button>
-			</div>
-			<div class="tab-panels">
-				<div class="tab-panel" data-tab-panel="general">
-					<div class="general-grid">
-						<div class="modal-section">
-							<h4>Auto Reload</h4>
-							<div class="input-grid">
-								<label>Interval (ms)
-									<input id="autoReloadIntervalInput" type="number" min="250" step="250">
-								</label>
-							</div>
-						</div>
-						<div class="modal-section">
-							<h4>Model Defaults</h4>
-							<div class="input-grid">
-								<label>Default Model Version
-									<select id="defaultModelVersionSelect">
-										<option value="smallest">Smallest</option>
-										<option value="largest">Largest</option>
-									</select>
-								</label>
-							</div>
-						</div>
-						<div class="modal-section">
-							<h4>Controls</h4>
-							<div class="input-grid">
-								<label>Default Controls
-									<select id="defaultControlTypeSelect">
-										<option value="orbit">Orbit</option>
-										<option value="trackball">Trackball</option>
-									</select>
-								</label>
-							</div>
-						</div>
-						<div class="modal-section">
-							<h4>Reset Settings</h4>
-							<div class="row-actions" style="margin-top:0.25rem;gap:0.5rem;flex-wrap:wrap;justify-content:flex-start;">
-								<label>Reset
-									<select id="resetSettingsSelect" class="control-btn">
-										<option value="general">General</option>
-										<option value="theme">Theme</option>
-										<option value="camera">Camera</option>
-										<option value="lighting">Lighting</option>
-										<option value="animation">Animation</option>
-										<option value="all">All Settings</option>
-									</select>
-								</label>
-								<button id="resetSettingsApplyBtn" class="control-btn" type="button">Reset</button>
-							</div>
-						</div>
-					</div>
-				</div>
-				<div class="tab-panel" data-tab-panel="appearance">
-					<div class="appearance-grid">
-						<div class="modal-section">
-							<h4>Axes</h4>
-							<div class="row-actions">
-								<button id="rulerVisibilityBtn" class="control-btn" type="button">Ruler: All</button>
-							</div>
-							<h4>Ruler Units</h4>
-							<div class="measurement-units-row">
-								<div id="rulerUnitsHost" class="measurement-units-host" role="tablist" aria-label="Ruler units">
-									<button class="control-btn ruler-units-btn" data-unit="m" type="button" aria-pressed="false">m</button>
-									<button class="control-btn ruler-units-btn" data-unit="cm" type="button" aria-pressed="false">cm</button>
-									<button class="control-btn ruler-units-btn" data-unit="mm" type="button" aria-pressed="false">mm</button>
-									<button class="control-btn ruler-units-btn" data-unit="μm" type="button" aria-pressed="false">μm</button>
-									<button class="control-btn ruler-units-btn" data-unit="custom" type="button" aria-pressed="false">Custom</button>
-								</div>
-							</div>
-							<div id="rulerCustomUnitsHost" class="measurement-custom-units is-hidden">
-								<div class="input-grid">
-									<label>X/Y (mm) <input id="rulerCustomXY" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" value="1"></label>
-									<label>Z (mm) <input id="rulerCustomZ" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" value="1"></label>
-								</div>
-							</div>
-						</div>
-						<div class="modal-section">
-							<h4>Themes</h4>
-							<div class="input-grid" style="margin-bottom:0.5rem;">
-								<label>Theme
-									<select id="themeSelect" class="control-btn" style="padding:0.35rem 0.4rem;">
-										<option value="dark">Dark</option>
-										<option value="light">Light</option>
-										<option value="custom">Custom</option>
-									</select>
-								</label>
-							</div>
-							<div class="input-grid">
-								<label>Background <input id="themeBg" type="color"></label>
-								<label>Panel <input id="themePanel" type="color"></label>
-								<label>Section <input id="themeSection" type="color"></label>
-								<label>Text <input id="themeText" type="color"></label>
-								<label>Button BG <input id="themeButtonBg" type="color"></label>
-								<label>Button Text <input id="themeButtonText" type="color"></label>
-								<label>Button Border <input id="themeButtonBorder" type="color"></label>
-								<label>Button Active <input id="themeButtonActive" type="color"></label>
-								<label>Axis X <input id="themeAxisX" type="color"></label>
-								<label>Axis Y <input id="themeAxisY" type="color"></label>
-								<label>Axis Z <input id="themeAxisZ" type="color"></label>
-							</div>
-							<div class="row-actions">
-								<button id="themeToCustomBtn" class="control-btn" type="button">Save as Custom</button>
-								<button id="themeResetBtn" class="control-btn" type="button">Reset Theme</button>
-							</div>
-						</div>
-					</div>
-				</div>
-				<div class="tab-panel is-active" data-tab-panel="camera">
-					<div class="modal-body">
-						<div class="viewer-pane" id="lightDialogViewer"></div>
-						<div class="controls-pane">
-							<div class="modal-section">
-								<div class="section-header">
-									<h4>Camera</h4>
-									<div class="section-actions">
-										<button id="addCameraBtnSettings" class="control-btn icon-btn" type="button" title="Add Camera">
-											<i class="fa-solid fa-plus"></i>
-										</button>
-										<button id="removeCameraBtnSettings" class="control-btn icon-btn" type="button" title="Remove Camera">
-											<i class="fa-solid fa-minus"></i>
-										</button>
-									</div>
-								</div>
-								<div class="camera-list" id="cameraList"></div>
-								<div class="camera-action-row" style="display:flex;gap:0.5rem;margin-bottom:0.5rem;flex-wrap:wrap;">
-									<button id="cameraModeBtn" class="control-btn" type="button">Camera: Perspective</button>
-									<button id="centerTargetBtn" class="control-btn" type="button">Center Target</button>
-									<button id="resetCameraBtn" class="control-btn" type="button">Reset Camera</button>
-								</div>
-								<div class="input-grid" style="margin-bottom:0.5rem;">
-									<label>Camera Controls
-										<select id="cameraControlTypeSelect">
-											<option value="orbit">Orbit</option>
-											<option value="trackball">Trackball</option>
-										</select>
-									</label>
-								</div>
-								<div class="input-grid">
-									<label>Yaw (deg) <input id="camYaw" type="text" inputmode="decimal" step="1"></label>
-									<label>Pitch (deg) <input id="camPitch" type="text" inputmode="decimal" step="1" min="-89.9999" max="89.9999"></label>
-									<label>Roll (deg) <input id="camRoll" type="text" inputmode="decimal" step="1"></label>
-									<label>Target X <input id="camTargetX" type="text" inputmode="decimal" step="0.1"></label>
-									<label>Target Y <input id="camTargetY" type="text" inputmode="decimal" step="0.1"></label>
-									<label>Target Z <input id="camTargetZ" type="text" inputmode="decimal" step="0.1"></label>
-									<label>Distance <input id="camDistance" type="text" inputmode="decimal" step="0.1" min="0"></label>
-									<label>FOV (deg) <input id="camFov" type="text" inputmode="decimal" step="1" min="5" max="120"></label>
-								</div>
-								<div class="row-actions row-actions-center">
-									<button class="control-btn" type="button" data-camera-preset="front">Front</button>
-									<button class="control-btn" type="button" data-camera-preset="back">Back</button>
-									<button class="control-btn" type="button" data-camera-preset="left">Left</button>
-									<button class="control-btn" type="button" data-camera-preset="right">Right</button>
-									<button class="control-btn" type="button" data-camera-preset="top">Top</button>
-									<button class="control-btn" type="button" data-camera-preset="bottom">Bottom</button>
-								</div>
-							</div>
+                <div class="modal-section">
+                  <div class="section-header">
+                    <h4>Light Sources</h4>
+                    <div class="section-actions">
+                      <button
+                        id="addDirLightBtn"
+                        class="control-btn icon-btn"
+                        type="button"
+                        title="Add Directional Light"
+                      >
+                        <i class="fa-solid fa-plus"></i>
+                      </button>
+                      <button
+                        id="removeDirLightBtn"
+                        class="control-btn icon-btn"
+                        type="button"
+                        title="Remove Directional Light"
+                      >
+                        <i class="fa-solid fa-minus"></i>
+                      </button>
+                    </div>
+                  </div>
+                  <div id="directionalLightsList"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div
+            class="tab-panel"
+            data-tab-panel="keyframes"
+            style="display: none"
+          >
+            <div class="modal-body">
+              <div class="controls-pane">
+                <div class="modal-section">
+                  <h4>Keyframe Transitions</h4>
+                  <div id="transitionMenu" class="transition-menu">
+                    <div
+                      id="transitionMenuList"
+                      class="transition-menu-list"
+                    ></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div
+            class="tab-panel"
+            data-tab-panel="keyframe-models"
+            style="display: none"
+          >
+            <div class="modal-body">
+              <div class="viewer-pane" id="keyframeModelsViewer"></div>
+              <div class="controls-pane">
+                <div class="modal-section">
+                  <h4>Model Visibility</h4>
+                  <div
+                    id="keyframeModelSelectorHost"
+                    class="keyframe-model-selector-host"
+                  ></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
 
-						</div>
-					</div>
-				</div>
-				<div class="tab-panel" data-tab-panel="lights">
-					<div class="modal-body">
-						<div class="viewer-pane" id="lightsDialogViewer"></div>
-						<div class="controls-pane">
-							<div class="modal-section">
-								<h4>Ambient Light</h4>
-								<div class="input-grid">
-									<label>Color <input id="ambientColor" type="color"></label>
-										<label>Intensity <input id="ambientIntensity" type="text" inputmode="decimal" step="0.1" min="0"></label>
-								</div>
-							</div>
+    <div id="previewSettingsDialog" class="modal">
+      <div class="modal-content" style="max-width: 520px">
+        <div class="modal-header">
+          <h3>Load Settings</h3>
+          <button id="previewSettingsClose" class="control-btn">Close</button>
+        </div>
+        <div class="modal-body" style="grid-template-columns: 1fr">
+          <div class="modal-section">
+            <h4>Settings File</h4>
+            <div class="input-grid">
+              <label
+                >File
+                <select id="previewSettingsFileSelect"></select>
+              </label>
+            </div>
+            <div class="settings-note">
+              Default behavior can be changed in General Settings → Model
+              Settings.
+            </div>
+          </div>
+          <div class="modal-section">
+            <h4>Sections</h4>
+            <div class="input-grid">
+              <label
+                ><input id="previewSettingsGeneral" type="checkbox" checked />
+                General</label
+              >
+              <label
+                ><input id="previewSettingsTheme" type="checkbox" checked />
+                Theme</label
+              >
+              <label
+                ><input id="previewSettingsCamera" type="checkbox" checked />
+                Camera</label
+              >
+              <label
+                ><input id="previewSettingsLighting" type="checkbox" checked />
+                Lighting</label
+              >
+              <label
+                ><input id="previewSettingsAnimation" type="checkbox" checked />
+                Animation</label
+              >
+            </div>
+          </div>
+          <div class="row-actions" style="gap: 0.5rem; flex-wrap: wrap">
+            <button
+              id="previewSettingsLoadBtn"
+              class="control-btn"
+              type="button"
+            >
+              Load Selected
+            </button>
+            <input
+              id="previewSettingsFileInput"
+              type="file"
+              accept="application/json"
+              style="display: none"
+            />
+          </div>
+        </div>
+      </div>
+    </div>
 
-							<div class="modal-section">
-								<div class="section-header">
-									<h4>Light Sources</h4>
-									<div class="section-actions">
-										<button id="addDirLightBtn" class="control-btn icon-btn" type="button" title="Add Directional Light">
-											<i class="fa-solid fa-plus"></i>
-										</button>
-										<button id="removeDirLightBtn" class="control-btn icon-btn" type="button" title="Remove Directional Light">
-											<i class="fa-solid fa-minus"></i>
-										</button>
-									</div>
-								</div>
-								<div id="directionalLightsList"></div>
-							</div>
-						</div>
-					</div>
-				</div>
-				<div class="tab-panel" data-tab-panel="keyframes" style="display:none;">
-					<div class="modal-body">
-						<div class="controls-pane">
-							<div class="modal-section">
-								<h4>Keyframe Transitions</h4>
-								<div id="transitionMenu" class="transition-menu">
-									<div id="transitionMenuList" class="transition-menu-list"></div>
-								</div>
-							</div>
-						</div>
-					</div>
-				</div>
-				<div class="tab-panel" data-tab-panel="keyframe-models" style="display:none;">
-					<div class="modal-body">
-						<div class="viewer-pane" id="keyframeModelsViewer"></div>
-						<div class="controls-pane">
-							<div class="modal-section">
-								<h4>Model Visibility</h4>
-								<div id="keyframeModelSelectorHost" class="keyframe-model-selector-host"></div>
-							</div>
-						</div>
-					</div>
-				</div>
-			</div>
-		</div>
-	</div>
+    <div id="previewDirDialog" class="modal">
+      <div class="modal-content" style="max-width: 560px">
+        <div class="modal-header">
+          <h3>Open Preview Folder</h3>
+          <button id="previewDirClose" class="control-btn">Close</button>
+        </div>
+        <div class="modal-body" style="grid-template-columns: 1fr">
+          <div class="modal-section">
+            <h4>Base Directory</h4>
+            <div class="row-actions" style="gap: 0.5rem; flex-wrap: wrap">
+              <input
+                id="previewDirBaseInput"
+                class="control-input"
+                type="text"
+                placeholder="/absolute/path"
+              />
+              <button
+                id="previewDirRefreshBtn"
+                class="control-btn"
+                type="button"
+              >
+                Refresh
+              </button>
+            </div>
+          </div>
+          <div class="modal-section">
+            <h4>Valid Model Folders (contain at least one .glb file)</h4>
+            <div class="input-grid">
+              <label
+                >Folder
+                <select id="previewDirSelect"></select>
+              </label>
+            </div>
+          </div>
+          <div
+            class="row-actions"
+            style="gap: 0.5rem; flex-wrap: wrap; justify-content: flex-end"
+          >
+            <button id="previewDirCancelBtn" class="control-btn" type="button">
+              Cancel
+            </button>
+            <button id="previewDirOpenBtn" class="control-btn" type="button">
+              Open
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
 
-	<div id="previewSettingsDialog" class="modal">
-		<div class="modal-content" style="max-width:520px;">
-			<div class="modal-header">
-				<h3>Load Settings</h3>
-				<button id="previewSettingsClose" class="control-btn">Close</button>
-			</div>
-			<div class="modal-body" style="grid-template-columns: 1fr;">
-				<div class="modal-section">
-					<h4>Settings File</h4>
-					<div class="input-grid">
-						<label>File
-							<select id="previewSettingsFileSelect"></select>
-						</label>
-					</div>
-					<div class="settings-note">Default behavior can be changed in General Settings → Model Settings.</div>
-				</div>
-				<div class="modal-section">
-					<h4>Sections</h4>
-					<div class="input-grid">
-						<label><input id="previewSettingsGeneral" type="checkbox" checked> General</label>
-						<label><input id="previewSettingsTheme" type="checkbox" checked> Theme</label>
-						<label><input id="previewSettingsCamera" type="checkbox" checked> Camera</label>
-						<label><input id="previewSettingsLighting" type="checkbox" checked> Lighting</label>
-							<label><input id="previewSettingsAnimation" type="checkbox" checked> Animation</label>
-					</div>
-				</div>
-				<div class="row-actions" style="gap:0.5rem;flex-wrap:wrap;">
-					<button id="previewSettingsLoadBtn" class="control-btn" type="button">Load Selected</button>
-					<input id="previewSettingsFileInput" type="file" accept="application/json" style="display:none;">
-				</div>
-			</div>
-		</div>
-	</div>
+    <div id="snapshotDialog" class="modal">
+      <div class="modal-content" style="max-width: 560px">
+        <div class="modal-header">
+          <h3>Save Snapshot</h3>
+          <button id="snapshotDialogClose" class="control-btn">Close</button>
+        </div>
+        <div class="modal-body" style="grid-template-columns: 1fr">
+          <div class="modal-section">
+            <h4>Output</h4>
+            <div class="input-grid">
+              <label
+                >Renderer
+                <select id="snapshotRenderer">
+                  <option value="raster" selected>Raster (default)</option>
+                </select>
+              </label>
+            </div>
+            <div class="input-grid" style="margin-top: 0.5rem">
+              <label
+                >Resolution
+                <select id="snapshotResolution">
+                  <option value="current" selected>Current</option>
+                  <option value="1280x720">1280×720 (720p)</option>
+                  <option value="1920x1080">1920×1080 (1080p)</option>
+                  <option value="2560x1440">2560×1440 (1440p)</option>
+                  <option value="3840x2160">3840×2160 (4K)</option>
+                </select>
+              </label>
+            </div>
+          </div>
+          <div id="snapshotProgress" class="snapshot-progress"></div>
+          <div class="row-actions" style="gap: 0.5rem; flex-wrap: wrap">
+            <button id="snapshotSaveBtn" class="control-btn" type="button">
+              Save Snapshot
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
 
-	<div id="previewDirDialog" class="modal">
-		<div class="modal-content" style="max-width:560px;">
-			<div class="modal-header">
-				<h3>Open Preview Folder</h3>
-				<button id="previewDirClose" class="control-btn">Close</button>
-			</div>
-			<div class="modal-body" style="grid-template-columns: 1fr;">
-				<div class="modal-section">
-					<h4>Base Directory</h4>
-					<div class="row-actions" style="gap:0.5rem;flex-wrap:wrap;">
-						<input id="previewDirBaseInput" class="control-input" type="text" placeholder="/absolute/path">
-						<button id="previewDirRefreshBtn" class="control-btn" type="button">Refresh</button>
-					</div>
-				</div>
-				<div class="modal-section">
-					<h4>Valid Model Folders (contain at least one .glb file)</h4>
-					<div class="input-grid">
-						<label>Folder
-							<select id="previewDirSelect"></select>
-						</label>
-					</div>
-				</div>
-				<div class="row-actions" style="gap:0.5rem;flex-wrap:wrap;justify-content:flex-end;">
-					<button id="previewDirCancelBtn" class="control-btn" type="button">Cancel</button>
-					<button id="previewDirOpenBtn" class="control-btn" type="button">Open</button>
-				</div>
-			</div>
-		</div>
-	</div>
+    <div id="animationExportDialog" class="modal">
+      <div class="modal-content" style="max-width: 560px">
+        <div class="modal-header">
+          <h3>Export Animation</h3>
+          <button id="animationExportClose" class="control-btn">Close</button>
+        </div>
+        <div class="modal-body" style="grid-template-columns: 1fr">
+          <div class="modal-section">
+            <h4>Output</h4>
+            <div class="input-grid">
+              <label
+                >Renderer
+                <select id="animationRenderer">
+                  <option value="raster" selected>Raster (default)</option>
+                </select>
+              </label>
+            </div>
+            <div class="input-grid" style="margin-top: 0.5rem">
+              <label
+                >Resolution
+                <select id="animationExportResolution">
+                  <option value="1280x720">1280×720 (720p)</option>
+                  <option value="1920x1080" selected>1920×1080 (1080p)</option>
+                  <option value="2560x1440">2560×1440 (1440p)</option>
+                </select>
+              </label>
+              <label style="max-width: 120px"
+                >FPS
+                <input
+                  id="animationExportFps"
+                  type="number"
+                  min="1"
+                  max="60"
+                  step="1"
+                  value="30"
+                />
+              </label>
+              <label
+                >Quality
+                <select id="animationExportQuality">
+                  <option value="low">Low (4 Mbps)</option>
+                  <option value="medium" selected>Medium (12 Mbps)</option>
+                  <option value="high">High (30 Mbps)</option>
+                  <option value="lossless">Lossless (WebM)</option>
+                </select>
+              </label>
+              <label
+                >File Type
+                <select id="animationExportType">
+                  <option value="webm">WebM (video)</option>
+                  <option value="mp4">MP4 (video)</option>
+                  <option value="gif">GIF (image sequence)</option>
+                  <option value="avi">AVI (video)</option>
+                </select>
+              </label>
+            </div>
+          </div>
+          <div id="animationExportProgress" class="snapshot-progress"></div>
+          <div class="row-actions" style="gap: 0.5rem; flex-wrap: wrap">
+            <button
+              id="animationExportSaveBtn"
+              class="control-btn"
+              type="button"
+            >
+              Export Animation
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
 
-	<div id="snapshotDialog" class="modal">
-		<div class="modal-content" style="max-width:560px;">
-			<div class="modal-header">
-				<h3>Save Snapshot</h3>
-				<button id="snapshotDialogClose" class="control-btn">Close</button>
-			</div>
-			<div class="modal-body" style="grid-template-columns: 1fr;">
-				<div class="modal-section">
-					<h4>Output</h4>
-					<div class="input-grid">
-						<label>Renderer
-							<select id="snapshotRenderer">
-								<option value="raster" selected>Raster (default)</option>
-							</select>
-						</label>
-					</div>
-					<div class="input-grid" style="margin-top:0.5rem;">
-						<label>Resolution
-							<select id="snapshotResolution">
-								<option value="current" selected>Current</option>
-								<option value="1280x720">1280×720 (720p)</option>
-								<option value="1920x1080">1920×1080 (1080p)</option>
-								<option value="2560x1440">2560×1440 (1440p)</option>
-								<option value="3840x2160">3840×2160 (4K)</option>
-							</select>
-						</label>
-					</div>
-				</div>
-				<div id="snapshotProgress" class="snapshot-progress"></div>
-				<div class="row-actions" style="gap:0.5rem;flex-wrap:wrap;">
-					<button id="snapshotSaveBtn" class="control-btn" type="button">Save Snapshot</button>
-				</div>
-			</div>
-		</div>
-	</div>
-
-	<div id="animationExportDialog" class="modal">
-		<div class="modal-content" style="max-width:560px;">
-			<div class="modal-header">
-				<h3>Export Animation</h3>
-				<button id="animationExportClose" class="control-btn">Close</button>
-			</div>
-			<div class="modal-body" style="grid-template-columns: 1fr;">
-				<div class="modal-section">
-					<h4>Output</h4>
-					<div class="input-grid">
-						<label>Renderer
-							<select id="animationRenderer">
-								<option value="raster" selected>Raster (default)</option>
-							</select>
-						</label>
-					</div>
-					<div class="input-grid" style="margin-top:0.5rem;">
-						<label>Resolution
-							<select id="animationExportResolution">
-								<option value="1280x720">1280×720 (720p)</option>
-								<option value="1920x1080" selected>1920×1080 (1080p)</option>
-								<option value="2560x1440">2560×1440 (1440p)</option>
-							</select>
-						</label>
-						<label style="max-width:120px;">FPS
-							<input id="animationExportFps" type="number" min="1" max="60" step="1" value="30">
-						</label>
-						<label>Quality
-							<select id="animationExportQuality">
-								<option value="low">Low (4 Mbps)</option>
-								<option value="medium" selected>Medium (12 Mbps)</option>
-								<option value="high">High (30 Mbps)</option>
-								<option value="lossless">Lossless (WebM)</option>
-							</select>
-						</label>
-						<label>File Type
-							<select id="animationExportType">
-								<option value="webm">WebM (video)</option>
-								<option value="mp4">MP4 (video)</option>
-								<option value="gif">GIF (image sequence)</option>
-								<option value="avi">AVI (video)</option>
-							</select>
-						</label>
-					</div>
-				</div>
-				<div id="animationExportProgress" class="snapshot-progress"></div>
-				<div class="row-actions" style="gap:0.5rem;flex-wrap:wrap;">
-					<button id="animationExportSaveBtn" class="control-btn" type="button">Export Animation</button>
-				</div>
-			</div>
-		</div>
-	</div>
-
-	<script type="module" src="static/js/app.js"></script>
-</body>
-
+    <script type="module" src="static/js/app.js"></script>
+  </body>
 </html>
