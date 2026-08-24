@@ -9,7 +9,6 @@ import pytest
 
 from tests.utils.golden_compare import compare_directories
 
-
 _INTEGRATION_CASES = [
     {
         "name": "full_test",
@@ -40,7 +39,9 @@ _INTEGRATION_CASES = [
 
 @pytest.mark.integration
 @pytest.mark.slow
-@pytest.mark.parametrize("case", _INTEGRATION_CASES, ids=[c["name"] for c in _INTEGRATION_CASES])
+@pytest.mark.parametrize(
+    "case", _INTEGRATION_CASES, ids=[c["name"] for c in _INTEGRATION_CASES]
+)
 def test_example_outputs_match_golden(case, tmp_path, monkeypatch):
     repo_root = Path(__file__).resolve().parents[1]
     script_path = repo_root / case["script"]
@@ -80,4 +81,6 @@ def test_example_outputs_match_golden(case, tmp_path, monkeypatch):
     generated_print_dir = tmp_path / case["print_dir"]
 
     compare_directories(generated_mesh_dir, golden_mesh_dir, ignore_extra_generated=True)
-    compare_directories(generated_print_dir, golden_print_dir, ignore_extra_generated=True)
+    compare_directories(
+        generated_print_dir, golden_print_dir, ignore_extra_generated=True
+    )

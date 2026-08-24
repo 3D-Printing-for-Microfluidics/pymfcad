@@ -10,6 +10,7 @@ import numpy as np
 import importlib.util
 from pathlib import Path
 
+
 def glyph_to_polygons(face, char, scale=1.0):
     """
     ###### Convert a glyph to a list of polygons (as numpy arrays) representing its outline.
@@ -67,6 +68,13 @@ def plot_glyph(char, font_path="Arial.ttf", scale=1.0 / 64.0):
 
 
 # Example usage
-path = Path(__file__).resolve().parent.parent / "src" / "pymfcad" / "backend" / "fonts" / "OpenSans-Medium.ttf"
+path = (
+    Path(__file__).resolve().parent.parent
+    / "src"
+    / "pymfcad"
+    / "backend"
+    / "fonts"
+    / "OpenSans-Medium.ttf"
+)
 print(path)
 plot_glyph("B", font_path=path.as_posix())

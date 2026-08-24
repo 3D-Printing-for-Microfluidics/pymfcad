@@ -40,18 +40,20 @@ PINHOLE_HEIGHT = PINHOLE_WIDTH * PX_SIZE / LAYER_SIZE
 # Create a channel (centered for easy placement, then translated)
 channel = pymfcad.Cube(CHANNEL_SIZE, center=True)
 # Translate to absolute device coordinates (centered x, absolute y/z)
-channel.translate((CHANNEL_POS[0]+CHANNEL_SIZE[0]//2, CHANNEL_POS[1], CHANNEL_POS[2]))
+channel.translate((CHANNEL_POS[0] + CHANNEL_SIZE[0] // 2, CHANNEL_POS[1], CHANNEL_POS[2]))
 
 # Create pinholes
-pinhole_a = pymfcad.Cylinder(height=1, radius=1).rotate((0,90,0))
+pinhole_a = pymfcad.Cylinder(height=1, radius=1).rotate((0, 90, 0))
 # Resize to keep pinholes circular in mm (px and layer sizes differ)
 pinhole_a.resize((PINHOLE_LENGTH, PINHOLE_WIDTH, PINHOLE_HEIGHT))
 pinhole_a.translate((CHANNEL_POS[0], CHANNEL_POS[1], CHANNEL_POS[2]))
 
-pinhole_b = pymfcad.Cylinder(height=1, radius=1).rotate((0,90,0))
+pinhole_b = pymfcad.Cylinder(height=1, radius=1).rotate((0, 90, 0))
 # Resize to keep pinholes circular in mm (px and layer sizes differ)
 pinhole_b.resize((PINHOLE_LENGTH, PINHOLE_WIDTH, PINHOLE_HEIGHT))
-pinhole_b.translate((CHANNEL_POS[0]+CHANNEL_SIZE[0]-PINHOLE_LENGTH, CHANNEL_POS[1], CHANNEL_POS[2]))
+pinhole_b.translate(
+    (CHANNEL_POS[0] + CHANNEL_SIZE[0] - PINHOLE_LENGTH, CHANNEL_POS[1], CHANNEL_POS[2])
+)
 
 # Combine channel and pinholes into a single void region (boolean union)
 channel_unit = channel + pinhole_a + pinhole_b
@@ -65,7 +67,7 @@ FONT_HEIGHT = 10
 LABELS = ["A", "B", "C", "D", "E"]
 
 for i, letter in enumerate(LABELS):
-    offset = (0, (i-2) * 300, 0)
+    offset = (0, (i - 2) * 300, 0)
 
     unit = channel_unit.copy().translate(offset)
     device.add_void(f"channel_{letter}", unit, label="void")
@@ -74,7 +76,13 @@ for i, letter in enumerate(LABELS):
     if i < 4:
         text = pymfcad.TextExtrusion(letter, height=FONT_HEIGHT, font_size=FONT_SIZE)
         text.rotate((90, 0, 90))
-        text.translate((CHANNEL_POS[0], CHANNEL_POS[1] + (i-2) * 300 - 20, CHANNEL_POS[2] + PINHOLE_HEIGHT/2 + 10))
+        text.translate(
+            (
+                CHANNEL_POS[0],
+                CHANNEL_POS[1] + (i - 2) * 300 - 20,
+                CHANNEL_POS[2] + PINHOLE_HEIGHT / 2 + 10,
+            )
+        )
         # text = text.translate((CHANNEL_POS[0] + PINHOLE_LENGTH + 10, CHANNEL_POS[1] + (i-2) * 300 + 10, DEVICE_Z - FONT_HEIGHT))
         device.add_void(f"label_{letter}", text, label="void")
 

@@ -37,7 +37,7 @@ CHANNEL_POS = (0, 800, 150)
 # Create a channel (centered for easy placement, then translated)
 channel = pymfcad.Cube(CHANNEL_SIZE, center=True)
 # Translate to absolute device coordinates (centered x, absolute y/z)
-channel.translate((CHANNEL_POS[0]+CHANNEL_SIZE[0]//2, CHANNEL_POS[1], CHANNEL_POS[2]))
+channel.translate((CHANNEL_POS[0] + CHANNEL_SIZE[0] // 2, CHANNEL_POS[1], CHANNEL_POS[2]))
 device.add_void("channel", channel, label="void")
 
 # device.preview()
@@ -49,15 +49,17 @@ PINHOLE_LENGTH = 200
 PINHOLE_HEIGHT = PINHOLE_WIDTH * PX_SIZE / LAYER_SIZE
 
 # Create pinholes and add them as voids
-pinhole_a = pymfcad.Cylinder(height=1, radius=1).rotate((0,90,0))
+pinhole_a = pymfcad.Cylinder(height=1, radius=1).rotate((0, 90, 0))
 # Resize to keep pinholes circular in mm (px and layer sizes differ)
 pinhole_a.resize((PINHOLE_LENGTH, PINHOLE_WIDTH, PINHOLE_HEIGHT))
 pinhole_a.translate((CHANNEL_POS[0], CHANNEL_POS[1], CHANNEL_POS[2]))
 
-pinhole_b = pymfcad.Cylinder(height=1, radius=1).rotate((0,90,0))
+pinhole_b = pymfcad.Cylinder(height=1, radius=1).rotate((0, 90, 0))
 # Resize to keep pinholes circular in mm (px and layer sizes differ)
 pinhole_b.resize((PINHOLE_LENGTH, PINHOLE_WIDTH, PINHOLE_HEIGHT))
-pinhole_b.translate((CHANNEL_POS[0]+CHANNEL_SIZE[0]-PINHOLE_LENGTH, CHANNEL_POS[1], CHANNEL_POS[2]))
+pinhole_b.translate(
+    (CHANNEL_POS[0] + CHANNEL_SIZE[0] - PINHOLE_LENGTH, CHANNEL_POS[1], CHANNEL_POS[2])
+)
 
 device.add_void("pin_a", pinhole_a, label="void")
 device.add_void("pin_b", pinhole_b, label="void")

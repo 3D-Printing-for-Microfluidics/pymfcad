@@ -28,7 +28,14 @@ position_settings = PositionSettings(
 # Printer definition
 printer = Printer(
     name="HR3v3",
-    light_engines=[LightEngine(px_size=0.0076, px_count=(2560, 1600), wavelengths=[365], default_exposure_settings=[exposure_settings])],
+    light_engines=[
+        LightEngine(
+            px_size=0.0076,
+            px_count=(2560, 1600),
+            wavelengths=[365],
+            default_exposure_settings=[exposure_settings],
+        )
+    ],
     xy_stage_available=True,
     vacuum_available=True,
     default_position_settings=position_settings,
@@ -74,7 +81,9 @@ device.add_regional_settings(
     "squeeze_region",
     squeeze_region,
     PositionSettings(
-        special_layer_techniques=[SqueezeOutResin(enabled=True, count=2, squeeze_force=5.0, squeeze_time=200.0)],
+        special_layer_techniques=[
+            SqueezeOutResin(enabled=True, count=2, squeeze_force=5.0, squeeze_time=200.0)
+        ],
     ),
     label="squeeze",
 )

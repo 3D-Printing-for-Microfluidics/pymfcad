@@ -145,6 +145,7 @@ class MembraneValve6px(VariableLayerThicknessComponent):
             label="default",
         )
 
+
 MembraneValve6px().preview()
 
 

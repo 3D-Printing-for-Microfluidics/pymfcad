@@ -17,7 +17,9 @@ def _build_parent_component(size=(40, 30, 20)) -> Component:
     return comp
 
 
-def _preview_and_validate(component: Component, preview_dir: Path, expected_files: list[str]) -> None:
+def _preview_and_validate(
+    component: Component, preview_dir: Path, expected_files: list[str]
+) -> None:
     component.preview(preview_dir=str(preview_dir))
     for filename in expected_files:
         path = preview_dir / filename
@@ -83,8 +85,6 @@ def test_subcomponent_preview_outputs_and_labels(tmp_path):
         ),
     )
 
-
-
     parent.add_subcomponent("child", child, subtract_bounding_box=False)
 
     assert "child.device" in child.labels
@@ -116,7 +116,9 @@ def test_subcomponent_translation_applied_and_locking():
 
     parent.add_subcomponent("child", child, subtract_bounding_box=False)
 
-    min_x, min_y, min_z, max_x, max_y, max_z = _bbox_min_max(child.bulk_shapes["child_bulk"])
+    min_x, min_y, min_z, max_x, max_y, max_z = _bbox_min_max(
+        child.bulk_shapes["child_bulk"]
+    )
     assert min_x == pytest.approx(5)
     assert min_y == pytest.approx(4)
     assert min_z == pytest.approx(3)
@@ -163,14 +165,14 @@ def test_component_ops_translate_rotate_mirror():
     bbox = tuple(int(x) for x in bbox)
     assert bbox == (7, 7, 7, 17, 15, 13)
 
-    child2.rotate(90, in_place=True).translate((10,10,10))
+    child2.rotate(90, in_place=True).translate((10, 10, 10))
     child3 = child2.copy()
     parent.add_subcomponent("child2", child2, subtract_bounding_box=False)
     bbox = child2.get_bounding_box()
     bbox = tuple(int(x) for x in bbox)
     assert bbox == (17, 17, 17, 25, 27, 23)
 
-    child3.mirror(mirror_x=True, mirror_y=False, in_place=True).translate((10,10,10))
+    child3.mirror(mirror_x=True, mirror_y=False, in_place=True).translate((10, 10, 10))
     parent.add_subcomponent("child3", child3, subtract_bounding_box=False)
     bbox = child3.get_bounding_box()
     bbox = tuple(int(x) for x in bbox)

@@ -231,6 +231,7 @@ def _component_to_manifold(
     def get_component_bounding_box_shape(comp: "Component") -> "Shape":
         bbox = comp.get_bounding_box(comp._px_size, comp._layer_size)
         from . import Cube
+
         return Cube(
             size=(
                 (bbox[3] - bbox[0]),
@@ -283,7 +284,9 @@ def _component_to_manifold(
                 if len(shape_list) > 0:
                     manifolds[key] = Shape.union(shape_list)
 
-    def accumulate_bulk_shape(comp: "Component", _top_level: bool = True) -> dict[str, "Shape"]:
+    def accumulate_bulk_shape(
+        comp: "Component", _top_level: bool = True
+    ) -> dict[str, "Shape"]:
         """
         Accumulate bulk shapes from the component and its subcomponents.
 
@@ -302,9 +305,7 @@ def _component_to_manifold(
         comp_bulks = {}
 
         if len(comp.bulk_shapes) == 0:
-            raise ValueError(
-                f"Component {comp._name} has no bulk shapes to render."
-            )
+            raise ValueError(f"Component {comp._name} has no bulk shapes to render.")
 
         for bulk in comp.bulk_shapes.values():
             # key = str(bulk._color)
@@ -457,7 +458,9 @@ def _component_to_manifold(
                 "Cannot render do bulk difference without rendering bulk device"
             )
 
-        diff = Shape._batch_boolean_union_and_difference(list(bulk_manifolds.values()), list(manifolds.values()))
+        diff = Shape._batch_boolean_union_and_difference(
+            list(bulk_manifolds.values()), list(manifolds.values())
+        )
 
     return manifolds, bulk_manifolds, regional_manifolds, diff, ports
 

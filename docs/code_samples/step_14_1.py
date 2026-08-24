@@ -47,9 +47,12 @@ class Valve20px(Component):
         )
 
         from pymfcad import MembraneSettings
+
         self.add_label("region_membrane", Color.from_name("violet", 180))
 
-        membrane_region = Cylinder(height=1, radius=10, center_z=False).translate((18, 18, 6))
+        membrane_region = Cylinder(height=1, radius=10, center_z=False).translate(
+            (18, 18, 6)
+        )
         self.add_regional_settings(
             name="membrane_layer",
             shape=membrane_region,
@@ -65,6 +68,7 @@ class Valve20px(Component):
         )
 
         from pymfcad import ExposureSettings
+
         self.add_label("region_exposure", Color.from_name("gold", 180))
 
         exposure_block = Cube((8, 4, 4), center=False).translate((14, 22, 0))
@@ -76,9 +80,12 @@ class Valve20px(Component):
         )
 
         from pymfcad import PositionSettings
+
         self.add_label("region_position", Color.from_name("magenta", 180))
 
-        position_region = Cylinder(height=12, radius=12, center_z=False).translate((18, 18, 7))
+        position_region = Cylinder(height=12, radius=12, center_z=False).translate(
+            (18, 18, 7)
+        )
         self.add_regional_settings(
             name="slow_above_membrane",
             shape=position_region,
@@ -92,6 +99,7 @@ class Valve20px(Component):
         )
 
         from pymfcad import SecondaryDoseSettings
+
         self.add_label("region_secondary", Color.from_name("cyan", 180))
 
         secondary_region = Cube((8, 8, 6), center=False).translate((14, 14, 0))
@@ -105,6 +113,7 @@ class Valve20px(Component):
             ),
             label="region_secondary",
         )
+
 
 if __name__ == "__main__":
     Valve20px().preview()

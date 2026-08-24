@@ -312,7 +312,7 @@ class Polychannel(Shape):
     A polychannel is a collection of shapes that are hulled together.
 
     It can contain PolychannelShape and BezierCurveShape objects.
-    
+
     The shapes are automatically validated and rounded corners are created for non-manhattan corners.
     """
 

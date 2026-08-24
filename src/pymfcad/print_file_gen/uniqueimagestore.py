@@ -19,9 +19,7 @@ def get_unique_path(
     count = 0
     while True:
         if count == 0:
-            filename = (
-                f"{stem}_{postfix}{suffix}" if postfix != "" else f"{stem}{suffix}"
-            )
+            filename = f"{stem}_{postfix}{suffix}" if postfix != "" else f"{stem}{suffix}"
         else:
             filename = (
                 f"{stem}_{postfix}_{count}{suffix}"

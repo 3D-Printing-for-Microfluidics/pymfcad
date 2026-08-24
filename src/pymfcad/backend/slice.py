@@ -7,6 +7,7 @@ from shapely.geometry import Polygon
 
 from . import Cube, Shape
 
+
 def rle_encode_packed(img: np.ndarray):
     h, w = img.shape
     bits = (img > 0).astype(np.uint8)
@@ -21,15 +22,18 @@ def rle_encode_packed(img: np.ndarray):
 
     return values, run_lengths, (h, w)
 
+
 def rle_decode_packed(values, run_lengths, shape):
     h, w = shape
     packed = np.repeat(values, run_lengths)
 
-    bits = np.unpackbits(packed)[:h * w]
+    bits = np.unpackbits(packed)[: h * w]
     return (bits.reshape(h, w) * 255).astype(np.uint8)
+
 
 def rle_is_all_zeros(values):
     return np.all(values == 0)
+
 
 def rle_is_all_non_zeros(values):
     return np.all(values != 0)
@@ -156,7 +160,6 @@ def _slice(
             slice_position += component._layer_size
             actual_slice_position += 1.0
 
-
         slice_list.append(
             {
                 "image_name": f"{component.get_fully_qualified_name()}-slice{slice_num:04}.png",
@@ -168,6 +171,7 @@ def _slice(
         slice_num += 1
 
     print()
+
 
 def slice_component(
     component: "Component",
@@ -218,11 +222,7 @@ def slice_component(
     else:
         sliced_components.append(component)
         sliced_components_data.append(
-            {
-                "positions": [(component, x_pos, y_pos, z_pos)],
-                "slices": [],
-                "masks": {}
-            }
+            {"positions": [(component, x_pos, y_pos, z_pos)], "slices": [], "masks": {}}
         )
         component_index = len(sliced_components) - 1
 
@@ -236,7 +236,6 @@ def slice_component(
     if len(list(component.bulk_shapes.values())) == 0:
         raise RuntimeError("Tried to slice component without bulk shape")
     composite_shape = Shape.union(list(component.bulk_shapes.values()))
-    
 
     # Accumulate subcomponent bounding boxes and recursively process subcomponents.
     bbox_cubes = []
@@ -269,7 +268,6 @@ def slice_component(
     # Accumulate this component's shapes (e.g., voids or cutouts) and bbox cubes.
     if len(list(component.shapes.values()) + bbox_cubes) > 0:
         local_shapes = Shape.union(list(component.shapes.values()) + bbox_cubes)
-    
 
         # Subtract this component's shapes (e.g., voids or cutouts).
         if local_shapes is not None and composite_shape is None:

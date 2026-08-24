@@ -12,6 +12,7 @@ from pathlib import Path
 from collections.abc import Callable
 from manifold3d import set_circular_segments, Manifold, Mesh, CrossSection, OpType
 
+
 def _resolve_font_path(font: str) -> Path:
     """
     Resolve a font name or path to a font file.
@@ -124,7 +125,7 @@ class Shape:
         c._label = others[0]._label
 
         return c
-    
+
     @classmethod
     def difference(cls, shape: Shape, others: list[Shape]) -> Shape:
         """
@@ -168,9 +169,11 @@ class Shape:
         c._label = shape._label
 
         return c
-    
+
     @classmethod
-    def _batch_boolean_union_and_difference(cls, additions: list["Shape"], subtractions: list["Shape"]) -> "Shape":
+    def _batch_boolean_union_and_difference(
+        cls, additions: list["Shape"], subtractions: list["Shape"]
+    ) -> "Shape":
         """
         Add a list of shapes together, then subtract another list of shapes from the result.
 
@@ -597,7 +600,9 @@ class Shape:
         new_shape._keepouts = self._keepouts.copy()
         return new_shape
 
-    def _add_bbox_to_keepout(self, bbox: tuple[float, float, float, float, float, float]) -> None:
+    def _add_bbox_to_keepout(
+        self, bbox: tuple[float, float, float, float, float, float]
+    ) -> None:
         """
         Add a bounding box to keepouts.
 
@@ -786,7 +791,7 @@ class Sphere(Shape):
         center: bool = True,
         fn: int = 0,
         quiet: bool = False,
-        _no_validation: bool = False, 
+        _no_validation: bool = False,
     ) -> None:
         """
         Create a sphere.
@@ -1167,10 +1172,7 @@ class ImportModel(Shape):
         if hasattr(self._object, "bounding_box"):
             self._add_bbox_to_keepout(self._object.bounding_box())
 
-
-    def _load_to_manifold(
-        self, filename: str, quiet: bool = False
-    ) -> Manifold:
+    def _load_to_manifold(self, filename: str, quiet: bool = False) -> Manifold:
         """
         Load a 3D file and convert it to a Manifold3D object.
 
@@ -1197,13 +1199,15 @@ class ImportModel(Shape):
         if isinstance(mesh, trimesh.Scene):
             if not quiet:
                 print("\t🔁 Flattening scene...")
-            mesh = mesh.dump(concatenate=True) if hasattr(mesh, 'dump') else mesh.to_mesh()
+            mesh = (
+                mesh.dump(concatenate=True) if hasattr(mesh, "dump") else mesh.to_mesh()
+            )
 
         try:
             return self._mesh_to_manifold(mesh)
         except Exception as e:
             raise ValueError(f"❌ Failed to convert {filename} to Manifold: {e}")
-    
+
     def _mesh_to_manifold(self, mesh: trimesh.Trimesh, _internal=False) -> Manifold:
         """
         Convert a Trimesh object to a Manifold3D object.
@@ -1232,6 +1236,7 @@ class ImportModel(Shape):
                 )
             self._mesh_to_manifold(mesh, _internal=True)  # Retry conversion after repair
         return manifold
+
 
 class TPMS(Shape):
     """
@@ -1262,7 +1267,7 @@ class TPMS(Shape):
             + np.cos(a * x) * np.sin(a * y) * np.cos(a * z)
             + np.cos(a * x) * np.cos(a * y) * np.sin(a * z)
         )
-    
+
     @njit
     def gyroid(x: float, y: float, z: float) -> float:
         """
@@ -1284,7 +1289,7 @@ class TPMS(Shape):
             + np.cos(a * y) * np.sin(a * z)
             + np.cos(a * z) * np.sin(a * x)
         )
-    
+
     @njit
     def schwarz_p(x: float, y: float, z: float) -> float:
         """
@@ -1301,10 +1306,8 @@ class TPMS(Shape):
         - float: Level set value.
         """
         a = np.radians(360)
-        return (
-            np.cos(a*x) + np.cos(a*y) + np.cos(a*z)
-        )
-    
+        return np.cos(a * x) + np.cos(a * y) + np.cos(a * z)
+
     @njit
     def fischer_koch_s(x: float, y: float, z: float) -> float:
         """
@@ -1322,11 +1325,11 @@ class TPMS(Shape):
         """
         a = np.radians(360)
         return (
-            np.cos(a*2*x) * np.sin(a*y) * np.cos(a*x)
-            + np.cos(a*2*y) * np.sin(a*z) * np.cos(a*x)
-            + np.cos(a*2*z) * np.sin(a*x) * np.cos(a*y)
+            np.cos(a * 2 * x) * np.sin(a * y) * np.cos(a * x)
+            + np.cos(a * 2 * y) * np.sin(a * z) * np.cos(a * x)
+            + np.cos(a * 2 * z) * np.sin(a * x) * np.cos(a * y)
         )
-    
+
     @njit
     def double_diamond(x: float, y: float, z: float) -> float:
         """
@@ -1344,15 +1347,11 @@ class TPMS(Shape):
         """
         a = np.radians(360)
         return (
-            (
-                np.sin(2*a*x) * np.sin(2*a*y) 
-                + np.sin(2*a*y) * np.sin(2*a*z) 
-                + np.sin(2*a*x) * np.sin(2*a*z)
-            ) + (
-                np.cos(2*a*y) * np.cos(2*a*z) * np.cos(2*a*x)
-            )
-        )
-    
+            np.sin(2 * a * x) * np.sin(2 * a * y)
+            + np.sin(2 * a * y) * np.sin(2 * a * z)
+            + np.sin(2 * a * x) * np.sin(2 * a * z)
+        ) + (np.cos(2 * a * y) * np.cos(2 * a * z) * np.cos(2 * a * x))
+
     @njit
     def double_gyroid(x: float, y: float, z: float) -> float:
         """
@@ -1369,16 +1368,14 @@ class TPMS(Shape):
         - float: Level set value.
         """
         a = np.radians(360)
-        return (
-            2.75*(
-                np.sin(2*a*x) * np.sin(a*z) * np.cos(a*y) 
-                + np.sin(2*a*y) * np.sin(a*x) * np.cos(a*z) 
-                + np.sin(2*a*z) * np.sin(a*y) * np.cos(a*x)
-            ) - 1*(
-                np.cos(2*a*x) * np.cos(2*a*y) 
-                + np.cos(2*a*y) * np.cos(2*a*z) 
-                + np.cos(2*a*z) * np.cos(2*a*x)
-            )
+        return 2.75 * (
+            np.sin(2 * a * x) * np.sin(a * z) * np.cos(a * y)
+            + np.sin(2 * a * y) * np.sin(a * x) * np.cos(a * z)
+            + np.sin(2 * a * z) * np.sin(a * y) * np.cos(a * x)
+        ) - 1 * (
+            np.cos(2 * a * x) * np.cos(2 * a * y)
+            + np.cos(2 * a * y) * np.cos(2 * a * z)
+            + np.cos(2 * a * z) * np.cos(2 * a * x)
         )
 
     def __init__(
@@ -1416,7 +1413,6 @@ class TPMS(Shape):
         edge_length = 1 / refinement
         # self._object = Manifold.level_set(func, bounds, edge_length, level=fill)
 
-
         # eps = 1e-6
         # cell = Manifold.level_set(func, [0,0,0,1-eps,1-eps,1-eps], edge_length, level=fill)
         # copies = []
@@ -1429,7 +1425,9 @@ class TPMS(Shape):
         # self._object = Manifold.batch_boolean(copies, OpType.Add)
 
         eps = 1e-6
-        cell = Manifold.level_set(func, [0,0,0,1-eps,1-eps,1-eps], edge_length, level=fill)
+        cell = Manifold.level_set(
+            func, [0, 0, 0, 1 - eps, 1 - eps, 1 - eps], edge_length, level=fill
+        )
         mesh = cell.to_mesh()
         verts = np.array(mesh.vert_properties, dtype=np.float32)
         tris = np.array(mesh.tri_verts, dtype=np.uint32)
@@ -1457,9 +1455,6 @@ class TPMS(Shape):
         )
 
         self._object = Manifold(tiled_mesh)
-
-
-
 
         size = (
             size[0] * cells[0],

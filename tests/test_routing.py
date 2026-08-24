@@ -29,6 +29,7 @@ def _build_parent_component(size=(40, 30, 20)) -> Component:
     comp.add_bulk("device_bulk", Cube(size=size, center=False), label="device")
     return comp
 
+
 @pytest.mark.mesh
 def test_component_routing(tmp_path):
     comp = _build_parent_component()
@@ -36,6 +37,7 @@ def test_component_routing(tmp_path):
     comp.add_subcomponent("junction", TJunction())
 
     _render_and_validate(comp, tmp_path / "component_routing.glb")
+
 
 @pytest.mark.mesh
 def test_routing_fractional_path_render(tmp_path):
@@ -178,17 +180,14 @@ def test_polychannel():
     assert shape != bad_shape
 
     bezier_shape = BezierCurveShape(
-        control_points=[(0,0,0)],
+        control_points=[(0, 0, 0)],
         bezier_segments=5,
     )
     assert bezier_shape != "not_a_shape"
     assert bezier_shape == bezier_shape
 
     bad_bezier_shape = BezierCurveShape(
-        control_points=[("20",False,[])],
+        control_points=[("20", False, [])],
         bezier_segments=5,
     )
     assert bezier_shape != bad_bezier_shape
-
-    
-    

@@ -4,7 +4,6 @@ from pathlib import Path
 import importlib.util
 
 
-
 def _get_colors_dir() -> Path:
     """Return the absolute path to the bundled colors directory."""
     return Path(__file__).resolve().parent / "colors"

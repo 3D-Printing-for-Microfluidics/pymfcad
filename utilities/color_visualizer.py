@@ -11,7 +11,6 @@ from pymfcad.backend.color import (
     XKCD_COLORS,
 )
 
-
 GRID_COLS = 13
 GRID_ROWS = 13
 

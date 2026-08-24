@@ -23,7 +23,11 @@ class SerpentineChannel(Component):
         length = channel_size[0] * loops + channel_margin[0] * (loops + 1)
 
         super().__init__(
-            size=(length, width, channel_size[2]*layers + channel_margin[2]*(layers + 1)),
+            size=(
+                length,
+                width,
+                channel_size[2] * layers + channel_margin[2] * (layers + 1),
+            ),
             position=(0, 0, 0),
             px_size=px_size,
             layer_size=layer_size,
@@ -48,7 +52,11 @@ class SerpentineChannel(Component):
             "outlet",
             Port(
                 Port.PortType.OUT,
-                (length, width - 2 * channel_margin[1], layers*(channel_margin[2] + channel_size[2]) - channel_margin[2]),
+                (
+                    length,
+                    width - 2 * channel_margin[1],
+                    layers * (channel_margin[2] + channel_size[2]) - channel_margin[2],
+                ),
                 channel_size,
                 Port.SurfaceNormal.POS_X,
             ),
@@ -66,8 +74,11 @@ class SerpentineChannel(Component):
             (0.4, 0.0, 0.0),  # finish X to reach the outlet
         ]
 
-        router.route_with_fractional_path(self.inlet, self.outlet, simple_path, label="void")
+        router.route_with_fractional_path(
+            self.inlet, self.outlet, simple_path, label="void"
+        )
         router.finalize_routes()
+
 
 if __name__ == "__main__":
     SerpentineChannel().preview()

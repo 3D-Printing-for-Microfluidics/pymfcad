@@ -1,8 +1,7 @@
-
 import pymfcad
 
 component = pymfcad.Component(
-    size=(120, 40, 10), # X pixel count, Y pixel count, Z layer count
+    size=(120, 40, 10),  # X pixel count, Y pixel count, Z layer count
     position=(0, 0, 0),
     px_size=0.0076,
     layer_size=0.01,

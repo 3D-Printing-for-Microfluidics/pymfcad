@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+
 class SpecialPrintTechniques:
     def __init__(self):
         pass
@@ -22,11 +23,17 @@ class SpecialPrintTechniques:
         else:
             raise ValueError("Unsupported special print technique")
 
+
 class PrintUnderVacuum(SpecialPrintTechniques):
-    def __init__(self, enabled: bool = False, target_vacuum_level_torr: float = 10.0, vacuum_wait_time: float = 0.0):
+    def __init__(
+        self,
+        enabled: bool = False,
+        target_vacuum_level_torr: float = 10.0,
+        vacuum_wait_time: float = 0.0,
+    ):
         """
         Settings for printing under vacuum.
-        
+
         Parameters:
 
         - enabled: Whether to enable printing under vacuum.
@@ -52,6 +59,7 @@ class PrintUnderVacuum(SpecialPrintTechniques):
             vacuum_wait_time=data.get("Vacuum wait time (sec)", 0.0),
         )
 
+
 class ResinType:
     def __init__(
         self,
@@ -64,7 +72,7 @@ class ResinType:
     ):
         """
         Initialize the resin formulation.
-        
+
         Parameters:
 
         - bulk_exposure: Base exposure time for bulk polymerization in milliseconds.
@@ -90,14 +98,14 @@ class ResinType:
             - AdA, AdB - additives A and B
             - XX - number
 
-        
+
         """
 
         if not isinstance(bulk_exposure, (int, float)) or bulk_exposure <= 0:
             raise ValueError("bulk_exposure must be a positive number")
         if not isinstance(exposure_offset, (int, float)) or exposure_offset < 0:
             raise ValueError("exposure_offset must be a non-negative number")
-        
+
         if not isinstance(monomer, list) or not all(
             (isinstance(x, tuple) or isinstance(x, list)) and len(x) == 2 for x in monomer
         ):
@@ -192,6 +200,7 @@ class ResinType:
         with path.open("r", encoding="utf-8") as f:
             return cls.from_dict(json.load(f))
 
+
 class ExposureSettings:
     def __init__(
         self,
@@ -233,7 +242,7 @@ class ExposureSettings:
         - wait_before_exposure: float = 0.0,
         - wait_after_exposure: float = 0.0,
         """
-        
+
         self.image_file = None
         self.grayscale_correction = grayscale_correction
         self.image_x_offset = None
@@ -275,10 +284,8 @@ class ExposureSettings:
         if self.bulk_exposure_multiplier is None:
             return None
         return (
-            (resin.bulk_exposure - resin.exposure_offset)
-            * self.bulk_exposure_multiplier
-            + resin.exposure_offset
-        )
+            resin.bulk_exposure - resin.exposure_offset
+        ) * self.bulk_exposure_multiplier + resin.exposure_offset
 
     def fill_with_defaults(
         self, defaults: ExposureSettings = None, exceptions: list[str] = None
@@ -313,16 +320,20 @@ class ExposureSettings:
             temp_dict["Layer exposure time (ms)"] = self.get_exposure_time(resin)
         else:
             temp_dict["Layer exposure multiplier"] = self.bulk_exposure_multiplier
-        temp_dict.update({
-            "Light engine": self.light_engine,
-            "Light engine power setting": self.power_setting,
-            "Light engine wavelength (nm)": self.wavelength,
-            "Relative focus position (um)": self.relative_focus_position,
-            "Wait before exposure (ms)": self.wait_before_exposure,
-            "Wait after exposure (ms)": self.wait_after_exposure,
-        })
+        temp_dict.update(
+            {
+                "Light engine": self.light_engine,
+                "Light engine power setting": self.power_setting,
+                "Light engine wavelength (nm)": self.wavelength,
+                "Relative focus position (um)": self.relative_focus_position,
+                "Wait before exposure (ms)": self.wait_before_exposure,
+                "Wait after exposure (ms)": self.wait_after_exposure,
+            }
+        )
         if len(self.special_image_techniques) > 0:
-            temp_dict["Special image techniques"] = SpecialImageTechniques.to_dict(self.special_image_techniques)
+            temp_dict["Special image techniques"] = SpecialImageTechniques.to_dict(
+                self.special_image_techniques
+            )
         return temp_dict
 
     @classmethod
@@ -335,13 +346,17 @@ class ExposureSettings:
             relative_focus_position=data.get("Relative focus position (um)"),
             wait_before_exposure=data.get("Wait before exposure (ms)"),
             wait_after_exposure=data.get("Wait after exposure (ms)"),
-            special_image_techniques=[SpecialImageTechniques.from_dict(sit) for sit in data.get("Special image techniques", [])],
+            special_image_techniques=[
+                SpecialImageTechniques.from_dict(sit)
+                for sit in data.get("Special image techniques", [])
+            ],
         )
         c.image_file = data.get("Image file")
         c.image_x_offset = data.get("Image x offset (um)")
         c.image_y_offset = data.get("Image y offset (um)")
         c.light_engine = data.get("Light engine")
         return c
+
 
 class LightEngine:
     def __init__(
@@ -383,11 +398,16 @@ class LightEngine:
         ):
             raise ValueError("Pixel count must be a tuple of two positive integers")
         if (
-            not (isinstance(stitched_px_overlap, tuple) or isinstance(stitched_px_overlap, list))
+            not (
+                isinstance(stitched_px_overlap, tuple)
+                or isinstance(stitched_px_overlap, list)
+            )
             or len(stitched_px_overlap) != 2
             or not all(isinstance(x, int) and x >= 0 for x in stitched_px_overlap)
         ):
-            raise ValueError("Stitched pixel overlap must be a tuple of two non-negative integers")
+            raise ValueError(
+                "Stitched pixel overlap must be a tuple of two non-negative integers"
+            )
         if (
             not (isinstance(x_offset_limits, tuple) or isinstance(x_offset_limits, list))
             or len(x_offset_limits) != 2
@@ -433,7 +453,9 @@ class LightEngine:
             "px_size": self.px_size,
             "px_count": list(self.px_count),
             "wavelengths": list(self.wavelengths),
-            "default_exposure_settings": [es.to_dict() for es in self.default_exposure_settings],
+            "default_exposure_settings": [
+                es.to_dict() for es in self.default_exposure_settings
+            ],
             "grayscale_available": list(self.grayscale_available),
             "settle_time_ms": self.settle_time_ms,
             "stitched_px_overlap": list(self.stitched_px_overlap),
@@ -452,9 +474,13 @@ class LightEngine:
             y_offset_limits=tuple(data.get("y_offset_limits", (0, 0))),
             wavelengths=list(data.get("wavelengths", [365])),
             grayscale_available=list(data.get("grayscale_available", [False])),
-            default_exposure_settings=[ExposureSettings.from_dict(es) for es in data.get("default_exposure_settings", [{}])],
+            default_exposure_settings=[
+                ExposureSettings.from_dict(es)
+                for es in data.get("default_exposure_settings", [{}])
+            ],
             settle_time_ms=data.get("settle_time_ms", 0.0),
         )
+
 
 class PositionSettings:
     def __init__(
@@ -564,7 +590,9 @@ class PositionSettings:
             "Final wait (ms)": self.final_wait,
         }
         if len(self.special_layer_techniques) > 0:
-            temp_dict["Special layer techniques"] = SpecialLayerTechniques.to_dict(self.special_layer_techniques)
+            temp_dict["Special layer techniques"] = SpecialLayerTechniques.to_dict(
+                self.special_layer_techniques
+            )
         return temp_dict
 
     @classmethod
@@ -578,10 +606,14 @@ class PositionSettings:
             down_speed=data.get("BP down speed (mm/sec)"),
             down_acceleration=data.get("BP down acceleration (mm/sec^2)"),
             final_wait=data.get("Final wait (ms)"),
-            special_layer_techniques=[SpecialLayerTechniques.from_dict(slt) for slt in data.get("Special layer techniques", [])],
+            special_layer_techniques=[
+                SpecialLayerTechniques.from_dict(slt)
+                for slt in data.get("Special layer techniques", [])
+            ],
         )
         c.layer_thickness = data.get("Layer thickness (um)")
         return c
+
 
 class Printer:
     def __init__(
@@ -625,10 +657,7 @@ class Printer:
             if wavelength is None:
                 if le.px_size == px_size:
                     return le
-            if (
-                le.px_size == px_size
-                and wavelength in le.wavelengths
-            ):
+            if le.px_size == px_size and wavelength in le.wavelengths:
                 return le
         raise ValueError(
             f"No matching light engine found (px_size={px_size}, wavelength={wavelength})"
@@ -655,7 +684,7 @@ class Printer:
             vacuum_available=data.get("vacuum_available", False),
             default_position_settings=PositionSettings.from_dict(
                 data.get("default_position_settings", {})
-            )
+            ),
         )
 
     def save(self, file_path: str | Path):
@@ -670,6 +699,7 @@ class Printer:
         path = Path(file_path)
         with path.open("r", encoding="utf-8") as f:
             return cls.from_dict(json.load(f))
+
 
 class SpecialLayerTechniques:
     def __init__(self):
@@ -690,8 +720,15 @@ class SpecialLayerTechniques:
         else:
             raise ValueError("Unsupported special layer technique")
 
+
 class SqueezeOutResin(SpecialLayerTechniques):
-    def __init__(self, enabled: bool = False, count: int = 0, squeeze_force: float = 0.0, squeeze_time: float = 0.0):
+    def __init__(
+        self,
+        enabled: bool = False,
+        count: int = 0,
+        squeeze_force: float = 0.0,
+        squeeze_time: float = 0.0,
+    ):
         """
         Settings for squeezing out resin between layers.
 
@@ -724,6 +761,7 @@ class SqueezeOutResin(SpecialLayerTechniques):
             squeeze_time=data.get("Squeeze time (ms)", 0.0),
         )
 
+
 class SpecialImageTechniques:
     def __init__(self):
         pass
@@ -746,6 +784,7 @@ class SpecialImageTechniques:
             return PrintOnFilm.from_dict(data)
         else:
             raise ValueError("Unsupported special image technique")
+
 
 class ZeroMicronLayer(SpecialImageTechniques):
     def __init__(self, enabled: bool = False, count: int = 0):
@@ -773,8 +812,11 @@ class ZeroMicronLayer(SpecialImageTechniques):
             count=data.get("Zero micron count", 0),
         )
 
+
 class PrintOnFilm(SpecialImageTechniques):
-    def __init__(self, enabled: bool = False, distance_up_mm: float = 0.3, up_wait: float = 20000.0):
+    def __init__(
+        self, enabled: bool = False, distance_up_mm: float = 0.3, up_wait: float = 20000.0
+    ):
         """
         Settings for printing on film.
 
@@ -802,6 +844,7 @@ class PrintOnFilm(SpecialImageTechniques):
             distance_up_mm=data.get("Distance up (mm)", 0.3),
             up_wait=data.get("Up wait (ms)", 20000.0),
         )
+
 
 class MembraneSettings:
     def __init__(
@@ -846,6 +889,7 @@ class MembraneSettings:
             dilation_px=self.dilation_px,
             scan_for_membrane=self.scan_for_membrane,
         )
+
 
 class SecondaryDoseSettings:
     def __init__(

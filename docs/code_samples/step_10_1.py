@@ -31,34 +31,23 @@ device.add_bulk("bulk_shape", Cube(device._size, center=False), label="bulk")
 # device.preview()
 
 inlet_a = Pinhole()
-inlet_a.translate(
-    (0, 
-    500 - inlet_a._size[1]/2, 
-    DEVICE_Z/2 - inlet_a._size[2]/2
-    )
-)
+inlet_a.translate((0, 500 - inlet_a._size[1] / 2, DEVICE_Z / 2 - inlet_a._size[2] / 2))
 inlet_b = Pinhole()
 inlet_b.translate(
-    (0, 
-    (DEVICE_Y - 500) - inlet_b._size[1]/2, 
-    DEVICE_Z/2 - inlet_b._size[2]/2
-    )
+    (0, (DEVICE_Y - 500) - inlet_b._size[1] / 2, DEVICE_Z / 2 - inlet_b._size[2] / 2)
 )
 # Y‑junction near the left side
 y = YJunctionMixer()
-y.translate((DEVICE_X/3, DEVICE_Y/2, DEVICE_Z/2 - y._size[2]/2))
+y.translate((DEVICE_X / 3, DEVICE_Y / 2, DEVICE_Z / 2 - y._size[2] / 2))
 
 # Serpentine between Y‑junction and outlet
 serp = SerpentineChannel()
-serp.translate((DEVICE_X/2, 800 - serp._size[1]/2, DEVICE_Z/2 - serp._size[2]/2))
+serp.translate((DEVICE_X / 2, 800 - serp._size[1] / 2, DEVICE_Z / 2 - serp._size[2] / 2))
 
 # Outlet pinhole on the right side (flip to face inward)
 outlet = Pinhole().rotate(180)
 outlet.translate(
-    (DEVICE_X, 
-    DEVICE_Y/2 + outlet._size[1]/2, 
-    DEVICE_Z/2 - outlet._size[2]/2
-    )
+    (DEVICE_X, DEVICE_Y / 2 + outlet._size[1] / 2, DEVICE_Z / 2 - outlet._size[2] / 2)
 )
 
 device.add_subcomponent("inlet_a", inlet_a)

@@ -25,7 +25,7 @@ HR3v3 = Printer(
     ],
     xy_stage_available=False,
     vacuum_available=False,
-    default_position_settings = PositionSettings()
+    default_position_settings=PositionSettings(),
 )
 
 OS1v0 = Printer(
@@ -53,7 +53,7 @@ OS1v0 = Printer(
     ],
     xy_stage_available=True,
     vacuum_available=False,
-    default_position_settings = PositionSettings()
+    default_position_settings=PositionSettings(),
 )
 
 HR5 = Printer(
@@ -81,7 +81,7 @@ HR5 = Printer(
     ],
     xy_stage_available=True,
     vacuum_available=True,
-    default_position_settings = PositionSettings()
+    default_position_settings=PositionSettings(),
 )
 
 MR1v1 = Printer(
@@ -102,7 +102,7 @@ MR1v1 = Printer(
                     bulk_exposure_multiplier=10.0,
                     power_setting=300,
                     wavelength=365,
-                )
+                ),
             ],
             grayscale_available=[False, False],
             settle_time_ms=0.0,
@@ -127,9 +127,9 @@ MR1v1 = Printer(
             stitched_px_overlap=(0, 0),
             x_offset_limits=(-20000, 20000),
             y_offset_limits=(-50000, 50000),
-        )
+        ),
     ],
     xy_stage_available=True,
     vacuum_available=False,
-    default_position_settings = PositionSettings()
+    default_position_settings=PositionSettings(),
 )

@@ -8,13 +8,20 @@ import numpy as np
 from PIL import Image
 
 from .uniqueimagestore import get_unique_path
-from ..backend import rle_encode_packed, rle_decode_packed, rle_is_all_zeros, rle_is_all_non_zeros
+from ..backend import (
+    rle_encode_packed,
+    rle_decode_packed,
+    rle_is_all_zeros,
+    rle_is_all_non_zeros,
+)
+
 
 def get_slice_list_from_data(
     data: dict,
 ) -> list[dict]:
     """Get slice list from slice data."""
     return data["slices"]
+
 
 def get_mask_list_from_data(
     data: dict,
@@ -24,6 +31,7 @@ def get_mask_list_from_data(
     if "masks" in data and mask_key in data["masks"]:
         return data["masks"][mask_key]
     return None
+
 
 def get_slice(
     slice_data: list[dict],
@@ -40,6 +48,7 @@ def get_slice(
             return decoded
     return None
 
+
 def get_mask_from_masks_data(
     masks_data: list[dict],
     image_name: str,
@@ -52,6 +61,7 @@ def get_mask_from_masks_data(
                 return decoded
     return None
 
+
 def generate_position_images_from_folders(
     data: list[dict],
     mask_key: str,
@@ -62,11 +72,12 @@ def generate_position_images_from_folders(
     masks = get_mask_list_from_data(data, mask_key)
     if masks is None:
         return
-    
+
     for i, meta in enumerate(slices):
         mask = get_mask_from_masks_data(masks, meta["image_name"])
         if mask is not None:
             slices[i]["position_settings"] = settings
+
 
 def generate_exposure_images_from_folders(
     data: dict,
@@ -234,19 +245,30 @@ def generate_membrane_images_from_folders(
             mask = get_mask_from_masks_data(masks, curr_name)
             if mask is None:
                 continue
-            image = get_slice(slices[j]) # checks if all zeros
+            image = get_slice(slices[j])  # checks if all zeros
             if image is None:
                 continue
 
             if prev_image_index < 0:
                 prev_image = np.zeros_like(image, dtype=np.uint8)
             else:
-                prev_image = get_slice(slices[prev_image_index], invert_check=True) # checks if all ones
-                if prev_image is None and prev_image_index >= 0: # if all ones and mask is not all zeros, skip (no membrane)
-                    if get_mask_from_masks_data(masks, slices[prev_image_index]["image_name"]) is not None:
+                prev_image = get_slice(
+                    slices[prev_image_index], invert_check=True
+                )  # checks if all ones
+                if (
+                    prev_image is None and prev_image_index >= 0
+                ):  # if all ones and mask is not all zeros, skip (no membrane)
+                    if (
+                        get_mask_from_masks_data(
+                            masks, slices[prev_image_index]["image_name"]
+                        )
+                        is not None
+                    ):
                         continue
                     else:
-                        prev_image = get_slice(slices[prev_image_index], invert_check=None)
+                        prev_image = get_slice(
+                            slices[prev_image_index], invert_check=None
+                        )
                 elif prev_image is None:
                     continue
 
@@ -254,14 +276,23 @@ def generate_membrane_images_from_folders(
                 next_image = np.zeros_like(image, dtype=np.uint8)
             else:
                 next_image = get_slice(slices[next_image_index], invert_check=True)
-                if next_image is None and next_image_index < len(slices): # if all ones and mask is not all zeros, skip (no membrane)
-                    if get_mask_from_masks_data(masks, slices[next_image_index]["image_name"]) is not None:
+                if next_image is None and next_image_index < len(
+                    slices
+                ):  # if all ones and mask is not all zeros, skip (no membrane)
+                    if (
+                        get_mask_from_masks_data(
+                            masks, slices[next_image_index]["image_name"]
+                        )
+                        is not None
+                    ):
                         continue
                     else:
-                        next_image = get_slice(slices[next_image_index], invert_check=None)
+                        next_image = get_slice(
+                            slices[next_image_index], invert_check=None
+                        )
                 elif next_image is None:
                     continue
-            
+
             # make mask where both prev and next images are black and mask is white
             tmp = cv2.bitwise_and(
                 cv2.bitwise_not(prev_image),
@@ -313,6 +344,7 @@ def generate_membrane_images_from_folders(
                     flush=True,
                 )
                 cv2.imwrite(str(membrane_output_path), dilated_membrane)
+
 
 def generate_secondary_images_from_folders(
     data: dict,

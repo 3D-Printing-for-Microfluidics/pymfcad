@@ -21,34 +21,42 @@ from .uniqueimagestore import get_unique_path, load_image_from_file, UniqueImage
 from .json_prettier import pretty_json
 
 from .settings import (
-            Printer,
-            ResinType,
-            MembraneSettings,
-            SecondaryDoseSettings,
-            ExposureSettings,
-            PositionSettings,
-        )
+    Printer,
+    ResinType,
+    MembraneSettings,
+    SecondaryDoseSettings,
+    ExposureSettings,
+    PositionSettings,
+)
 
 from .image_generation import (
-            generate_membrane_images_from_folders,
-            generate_secondary_images_from_folders,
-            generate_exposure_images_from_folders,
-            generate_position_images_from_folders,
-        )
+    generate_membrane_images_from_folders,
+    generate_secondary_images_from_folders,
+    generate_exposure_images_from_folders,
+    generate_position_images_from_folders,
+)
+
 
 class Workspace:
     """
-    A Workspace defines an exposure area based on a light engine and stitching parameters, centered 
-    around its given position. A Workspace is initialized with a printer and pixel size, which it uses 
-    to look up the appropriate light engine. Multiple components can be placed in the Workspace, and it 
-    checks that they fit within the light engine's exposure region. If a subcomponent somewhere in a 
-    component's hierarchy uses a different light engine than its parent, you can adjust the light engine 
+    A Workspace defines an exposure area based on a light engine and stitching parameters, centered
+    around its given position. A Workspace is initialized with a printer and pixel size, which it uses
+    to look up the appropriate light engine. Multiple components can be placed in the Workspace, and it
+    checks that they fit within the light engine's exposure region. If a subcomponent somewhere in a
+    component's hierarchy uses a different light engine than its parent, you can adjust the light engine
     exposure position for that subcomponent.
     """
-    def __init__(self, printer: Printer, pixel_size: float, exposure_abs_pos_um: tuple[float, float], light_engine_stitching: tuple[int, int] = (1,1)):
+
+    def __init__(
+        self,
+        printer: Printer,
+        pixel_size: float,
+        exposure_abs_pos_um: tuple[float, float],
+        light_engine_stitching: tuple[int, int] = (1, 1),
+    ):
         """
         Initialize a Workspace.
-        
+
         Parameters:
         - printer: The printer object containing printer settings.
         - pixel_size: The pixel size of the components in the workspace.
@@ -65,12 +73,24 @@ class Workspace:
         self.subcomponent_adjustments = {}
 
         # validate that the stitching configuration is compatible with the light engine's pixel count and overlap
-        region_width_px = self.le.px_count[0] * self.stitching[0] - self.le.stitched_px_overlap[0] * (self.stitching[0] - 1)
-        region_height_px = self.le.px_count[1] * self.stitching[1] - self.le.stitched_px_overlap[1] * (self.stitching[1] - 1)
-        region_min_x_pos = -region_width_px/2 + self.le.px_count[0]/2 +  exposure_abs_pos_um[0]
-        region_min_y_pos = -region_height_px/2 + self.le.px_count[1]/2 + exposure_abs_pos_um[1]
-        region_max_x_pos = region_width_px/2 - self.le.px_count[0]/2 + exposure_abs_pos_um[0]
-        region_max_y_pos = region_height_px/2 - self.le.px_count[1]/2 + exposure_abs_pos_um[1]
+        region_width_px = self.le.px_count[0] * self.stitching[
+            0
+        ] - self.le.stitched_px_overlap[0] * (self.stitching[0] - 1)
+        region_height_px = self.le.px_count[1] * self.stitching[
+            1
+        ] - self.le.stitched_px_overlap[1] * (self.stitching[1] - 1)
+        region_min_x_pos = (
+            -region_width_px / 2 + self.le.px_count[0] / 2 + exposure_abs_pos_um[0]
+        )
+        region_min_y_pos = (
+            -region_height_px / 2 + self.le.px_count[1] / 2 + exposure_abs_pos_um[1]
+        )
+        region_max_x_pos = (
+            region_width_px / 2 - self.le.px_count[0] / 2 + exposure_abs_pos_um[0]
+        )
+        region_max_y_pos = (
+            region_height_px / 2 - self.le.px_count[1] / 2 + exposure_abs_pos_um[1]
+        )
         le_x_limits, le_y_limits = self.le.x_offset_limits, self.le.y_offset_limits
         if region_min_x_pos < le_x_limits[0] or region_max_x_pos > le_x_limits[1]:
             raise ValueError(
@@ -99,25 +119,52 @@ class Workspace:
 
         # validate that the component fits within the light engine's exposure region based on the stitching configuration and the component's position
         px_count = self.le.px_count
-        stitched_px_overlap=self.le.stitched_px_overlap
+        stitched_px_overlap = self.le.stitched_px_overlap
 
-        if self.stitching == (0,0):
+        if self.stitching == (0, 0):
             # calculate the number of tiles needed in x and y directions
-            stitching_x = max(1, math.ceil((component.get_size()[0] - px_count[0]) / (px_count[0] - stitched_px_overlap[0])) + 1)
-            stitching_y = max(1, math.ceil((component.get_size()[1] - px_count[1]) / (px_count[1] - stitched_px_overlap[1])) + 1)
+            stitching_x = max(
+                1,
+                math.ceil(
+                    (component.get_size()[0] - px_count[0])
+                    / (px_count[0] - stitched_px_overlap[0])
+                )
+                + 1,
+            )
+            stitching_y = max(
+                1,
+                math.ceil(
+                    (component.get_size()[1] - px_count[1])
+                    / (px_count[1] - stitched_px_overlap[1])
+                )
+                + 1,
+            )
             self.stitching = (stitching_x, stitching_y)
             if self.stitching[0] > 1 or self.stitching[1] > 1:
-                print(f"⚠️ Warning: Component size {component.get_size()} exceeds light engine pixel count {px_count} with overlap {stitched_px_overlap}. Automatically adjusting stitching to {self.stitching}.")
+                print(
+                    f"⚠️ Warning: Component size {component.get_size()} exceeds light engine pixel count {px_count} with overlap {stitched_px_overlap}. Automatically adjusting stitching to {self.stitching}."
+                )
 
-
-        region_width_px = px_count[0] * self.stitching[0] - stitched_px_overlap[0] * (self.stitching[0] - 1)
-        region_height_px = px_count[1] * self.stitching[1] - stitched_px_overlap[1] * (self.stitching[1] - 1)
-        component_width_px, component_height_px, _ = component.get_size(self.pixel_size, component._layer_size)
-        if component._position[0] - component_width_px / 2 < -region_width_px / 2 or component._position[0] + component_width_px / 2 > region_width_px / 2:
+        region_width_px = px_count[0] * self.stitching[0] - stitched_px_overlap[0] * (
+            self.stitching[0] - 1
+        )
+        region_height_px = px_count[1] * self.stitching[1] - stitched_px_overlap[1] * (
+            self.stitching[1] - 1
+        )
+        component_width_px, component_height_px, _ = component.get_size(
+            self.pixel_size, component._layer_size
+        )
+        if (
+            component._position[0] - component_width_px / 2 < -region_width_px / 2
+            or component._position[0] + component_width_px / 2 > region_width_px / 2
+        ):
             raise ValueError(
                 f"Component at relative position {component._position} with width {component_width_px} exceeds the light engine's exposure region width {region_width_px}."
             )
-        if component._position[1] - component_height_px / 2 < -region_height_px / 2 or component._position[1] + component_height_px / 2 > region_height_px / 2:
+        if (
+            component._position[1] - component_height_px / 2 < -region_height_px / 2
+            or component._position[1] + component_height_px / 2 > region_height_px / 2
+        ):
             raise ValueError(
                 f"Component at relative position {component._position} with height {component_height_px} exceeds the light engine's exposure region height {region_height_px}."
             )
@@ -126,12 +173,14 @@ class Workspace:
             raise ValueError(
                 f"Component with name '{name}' already exists in the workspace. Please use a unique name."
             )
-        
+
         self.centered.append(centered)
         component._name = name
         self.components.append(component)
 
-    def adjust_subcomponent_light_engine_position(self, subcomponent_fqn: str, exposure_rel_pos_um: tuple[float, float]):
+    def adjust_subcomponent_light_engine_position(
+        self, subcomponent_fqn: str, exposure_rel_pos_um: tuple[float, float]
+    ):
         """
         Adjust the light engine exposure position for a subcomponent which uses a different light engine than the parent component.
 
@@ -142,15 +191,24 @@ class Workspace:
         # check that top-level component is in workspace
         subcomponent_fqn_parts = subcomponent_fqn.strip().split(".")
         top_level_component = subcomponent_fqn_parts[0]
-        if top_level_component not in [comp.get_fully_qualified_name() for comp in self.components]:
+        if top_level_component not in [
+            comp.get_fully_qualified_name() for comp in self.components
+        ]:
             raise ValueError(
                 f"Subcomponent {subcomponent_fqn} is not part of this component workspace."
             )
 
         # check that subcomponent_fqn is a valid subcomponent of the top-level component
-        component = next(comp for comp in self.components if comp.get_fully_qualified_name() == top_level_component)
+        component = next(
+            comp
+            for comp in self.components
+            if comp.get_fully_qualified_name() == top_level_component
+        )
         for part in subcomponent_fqn_parts[1:]:
-            if not hasattr(component, "subcomponents") or part not in component.subcomponents:
+            if (
+                not hasattr(component, "subcomponents")
+                or part not in component.subcomponents
+            ):
                 raise ValueError(
                     f"Subcomponent {subcomponent_fqn} is not part of this component workspace."
                 )
@@ -198,17 +256,32 @@ class Workspace:
             y_offset_um = self.exposure_abs_pos_um[1]
 
             # add component position (center) relative to the root component (center)
-            component_pos = component.get_position(px_size=root_component._px_size, layer_size=root_component._layer_size)
-            component_size = component.get_size(px_size=root_component._px_size, layer_size=root_component._layer_size)
-            x_offset_um += (component_pos[0] + (component_size[0] - root_component._size[0] ) / 2) * root_component._px_size * 1000
-            y_offset_um += (component_pos[1] + (component_size[1] - root_component._size[1]) / 2) * root_component._px_size * 1000
+            component_pos = component.get_position(
+                px_size=root_component._px_size, layer_size=root_component._layer_size
+            )
+            component_size = component.get_size(
+                px_size=root_component._px_size, layer_size=root_component._layer_size
+            )
+            x_offset_um += (
+                (component_pos[0] + (component_size[0] - root_component._size[0]) / 2)
+                * root_component._px_size
+                * 1000
+            )
+            y_offset_um += (
+                (component_pos[1] + (component_size[1] - root_component._size[1]) / 2)
+                * root_component._px_size
+                * 1000
+            )
 
             if component.get_fully_qualified_name() in self.subcomponent_adjustments:
-                x_offset_um += self.subcomponent_adjustments[component.get_fully_qualified_name()][0]
-                y_offset_um += self.subcomponent_adjustments[component.get_fully_qualified_name()][1]
-                
-            return x_offset_um, y_offset_um
+                x_offset_um += self.subcomponent_adjustments[
+                    component.get_fully_qualified_name()
+                ][0]
+                y_offset_um += self.subcomponent_adjustments[
+                    component.get_fully_qualified_name()
+                ][1]
 
+            return x_offset_um, y_offset_um
 
 
 class PrintFileGenerator:
@@ -227,8 +300,8 @@ class PrintFileGenerator:
         zip_output: bool = True,
     ):
         """
-        Initialize the PrintFileGenerator. Accepts either a component or a list of workspaces. 
-        If a component is provided, it will be wrapped in a default workspace for slicing. If 
+        Initialize the PrintFileGenerator. Accepts either a component or a list of workspaces.
+        If a component is provided, it will be wrapped in a default workspace for slicing. If
         multiple components are going to be printed, they should be placed in a workspace.
 
         Parameters:
@@ -253,7 +326,14 @@ class PrintFileGenerator:
             )
         if component is not None:
             # create a component workspace for the single component
-            workspaces = [Workspace(printer, component._px_size, exposure_abs_pos_um=(0, 0), light_engine_stitching=(0,0))]
+            workspaces = [
+                Workspace(
+                    printer,
+                    component._px_size,
+                    exposure_abs_pos_um=(0, 0),
+                    light_engine_stitching=(0, 0),
+                )
+            ]
             workspaces[0].add_component(filename, component)
 
         if special_print_techniques is None:
@@ -349,13 +429,15 @@ class PrintFileGenerator:
             try:
                 relative_path = file_path.relative_to(base_dir)
             except ValueError:
-                relative_path = file_path.name  # if not under base_dir, just use the filename
-    
+                relative_path = (
+                    file_path.name
+                )  # if not under base_dir, just use the filename
+
             destination = target_dir / relative_path
             destination.parent.mkdir(parents=True, exist_ok=True)
             shutil.copy2(file_path, destination)
             return relative_path
-        
+
         target_dir = Path(target_dir)
         target_dir.mkdir(parents=True, exist_ok=True)
 
@@ -408,7 +490,6 @@ class PrintFileGenerator:
                 current = parent
             return x_mm, y_mm, z_mm
 
-
         # Get parent or top-level default settings
         _position_settings = None
         _exposure_settings = None
@@ -417,7 +498,9 @@ class PrintFileGenerator:
             _exposure_settings = component._parent.default_exposure_settings
         else:
             _position_settings = self.printer.default_position_settings
-            _exposure_settings = self.printer._get_light_engine(component._px_size).default_exposure_settings[0]
+            _exposure_settings = self.printer._get_light_engine(
+                component._px_size
+            ).default_exposure_settings[0]
 
         # Fill component default settings
         if component.default_exposure_settings is None:
@@ -428,7 +511,6 @@ class PrintFileGenerator:
             component.default_position_settings = copy.deepcopy(_position_settings)
         else:
             component.default_position_settings.fill_with_defaults(_position_settings)
-
 
         root_component = _get_root_component(component)
 
@@ -471,7 +553,9 @@ class PrintFileGenerator:
         ###### Fill slice info settings ######
         for i, slice in enumerate(info["slices"]):
             slice["position_settings"] = component.default_position_settings
-            slice["exposure_settings"] = copy.deepcopy(component.default_exposure_settings)
+            slice["exposure_settings"] = copy.deepcopy(
+                component.default_exposure_settings
+            )
             # slice["exposure_settings"].image_x_offset = (
             #     component.default_exposure_settings.image_x_offset
             # )
@@ -492,8 +576,8 @@ class PrintFileGenerator:
                         "Resin bulk exposure must differ from exposure_offset to compute burn-in multiplier."
                     )
                 slice["exposure_settings"].bulk_exposure_multiplier = (
-                    (burnin_ms - resin.exposure_offset) / denom
-                )
+                    burnin_ms - resin.exposure_offset
+                ) / denom
                 slice["exposure_settings"].burnin = True
 
     def _fill_component_offsets(self, component, info):
@@ -527,9 +611,7 @@ class PrintFileGenerator:
         root_component = _get_root_component(component)
 
         # Add z_offset to slices
-        _, _, origin_z_mm = _relative_origin_mm(
-            component, root_component
-        )
+        _, _, origin_z_mm = _relative_origin_mm(component, root_component)
         z_offset_um = origin_z_mm * 1000
         for slice_info in info["slices"]:
             slice_info["layer_position"] = round(
@@ -546,12 +628,18 @@ class PrintFileGenerator:
         # Set image offsets
         component_offset_x_um, component_offset_y_um = None, None
         for workspace in self.workspaces:
-            component_offset_x_um, component_offset_y_um = workspace._get_component_le_offset(component)
+            component_offset_x_um, component_offset_y_um = (
+                workspace._get_component_le_offset(component)
+            )
             if component_offset_x_um is not None and component_offset_y_um is not None:
                 break
 
-        component.default_exposure_settings.image_x_offset = -round(component_offset_x_um,1)
-        component.default_exposure_settings.image_y_offset = -round(component_offset_y_um,1)
+        component.default_exposure_settings.image_x_offset = -round(
+            component_offset_x_um, 1
+        )
+        component.default_exposure_settings.image_y_offset = -round(
+            component_offset_y_um, 1
+        )
         if component.default_exposure_settings.image_x_offset == -0.0:
             component.default_exposure_settings.image_x_offset = 0.0
         if component.default_exposure_settings.image_y_offset == -0.0:
@@ -571,83 +659,92 @@ class PrintFileGenerator:
                 component.default_exposure_settings.light_engine
             )
 
+    def _make_secondary_images(
+        self,
+        sliced_components,
+        sliced_components_data,
+        temp_directory,
+        save_temp_files=False,
+    ):
+        print("Make secondary images...")
+        for component, info in zip(sliced_components, sliced_components_data):
+            print(f"\t{component.get_fully_qualified_name()}")
 
-    def _make_secondary_images(self, sliced_components, sliced_components_data, temp_directory, save_temp_files=False):
-            print("Make secondary images...")
-            for component, info in zip(sliced_components, sliced_components_data):
-                print(f"\t{component.get_fully_qualified_name()}")
-    
-                # Fill default settings for sliced components
-                self._fill_component_default_settings(component, info, fill_layer_position=False)
-    
-                # Generate secondary, membrane, and regional images
-                component_subdirectory = temp_directory / component.get_fully_qualified_name()
-    
-                component_index = sliced_components.index(component)
-                for name, (_, settings) in component.regional_settings.items():
-                    if settings is None:
-                        continue
-                    masks_subdirectory = (
-                        temp_directory / "masks" / component.get_fully_qualified_name() / name
+            # Fill default settings for sliced components
+            self._fill_component_default_settings(
+                component, info, fill_layer_position=False
+            )
+
+            # Generate secondary, membrane, and regional images
+            component_subdirectory = temp_directory / component.get_fully_qualified_name()
+
+            component_index = sliced_components.index(component)
+            for name, (_, settings) in component.regional_settings.items():
+                if settings is None:
+                    continue
+                masks_subdirectory = (
+                    temp_directory / "masks" / component.get_fully_qualified_name() / name
+                )
+
+                if isinstance(settings, MembraneSettings):
+                    settings.exposure_settings.fill_with_defaults(
+                        component.default_exposure_settings,
+                        exceptions=["bulk_exposure_multiplier"],
                     )
-    
-                    if isinstance(settings, MembraneSettings):
-                        settings.exposure_settings.fill_with_defaults(
-                            component.default_exposure_settings,
-                            exceptions=["bulk_exposure_multiplier"],
-                        )
-                        generate_membrane_images_from_folders(
-                            data=sliced_components_data[component_index],
-                            image_dir=component_subdirectory,
-                            mask_key=name,
-                            membrane_settings=settings,
-                            save_temp_files=save_temp_files,
-                        )
-    
-                    if isinstance(settings, SecondaryDoseSettings):
-                        settings.edge_exposure_settings.fill_with_defaults(
-                            component.default_exposure_settings,
-                            exceptions=["bulk_exposure_multiplier"],
-                        )
-                        settings.roof_exposure_settings.fill_with_defaults(
-                            component.default_exposure_settings,
-                            exceptions=["bulk_exposure_multiplier"],
-                        )
-                        generate_secondary_images_from_folders(
-                            data=sliced_components_data[component_index],
-                            image_dir=component_subdirectory,
-                            mask_key=name,
-                            settings=settings,
-                            resin=self.resin,
-                            save_temp_files=save_temp_files,
-                        )
-    
-                    if isinstance(settings, ExposureSettings):
-                        settings.fill_with_defaults(
-                            component.default_exposure_settings,
-                        )
-                        generate_exposure_images_from_folders(
-                            data=sliced_components_data[component_index],
-                            image_dir=component_subdirectory,
-                            mask_key=name,
-                            settings=settings,
-                            save_temp_files=save_temp_files,
-                        )
-    
-                    if isinstance(settings, PositionSettings):
-                        settings.fill_with_defaults(
-                            component.default_position_settings,
-                        )
-                        generate_position_images_from_folders(
-                            data=sliced_components_data[component_index],
-                            mask_key=name,
-                            settings=settings,
-                        )
-            return sliced_components, sliced_components_data
+                    generate_membrane_images_from_folders(
+                        data=sliced_components_data[component_index],
+                        image_dir=component_subdirectory,
+                        mask_key=name,
+                        membrane_settings=settings,
+                        save_temp_files=save_temp_files,
+                    )
+
+                if isinstance(settings, SecondaryDoseSettings):
+                    settings.edge_exposure_settings.fill_with_defaults(
+                        component.default_exposure_settings,
+                        exceptions=["bulk_exposure_multiplier"],
+                    )
+                    settings.roof_exposure_settings.fill_with_defaults(
+                        component.default_exposure_settings,
+                        exceptions=["bulk_exposure_multiplier"],
+                    )
+                    generate_secondary_images_from_folders(
+                        data=sliced_components_data[component_index],
+                        image_dir=component_subdirectory,
+                        mask_key=name,
+                        settings=settings,
+                        resin=self.resin,
+                        save_temp_files=save_temp_files,
+                    )
+
+                if isinstance(settings, ExposureSettings):
+                    settings.fill_with_defaults(
+                        component.default_exposure_settings,
+                    )
+                    generate_exposure_images_from_folders(
+                        data=sliced_components_data[component_index],
+                        image_dir=component_subdirectory,
+                        mask_key=name,
+                        settings=settings,
+                        save_temp_files=save_temp_files,
+                    )
+
+                if isinstance(settings, PositionSettings):
+                    settings.fill_with_defaults(
+                        component.default_position_settings,
+                    )
+                    generate_position_images_from_folders(
+                        data=sliced_components_data[component_index],
+                        mask_key=name,
+                        settings=settings,
+                    )
+        return sliced_components, sliced_components_data
 
     def _sort_sliced_components(self, sliced_components, sliced_components_data):
-        info_by_id = {id(dev): info for dev, info in zip(sliced_components, sliced_components_data)}
-        
+        info_by_id = {
+            id(dev): info for dev, info in zip(sliced_components, sliced_components_data)
+        }
+
         # Sort by dependency order. We need to find the components with no subcomponents first, then their parents, and so on.
         _sliced_components = []
         while len(_sliced_components) < len(sliced_components):
@@ -656,7 +753,8 @@ class PrintFileGenerator:
                     continue
                 positions = info.get("positions", [])
                 if all(
-                    component._parent is None or component._parent in _sliced_components for component, _, _, _ in positions
+                    component._parent is None or component._parent in _sliced_components
+                    for component, _, _, _ in positions
                 ):
                     _sliced_components.append(component)
         _sliced_components_data = [info_by_id[id(dev)] for dev in _sliced_components]
@@ -666,18 +764,11 @@ class PrintFileGenerator:
         # Build a unique filename including z (and keep original name suffix)
         # Example: original 'slice_01.png' -> 'slice_01_z10.png' (or use get_unique_path)
         name_no_ext = base_name.rsplit(".", 1)[0]
-        ext = (
-            "." + base_name.rsplit(".", 1)[1]
-            if "." in base_name
-            else ".png"
-        )
+        ext = "." + base_name.rsplit(".", 1)[1] if "." in base_name else ".png"
         new_name = f"{name_no_ext}_z{z}{ext}"
 
         # ensure directory exists
-        out_dir = (
-            temp_directory
-            / parent_fqn
-        )
+        out_dir = temp_directory / parent_fqn
         out_dir.mkdir(parents=True, exist_ok=True)
 
         slice_image_path = out_dir / new_name
@@ -689,18 +780,20 @@ class PrintFileGenerator:
         return slice_image_path
 
     def _embed_component_slices(
-            self,
-            sliced_components,
-            sliced_components_data,
-            temp_directory,
-            save_temp_files
-        ):
+        self, sliced_components, sliced_components_data, temp_directory, save_temp_files
+    ):
         embedded_components = []
-        info_by_id = {id(dev): info for dev, info in zip(sliced_components, sliced_components_data)}
+        info_by_id = {
+            id(dev): info for dev, info in zip(sliced_components, sliced_components_data)
+        }
 
         # Embed the slices for each component
-        _sorted_components, _sorted_components_data = self._sort_sliced_components(sliced_components, sliced_components_data)
-        for component, info in zip(_sorted_components, _sorted_components_data): # Sort sliced components by dependency order
+        _sorted_components, _sorted_components_data = self._sort_sliced_components(
+            sliced_components, sliced_components_data
+        )
+        for component, info in zip(
+            _sorted_components, _sorted_components_data
+        ):  # Sort sliced components by dependency order
             print(f"\tEmbedding {component.get_fully_qualified_name()}...")
             slice_list = []
             slice_list.extend(info.get("slices", []))
@@ -716,7 +809,7 @@ class PrintFileGenerator:
                 if _id not in parents.keys():
                     parents[_id] = {"component": parent, "positions": [pos]}
                 else:
-                    parents[id(parent)]["positions"].append(pos) 
+                    parents[id(parent)]["positions"].append(pos)
 
             # copy slices from component into parent component (translated correctly)
             for _parent_data in parents.values():
@@ -726,7 +819,10 @@ class PrintFileGenerator:
 
                 # handle top level components and embedded alt-resolutions
                 for pos in parent_positions:
-                    if parent_component is None or parent_component._px_size != component._px_size:
+                    if (
+                        parent_component is None
+                        or parent_component._px_size != component._px_size
+                    ):
                         # duplicate info for each if more than 1 copy
                         if len(parent_positions) > 1:
                             _info = copy.deepcopy(info)
@@ -756,13 +852,13 @@ class PrintFileGenerator:
                             int(parent_component.get_size()[0]),
                             int(parent_component.get_size()[1]),
                         )
-                    
+
                         # handle remaining components
                         for slice_index, slice in enumerate(slice_list):
                             # Load the base slice image once (if it exists)
                             slice_img = slice["image_data"]
                             slice_img2 = rle_decode_packed(*slice_img)
-                        
+
                             x = pos[1]
                             y = pos[2]
                             z = round(pos[3], 4)
@@ -791,7 +887,9 @@ class PrintFileGenerator:
                                     {
                                         "image_name": slice_image_path.name,
                                         "parent": None,
-                                        "image_data": rle_encode_packed(embedded_slice_image),
+                                        "image_data": rle_encode_packed(
+                                            embedded_slice_image
+                                        ),
                                         "component": None,
                                         "position": None,
                                         "layer_position": (
@@ -807,14 +905,17 @@ class PrintFileGenerator:
                                 )
                 print()
 
-
         ################################################################################
 
         return embedded_components
 
     def _calculate_stitching_sizes(self, le, stitching_parameters):
-        max_width = le.px_count[0]*stitching_parameters[0] - le.stitched_px_overlap[0]*(stitching_parameters[0]-1)
-        max_height = le.px_count[1]*stitching_parameters[1] - le.stitched_px_overlap[1]*(stitching_parameters[1]-1)
+        max_width = le.px_count[0] * stitching_parameters[0] - le.stitched_px_overlap[
+            0
+        ] * (stitching_parameters[0] - 1)
+        max_height = le.px_count[1] * stitching_parameters[1] - le.stitched_px_overlap[
+            1
+        ] * (stitching_parameters[1] - 1)
         step_x = le.px_count[0] - le.stitched_px_overlap[0]
         step_y = le.px_count[1] - le.stitched_px_overlap[1]
 
@@ -824,10 +925,12 @@ class PrintFileGenerator:
         """
         Calculate the x and y offset (in um) for a specific tile in a stitched image. (center of both workspace and tile is 0,0)
         """
-        max_width, max_height, step_x, step_y = self._calculate_stitching_sizes(le, stitching)
+        max_width, max_height, step_x, step_y = self._calculate_stitching_sizes(
+            le, stitching
+        )
 
         # calculate the offset of the tile in px
-        x_offset_px =  (le.px_count[0] - max_width) / 2 + (tile_x * step_x)
+        x_offset_px = (le.px_count[0] - max_width) / 2 + (tile_x * step_x)
         y_offset_px = (le.px_count[1] - max_height) / 2 + (tile_y * step_y)
 
         # convert the offset to um
@@ -852,13 +955,23 @@ class PrintFileGenerator:
                     break
 
         # calculate the position of the component's slice within the light engine's exposure region (and stitching if not available)
-        if workspace is not None and (workspace.stitching != (0,0) and self.printer.xy_stage_available):
+        if workspace is not None and (
+            workspace.stitching != (0, 0) and self.printer.xy_stage_available
+        ):
             index = workspace.components.index(component)
-            position = [workspace.components[index].get_position()[0], workspace.components[index].get_position()[1]]
-            stitching = workspace.stitching 
+            position = [
+                workspace.components[index].get_position()[0],
+                workspace.components[index].get_position()[1],
+            ]
+            stitching = workspace.stitching
 
             if workspace.centered[index]:
-                max_width, max_height, step_x, step_y = self._calculate_stitching_sizes(self.printer._get_light_engine(component._px_size, component.default_exposure_settings.wavelength), stitching)
+                max_width, max_height, step_x, step_y = self._calculate_stitching_sizes(
+                    self.printer._get_light_engine(
+                        component._px_size, component.default_exposure_settings.wavelength
+                    ),
+                    stitching,
+                )
                 position[0] += (max_width - component.get_size()[0]) / 2
                 position[1] += (max_height - component.get_size()[1]) / 2
             position = (int(position[0]), int(position[1]))
@@ -872,17 +985,37 @@ class PrintFileGenerator:
             le_stitched_px_overlap = le.stitched_px_overlap
 
             # calculate the number of tiles needed in x and y directions
-            stitching_x = max(1, math.ceil((component.get_size()[0] - le_region_size_px[0]) / (le_region_size_px[0] - le_stitched_px_overlap[0])) + 1)
-            stitching_y = max(1, math.ceil((component.get_size()[1] - le_region_size_px[1]) / (le_region_size_px[1] - le_stitched_px_overlap[1])) + 1)
+            stitching_x = max(
+                1,
+                math.ceil(
+                    (component.get_size()[0] - le_region_size_px[0])
+                    / (le_region_size_px[0] - le_stitched_px_overlap[0])
+                )
+                + 1,
+            )
+            stitching_y = max(
+                1,
+                math.ceil(
+                    (component.get_size()[1] - le_region_size_px[1])
+                    / (le_region_size_px[1] - le_stitched_px_overlap[1])
+                )
+                + 1,
+            )
             stitching = (stitching_x, stitching_y)
             if stitching != (1, 1):
-                print(f"\t⚠️ Component {component.get_fully_qualified_name()} requires stitching: {stitching} (light engine: {le.name})")
+                print(
+                    f"\t⚠️ Component {component.get_fully_qualified_name()} requires stitching: {stitching} (light engine: {le.name})"
+                )
 
-            max_width, max_height, step_x, step_y = self._calculate_stitching_sizes(le, stitching)
+            max_width, max_height, step_x, step_y = self._calculate_stitching_sizes(
+                le, stitching
+            )
 
             # calculate the position of the component within the light engine's exposure region (centered)
-            position = (int((max_width - component.get_size()[0]) / 2), int((max_height - component.get_size()[1]) / 2))
-
+            position = (
+                int((max_width - component.get_size()[0]) / 2),
+                int((max_height - component.get_size()[1]) / 2),
+            )
 
         # Handle case where the component is part of a workspace with stitching parameters
         expanded_slices = []
@@ -892,7 +1025,7 @@ class PrintFileGenerator:
                 end="",
                 flush=True,
             )
-            
+
             # get the light engine for the component
             le = self.printer._get_light_engine(
                 component._px_size,
@@ -902,14 +1035,19 @@ class PrintFileGenerator:
             le_x_offset_limits = le.x_offset_limits
             le_y_offset_limits = le.y_offset_limits
 
-            max_width, max_height, step_x, step_y = self._calculate_stitching_sizes(le, stitching)
+            max_width, max_height, step_x, step_y = self._calculate_stitching_sizes(
+                le, stitching
+            )
 
             # create a blank image
             full_image = np.zeros((max_height, max_width), dtype=np.uint8)
 
             # place slice in full image
             data = rle_decode_packed(*slice_info["image_data"])
-            full_image[position[1]:position[1]+data.shape[0], position[0]:position[0]+data.shape[1]] = data
+            full_image[
+                position[1] : position[1] + data.shape[0],
+                position[0] : position[0] + data.shape[1],
+            ] = data
 
             # dice the full image into tiles based on stitching parameters
             for ty in range(stitching[1]):
@@ -927,15 +1065,28 @@ class PrintFileGenerator:
                     if stitching != (1, 1):
                         exposure_settings = copy.deepcopy(slice_info["exposure_settings"])
 
-                        x_offset_um, y_offset_um = self._calculate_tile_xy_offset(le, stitching, tx, ty)
+                        x_offset_um, y_offset_um = self._calculate_tile_xy_offset(
+                            le, stitching, tx, ty
+                        )
                         exposure_settings.image_x_offset -= x_offset_um
                         exposure_settings.image_y_offset -= y_offset_um
-                        exposure_settings.image_x_offset = round(exposure_settings.image_x_offset, 1)
-                        exposure_settings.image_y_offset = round(exposure_settings.image_y_offset, 1)
+                        exposure_settings.image_x_offset = round(
+                            exposure_settings.image_x_offset, 1
+                        )
+                        exposure_settings.image_y_offset = round(
+                            exposure_settings.image_y_offset, 1
+                        )
 
                         # check if limits are exceeded
-                        if exposure_settings.image_x_offset < le_x_offset_limits[0] or exposure_settings.image_y_offset < le_y_offset_limits[0] or exposure_settings.image_x_offset > le_x_offset_limits[1] or exposure_settings.image_y_offset > le_y_offset_limits[1]:
-                            raise ValueError(f"Tile offsets exceed light engine limits: x_offset={exposure_settings.image_x_offset}, y_offset={exposure_settings.image_y_offset}, limits_x={le_x_offset_limits}, limits_y={le_y_offset_limits}")
+                        if (
+                            exposure_settings.image_x_offset < le_x_offset_limits[0]
+                            or exposure_settings.image_y_offset < le_y_offset_limits[0]
+                            or exposure_settings.image_x_offset > le_x_offset_limits[1]
+                            or exposure_settings.image_y_offset > le_y_offset_limits[1]
+                        ):
+                            raise ValueError(
+                                f"Tile offsets exceed light engine limits: x_offset={exposure_settings.image_x_offset}, y_offset={exposure_settings.image_y_offset}, limits_x={le_x_offset_limits}, limits_y={le_y_offset_limits}"
+                            )
 
                         if exposure_settings.image_x_offset == -0.0:
                             exposure_settings.image_x_offset = 0.0
@@ -950,74 +1101,82 @@ class PrintFileGenerator:
         print()
 
     def _make_json_file_with_header(self, main_file_path, embedded_components):
-            print_settings = {
-                "Header": {
-                    "Schema version": "5.0.0",
-                    "Image directory": (
-                        "minimized_slices" if self.minimize_file else "slices"
-                    ),
-                },
-                "Design": {
-                    "User": self.author,
-                    "Purpose": self.purpose,
-                    "Description": self.description,
-                    "Resin": str(self.resin),
-                    "3D printer": self.printer.name,
-                    "Design file": str(main_file_path),
-                    "Slicer": "PyMFCAD v" + PYMFCAD_VERSION,
-                    "Date": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                },
-                "Variables": {},
-                "Default layer settings": {
-                    "Number of duplications": 1,
-                    "Position settings": self.printer.default_position_settings.to_dict(),
-                    "Image settings": self.printer.light_engines[0].default_exposure_settings[0].to_dict(self.resin),
-                },
-                "Named position settings": {},
-                "Named image settings": {},
-                "Named layer groups": {},
-            }
-            from pymfcad import SpecialPrintTechniques
-            print_settings["Special print techniques"] = SpecialPrintTechniques.to_dict(self.special_print_techniques)
-    
-            # Update default layer settings based on the first embedded component
-            print_settings["Default layer settings"]["Position settings"][
-                "Layer thickness (um)"
-            ] = (embedded_components[0][0]._layer_size * 1000)
-            print_settings["Default layer settings"]["Image settings"]["Image file"] = ""
-            print_settings["Default layer settings"]["Image settings"]["Light engine"] = (
-                embedded_components[0][0].default_exposure_settings.light_engine
-            )
-            print_settings["Default layer settings"]["Image settings"][
-                "Image x offset (um)"
-            ] = embedded_components[0][0].default_exposure_settings.image_x_offset
-            print_settings["Default layer settings"]["Image settings"][
-                "Image y offset (um)"
-            ] = embedded_components[0][0].default_exposure_settings.image_y_offset
-    
-            return print_settings
-    
+        print_settings = {
+            "Header": {
+                "Schema version": "5.0.0",
+                "Image directory": (
+                    "minimized_slices" if self.minimize_file else "slices"
+                ),
+            },
+            "Design": {
+                "User": self.author,
+                "Purpose": self.purpose,
+                "Description": self.description,
+                "Resin": str(self.resin),
+                "3D printer": self.printer.name,
+                "Design file": str(main_file_path),
+                "Slicer": "PyMFCAD v" + PYMFCAD_VERSION,
+                "Date": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            },
+            "Variables": {},
+            "Default layer settings": {
+                "Number of duplications": 1,
+                "Position settings": self.printer.default_position_settings.to_dict(),
+                "Image settings": self.printer.light_engines[0]
+                .default_exposure_settings[0]
+                .to_dict(self.resin),
+            },
+            "Named position settings": {},
+            "Named image settings": {},
+            "Named layer groups": {},
+        }
+        from pymfcad import SpecialPrintTechniques
+
+        print_settings["Special print techniques"] = SpecialPrintTechniques.to_dict(
+            self.special_print_techniques
+        )
+
+        # Update default layer settings based on the first embedded component
+        print_settings["Default layer settings"]["Position settings"][
+            "Layer thickness (um)"
+        ] = (embedded_components[0][0]._layer_size * 1000)
+        print_settings["Default layer settings"]["Image settings"]["Image file"] = ""
+        print_settings["Default layer settings"]["Image settings"]["Light engine"] = (
+            embedded_components[0][0].default_exposure_settings.light_engine
+        )
+        print_settings["Default layer settings"]["Image settings"][
+            "Image x offset (um)"
+        ] = embedded_components[0][0].default_exposure_settings.image_x_offset
+        print_settings["Default layer settings"]["Image settings"][
+            "Image y offset (um)"
+        ] = embedded_components[0][0].default_exposure_settings.image_y_offset
+
+        return print_settings
+
     def _make_default_named_settings_deepcopy(self, print_settings):
-        expanded_named_position_settings = copy.deepcopy(print_settings[
-            "Named position settings"
-        ])
+        expanded_named_position_settings = copy.deepcopy(
+            print_settings["Named position settings"]
+        )
         expanded_named_position_settings["default"] = print_settings[
             "Default layer settings"
         ]["Position settings"]
-        expanded_named_image_settings = copy.deepcopy(print_settings["Named image settings"])
+        expanded_named_image_settings = copy.deepcopy(
+            print_settings["Named image settings"]
+        )
         expanded_named_image_settings["default"] = print_settings[
             "Default layer settings"
         ]["Image settings"]
         return expanded_named_position_settings, expanded_named_image_settings
 
-    def _process_layers(self, 
-                        embedded_components, 
-                        temp_directory, 
-                        print_settings, 
-                        slices_folder, 
-                        expanded_named_image_settings, 
-                        expanded_named_position_settings
-                        ):
+    def _process_layers(
+        self,
+        embedded_components,
+        temp_directory,
+        print_settings,
+        slices_folder,
+        expanded_named_image_settings,
+        expanded_named_position_settings,
+    ):
         print("Combining exposures and compiling print settings...")
         layers = []
         last_layer = 0.0
@@ -1041,9 +1200,7 @@ class PrintFileGenerator:
                 group_exposure_settings = None
 
                 group_exposures = [
-                    slice_info["exposure_settings"].get_exposure_time(
-                        self.resin
-                    )
+                    slice_info["exposure_settings"].get_exposure_time(self.resin)
                     for slice_info in group
                 ]
                 group_images = []
@@ -1080,11 +1237,17 @@ class PrintFileGenerator:
 
                 # Update image settings from slice (just the max of wait times)
                 for g, slice_info in enumerate(group):
-                    group_exposure_settings = self._update_image_settings_from_slice(slice_info, group_exposure_settings)
+                    group_exposure_settings = self._update_image_settings_from_slice(
+                        slice_info, group_exposure_settings
+                    )
 
-                if not print_settings["Default layer settings"]["Image settings"].get("Image file"):
+                if not print_settings["Default layer settings"]["Image settings"].get(
+                    "Image file"
+                ):
                     if output_img_files:
-                        print_settings["Default layer settings"]["Image settings"]["Image file"] = output_img_files[0]
+                        print_settings["Default layer settings"]["Image settings"][
+                            "Image file"
+                        ] = output_img_files[0]
 
                 for file, exp in zip(output_img_files, output_times):
                     # Find closest named image setting
@@ -1092,22 +1255,15 @@ class PrintFileGenerator:
                     exposure_settings["Layer exposure time (ms)"] = exp
                     current_light_engine = exposure_settings.get("Light engine")
                     if current_light_engine != last_light_engine:
-                        le = self.printer.get_light_engine_by_name(
-                            current_light_engine
-                        )
-                        extra_wait = (
-                            le.settle_time_ms
-                            if le is not None
-                            else 0.0
-                        )
+                        le = self.printer.get_light_engine_by_name(current_light_engine)
+                        extra_wait = le.settle_time_ms if le is not None else 0.0
                         if extra_wait:
                             base_wait = (
-                                exposure_settings.get("Wait before exposure (ms)")
-                                or 0.0
+                                exposure_settings.get("Wait before exposure (ms)") or 0.0
                             )
-                            exposure_settings[
-                                "Wait before exposure (ms)"
-                            ] = base_wait + extra_wait
+                            exposure_settings["Wait before exposure (ms)"] = (
+                                base_wait + extra_wait
+                            )
                         last_light_engine = current_light_engine
 
                     match_key = self._match_or_add_new_named_image_settings(
@@ -1128,8 +1284,10 @@ class PrintFileGenerator:
 
                 # Update position settings from slice
                 for g, slice_info in enumerate(group):
-                    position_settings = self._update_position_settings_from_slice(slice_info, position_settings, layer_thickness)
-                    
+                    position_settings = self._update_position_settings_from_slice(
+                        slice_info, position_settings, layer_thickness
+                    )
+
             match_key = self._match_or_add_new_named_position_settings(
                 layer,
                 position_settings,
@@ -1147,7 +1305,7 @@ class PrintFileGenerator:
             layers.append(layer_settings)
             last_layer = layer
         return layers
-    
+
     def _iterate_slices_by_layer(self, embedded_components):
         # First, collect all unique layer positions
         layer_positions = set()
@@ -1172,7 +1330,7 @@ class PrintFileGenerator:
                     if slice_info["layer_position"] == layer:
                         current_layer_slices.append(slice_info)
             yield layer, current_layer_slices
-    
+
     def _group_images_by_settings(self, slices):
         """
         Group images by their settings.
@@ -1223,53 +1381,53 @@ class PrintFileGenerator:
         return grouped_slices
 
     def _embed_image(self, pos, resolution, image_data, fqn):
-            x = round(pos[0])
-            y = round(pos[1])
-    
-            slice_img = image_data
-    
-            # Create a new empty image sized to the component
-            slice_image = np.zeros((resolution[1], resolution[0]), dtype=np.uint8)
-    
-            # Correct for numpy image origin (if you want origin at bottom-left)
-            paste_y = resolution[1] - y
-    
-            # compute paste coordinates (top-left y coordinate for the slice_img)
-            top = paste_y - slice_img.shape[0]
-            left = x
-            bottom = top + slice_img.shape[0]
-            right = left + slice_img.shape[1]
-    
-            # Clip coordinates to image bounds to avoid exceptions
-            top_clip = max(top, 0)
-            left_clip = max(left, 0)
-            bottom_clip = min(bottom, resolution[1])
-            right_clip = min(right, resolution[0])
-    
-            # compute corresponding region in slice_img
-            src_top = top_clip - top if top < 0 else 0
-            src_left = left_clip - left if left < 0 else 0
-            src_bottom = src_top + (bottom_clip - top_clip)
-            src_right = src_left + (right_clip - left_clip)
-    
-            # Only paste if there's an overlap
-            if bottom_clip > top_clip and right_clip > left_clip:
-                try:
-                    slice_image[top_clip:bottom_clip, left_clip:right_clip] = slice_img[
-                        src_top:src_bottom, src_left:src_right
-                    ]
-                except Exception as e:
-                    print(
-                        f"⚠️Warning: trouble pasting slice image for {fqn} at x={x},y={y}: {e}"
-                    )
-    
-            else:
+        x = round(pos[0])
+        y = round(pos[1])
+
+        slice_img = image_data
+
+        # Create a new empty image sized to the component
+        slice_image = np.zeros((resolution[1], resolution[0]), dtype=np.uint8)
+
+        # Correct for numpy image origin (if you want origin at bottom-left)
+        paste_y = resolution[1] - y
+
+        # compute paste coordinates (top-left y coordinate for the slice_img)
+        top = paste_y - slice_img.shape[0]
+        left = x
+        bottom = top + slice_img.shape[0]
+        right = left + slice_img.shape[1]
+
+        # Clip coordinates to image bounds to avoid exceptions
+        top_clip = max(top, 0)
+        left_clip = max(left, 0)
+        bottom_clip = min(bottom, resolution[1])
+        right_clip = min(right, resolution[0])
+
+        # compute corresponding region in slice_img
+        src_top = top_clip - top if top < 0 else 0
+        src_left = left_clip - left if left < 0 else 0
+        src_bottom = src_top + (bottom_clip - top_clip)
+        src_right = src_left + (right_clip - left_clip)
+
+        # Only paste if there's an overlap
+        if bottom_clip > top_clip and right_clip > left_clip:
+            try:
+                slice_image[top_clip:bottom_clip, left_clip:right_clip] = slice_img[
+                    src_top:src_bottom, src_left:src_right
+                ]
+            except Exception as e:
                 print(
-                    f"⚠️Warning: slice image for {fqn} at x={x},y={y} is completely outside component bounds"
+                    f"⚠️Warning: trouble pasting slice image for {fqn} at x={x},y={y}: {e}"
                 )
-                # still save an empty image or skip; here we'll skip
-    
-            return slice_image
+
+        else:
+            print(
+                f"⚠️Warning: slice image for {fqn} at x={x},y={y} is completely outside component bounds"
+            )
+            # still save an empty image or skip; here we'll skip
+
+        return slice_image
 
     def _combine_exposures(self, images, exposure_times, temp_directory):
         """
@@ -1341,11 +1499,7 @@ class PrintFileGenerator:
         return output_images, output_exposures
 
     def _update_image_settings_from_slice(self, slice_info, group_exposure_settings):
-        new_image_settings = (
-            slice_info["exposure_settings"].to_dict(
-                self.resin
-            )
-        )
+        new_image_settings = slice_info["exposure_settings"].to_dict(self.resin)
 
         if group_exposure_settings is None:
             group_exposure_settings = new_image_settings
@@ -1353,16 +1507,16 @@ class PrintFileGenerator:
             new_image_settings["Wait before exposure (ms)"]
             > group_exposure_settings["Wait before exposure (ms)"]
         ):
-            group_exposure_settings["Wait before exposure (ms)"] = (
-                new_image_settings["Wait before exposure (ms)"]
-            )
+            group_exposure_settings["Wait before exposure (ms)"] = new_image_settings[
+                "Wait before exposure (ms)"
+            ]
         if (
             new_image_settings["Wait after exposure (ms)"]
             > group_exposure_settings["Wait after exposure (ms)"]
         ):
-            group_exposure_settings["Wait after exposure (ms)"] = (
-                new_image_settings["Wait after exposure (ms)"]
-            )
+            group_exposure_settings["Wait after exposure (ms)"] = new_image_settings[
+                "Wait after exposure (ms)"
+            ]
         return group_exposure_settings
 
     def _match_or_find_closest_named_setting(
@@ -1417,8 +1571,10 @@ class PrintFileGenerator:
             if not name in existing_list:
                 return name
             count += 1
-    
-    def _match_or_add_new_named_image_settings(self, group, exposure_settings, expanded_named_image_settings, print_settings):
+
+    def _match_or_add_new_named_image_settings(
+        self, group, exposure_settings, expanded_named_image_settings, print_settings
+    ):
         match_key, match_dict = self._match_or_find_closest_named_setting(
             exposure_settings,
             expanded_named_image_settings,
@@ -1428,39 +1584,39 @@ class PrintFileGenerator:
         # If no match add new named image settings
         if len(match_dict) != 0:
             if len(group) > 1 and not "_" in group[0]["image_name"][-14:]:
-                settings_name = re.sub(
-                    r"-slice\d+", "", group[1]["image_name"]
-                ).split(".png")[0]
+                settings_name = re.sub(r"-slice\d+", "", group[1]["image_name"]).split(
+                    ".png"
+                )[0]
             else:
-                settings_name = re.sub(
-                    r"-slice\d+", "", group[0]["image_name"]
-                ).split(".png")[0]
-    
+                settings_name = re.sub(r"-slice\d+", "", group[0]["image_name"]).split(
+                    ".png"
+                )[0]
+
             if group[0]["exposure_settings"].burnin:
                 settings_name += "_burnin"
-    
+
             # if settings_name exists, create a new name
             if settings_name in expanded_named_image_settings:
                 settings_name = self._get_unique_settings_name(
                     settings_name,
                     existing_list=expanded_named_image_settings.keys(),
                 )
-    
+
             # set named image settings
             image_settings = copy.deepcopy(match_dict)
             if match_key != "default":
                 image_settings["Using named image settings"] = match_key
-            print_settings["Named image settings"][
-                settings_name
-            ] = image_settings
+            print_settings["Named image settings"][settings_name] = image_settings
             match_key = settings_name
-    
+
             # set expanded named image settings
             expanded_named_image_settings[match_key] = exposure_settings
-        
+
         return match_key
 
-    def _update_position_settings_from_slice(self, slice_info, position_settings, layer_thickness):
+    def _update_position_settings_from_slice(
+        self, slice_info, position_settings, layer_thickness
+    ):
         new_position_settings = slice_info["position_settings"].to_dict()
         if position_settings is None:
             position_settings = new_position_settings
@@ -1472,27 +1628,19 @@ class PrintFileGenerator:
                 "Up wait (ms)",
                 "Final wait (ms)",
             ]:
-                if new_position_settings.get(
-                    key, 1e10
-                ) > position_settings.get(key, 0):
+                if new_position_settings.get(key, 1e10) > position_settings.get(key, 0):
                     position_settings[key] = new_position_settings[key]
             if "Special layer techniques" in new_position_settings:
                 if "Special layer techniques" not in position_settings:
                     position_settings["Special layer techniques"] = {}
-                new_special = new_position_settings[
-                    "Special layer techniques"
-                ]
+                new_special = new_position_settings["Special layer techniques"]
                 if "Squeeze out resin" in new_special:
-                    current = position_settings[
-                        "Special layer techniques"
-                    ].get("Squeeze out resin", {})
+                    current = position_settings["Special layer techniques"].get(
+                        "Squeeze out resin", {}
+                    )
                     incoming = new_special["Squeeze out resin"]
-                    position_settings["Special layer techniques"][
-                        "Squeeze out resin"
-                    ] = {
-                        "Enable squeeze": current.get(
-                            "Enable squeeze", False
-                        )
+                    position_settings["Special layer techniques"]["Squeeze out resin"] = {
+                        "Enable squeeze": current.get("Enable squeeze", False)
                         or incoming.get("Enable squeeze", False),
                         "Squeeze count": max(
                             current.get("Squeeze count", 0),
@@ -1513,13 +1661,13 @@ class PrintFileGenerator:
                 "BP down speed (mm/sec)",
                 "BP down acceleration (mm/sec^2)",
             ]:
-                if new_position_settings.get(
-                    key, 0
-                ) < position_settings.get(key, 1e10):
+                if new_position_settings.get(key, 0) < position_settings.get(key, 1e10):
                     position_settings[key] = new_position_settings[key]
         return position_settings
 
-    def _match_or_add_new_named_position_settings(self, layer, position_settings, expanded_named_position_settings, print_settings):
+    def _match_or_add_new_named_position_settings(
+        self, layer, position_settings, expanded_named_position_settings, print_settings
+    ):
         # Find closest named position setting
         match_key, match_dict = self._match_or_find_closest_named_setting(
             position_settings,
@@ -1534,9 +1682,7 @@ class PrintFileGenerator:
             _position_settings = copy.deepcopy(match_dict)
             if match_key != "default":
                 _position_settings["Using named position settings"] = match_key
-            print_settings["Named position settings"][
-                settings_name
-            ] = _position_settings
+            print_settings["Named position settings"][settings_name] = _position_settings
             match_key = settings_name
 
             # set expanded named image settings
@@ -1572,6 +1718,7 @@ class PrintFileGenerator:
 
     def _strip_xy_offsets(self, print_settings: dict):
         if not self.printer.xy_stage_available:
+
             def _strip_offsets(image_settings: dict):
                 image_settings.pop("Image x offset (um)", None)
                 image_settings.pop("Image y offset (um)", None)
@@ -1581,7 +1728,7 @@ class PrintFileGenerator:
                 _strip_offsets(image_settings)
 
     def _strip_vacuum_settings(self, print_settings: dict):
-         if "Special print techniques" in print_settings:
+        if "Special print techniques" in print_settings:
             vacuum_settings = print_settings["Special print techniques"].get(
                 "Print under vacuum"
             )
@@ -1593,8 +1740,12 @@ class PrintFileGenerator:
                     )
                 print_settings.pop("Special print techniques", None)
 
-    def _strip_grayscale_settings(self, print_settings: dict, expanded_named_image_settings: dict):
-        def _light_engine_supports_grayscale(light_engine_name: str, wavelength: int) -> bool:
+    def _strip_grayscale_settings(
+        self, print_settings: dict, expanded_named_image_settings: dict
+    ):
+        def _light_engine_supports_grayscale(
+            light_engine_name: str, wavelength: int
+        ) -> bool:
             for le in self.printer.light_engines:
                 if le.name != light_engine_name:
                     continue
@@ -1626,7 +1777,9 @@ class PrintFileGenerator:
         def _strip_grayscale(image_settings: dict):
             image_settings.pop("Do grayscale correction", None)
 
-        default_image_settings = print_settings["Default layer settings"]["Image settings"]
+        default_image_settings = print_settings["Default layer settings"][
+            "Image settings"
+        ]
         if not _light_engine_supports_grayscale(
             default_image_settings.get("Light engine"),
             default_image_settings.get("Light engine wavelength (nm)"),
@@ -1709,21 +1862,24 @@ class PrintFileGenerator:
             for component, info in embedded_components:
                 self._create_projectable_images(component, info)
 
-
             # Make JSON file
             print_settings_filename = temp_directory / "print_settings.json"
-            print_settings = self._make_json_file_with_header(main_file_path, embedded_components)
+            print_settings = self._make_json_file_with_header(
+                main_file_path, embedded_components
+            )
 
             # Create copies of named image settings. These include the defaults and are fully expanded for comparision
-            expanded_named_position_settings, expanded_named_image_settings = self._make_default_named_settings_deepcopy(print_settings)
+            expanded_named_position_settings, expanded_named_image_settings = (
+                self._make_default_named_settings_deepcopy(print_settings)
+            )
 
             layers = self._process_layers(
-                embedded_components, 
-                temp_directory, 
-                print_settings, 
-                slices_folder, 
-                expanded_named_image_settings, 
-                expanded_named_position_settings
+                embedded_components,
+                temp_directory,
+                print_settings,
+                slices_folder,
+                expanded_named_image_settings,
+                expanded_named_position_settings,
             )
 
             # Minimize JSON
@@ -1741,12 +1897,13 @@ class PrintFileGenerator:
             with open(print_settings_filename, "w", newline="\r\n") as fileOut:
                 json.dump(pretty_json(print_settings), fileOut, indent=2)
 
-
             # Delete component and mask folders
             if not save_temp_files:
                 print("Cleaning up temporary directories...")
                 for component in sliced_components:
-                    component_subdirectory = temp_directory / component.get_fully_qualified_name()
+                    component_subdirectory = (
+                        temp_directory / component.get_fully_qualified_name()
+                    )
                     if component_subdirectory.exists():
                         shutil.rmtree(component_subdirectory)
                 masks_directory = temp_directory / "masks"
@@ -1766,10 +1923,11 @@ class PrintFileGenerator:
                 if os.path.exists(self.filename):
                     shutil.rmtree(self.filename)
                 shutil.move(temp_directory, self.filename)
-        
+
         except Exception as e:
             error = e
             import traceback
+
             print(
                 f"❌ An error occurred during slicing: {e}. Removing temorary directory."
             )
@@ -1783,4 +1941,3 @@ class PrintFileGenerator:
                 except Exception:
                     pass
             pass
-        

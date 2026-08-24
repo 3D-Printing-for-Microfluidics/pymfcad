@@ -43,9 +43,11 @@ inner.add_void("channel", channel, label="void")
 
 # Embed the inner device into the outer device
 # calculate translation (center inner device within outer device)
-translation_x = (outer._size[0]*outer._px_size - inner._size[0]*inner._px_size) / 2
-translation_y = (outer._size[1]*outer._px_size - inner._size[1]*inner._px_size) / 2
-inner.translate((translation_x / outer._px_size, translation_y / outer._px_size, 0))  # translation in outer device pixels/layers
+translation_x = (outer._size[0] * outer._px_size - inner._size[0] * inner._px_size) / 2
+translation_y = (outer._size[1] * outer._px_size - inner._size[1] * inner._px_size) / 2
+inner.translate(
+    (translation_x / outer._px_size, translation_y / outer._px_size, 0)
+)  # translation in outer device pixels/layers
 outer.add_subcomponent("inner", inner)
 
 outer.preview()
@@ -55,9 +57,13 @@ from pymfcad import Workspace
 from pymfcad.printer_library import MR1v1
 from pymfcad.resin_library import NPS
 
-workspaces = [Workspace(MR1v1, outer._px_size, exposure_abs_pos_um=(0, 0), light_engine_stitching=(0,0))]
+workspaces = [
+    Workspace(
+        MR1v1, outer._px_size, exposure_abs_pos_um=(0, 0), light_engine_stitching=(0, 0)
+    )
+]
 workspaces[0].add_component("OuterDevice", outer, centered=True)
-workspaces[0].adjust_subcomponent_light_engine_position("OuterDevice.inner", (0,0))
+workspaces[0].adjust_subcomponent_light_engine_position("OuterDevice.inner", (0, 0))
 
 print_file_gen = PrintFileGenerator(
     filename="embedded_device_demo",

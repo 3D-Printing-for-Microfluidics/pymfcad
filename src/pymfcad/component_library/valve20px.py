@@ -1,4 +1,12 @@
-from pymfcad import Component, Port, Color, Cylinder, Cube, MembraneSettings, ExposureSettings
+from pymfcad import (
+    Component,
+    Port,
+    Color,
+    Cylinder,
+    Cube,
+    MembraneSettings,
+    ExposureSettings,
+)
 
 
 class Valve20px(Component):
@@ -10,7 +18,7 @@ class Valve20px(Component):
     - 1 layer membrane
 
     Ports:
-    
+
     - F_IN:
         - Type: IN
         - Size: (6, 6, 4)
