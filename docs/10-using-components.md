@@ -51,7 +51,7 @@ index 0000000..1111111 100644
 +DEVICE_Y = 1600
 +DEVICE_Z = 300
 +
-+# Create a new device component (final print = bulk minus voids)
++# Create a new component (final print = bulk minus voids)
 +device = pymfcad.Component(
 +    size=[DEVICE_X, DEVICE_Y, DEVICE_Z]
 +    layer_size=LAYER_SIZE,
@@ -223,7 +223,7 @@ index 0000000..1111111 100644
  DEVICE_Y = 1600
  DEVICE_Z = 300
  
- # Create a new device component (final print = bulk minus voids)
+ # Create a new component (final print = bulk minus voids)
  device = pymfcad.Component(
      size=[DEVICE_X, DEVICE_Y, DEVICE_Z]
      layer_size=LAYER_SIZE,

@@ -171,7 +171,7 @@ index 0000000..1111111 100644
 
 ## Ports (what they are and why they matter)
 
-**Ports are connection points** used by routing and component/subcomponent assembly. A port defines:
+**Ports are connection points** used by routing and component assembly. A port defines:
 
 - **Type**: `IN`, `OUT`, or `INOUT`
 - **Position**: where the port starts

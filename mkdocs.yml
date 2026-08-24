@@ -13,7 +13,7 @@ nav:
       - "Part 2: Installation": 2-installation.md
       - "Part 3: Using the Visualizer": 3-visualizer.md
       - "Part 4a: Reading Code Examples": 4a-reading-code-examples.md
-      - "Part 4b: Hello World Component": 4b-building_first_component.md
+      - "Part 4b: Creating Your First Component": 4b-first_component.md
   - "Modeling with PyMFCAD":
     - "Part 5: Modeling Introduction": 5-modeling-introduction.md
     - "Part 6: Modeling Bulks, Voids, and Shapes": 6-modeling-bulks-voids-shapes.md

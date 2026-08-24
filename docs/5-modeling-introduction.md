@@ -1,10 +1,10 @@
 # Modeling Introduction
 
-Prev: [Part 4b: Creating Your First Component](4b-building_first_component.md)
+Prev: [Part 4b: Creating Your First Component](4b-first_component.md)
 
 This short bridge introduces the **modeling mindset** you’ll use in the next steps. It explains what modeling means in PyMFCAD and how your design choices map to DLP‑SLA printing.
 
-Goal: understand the core modeling concepts before building full components with or without levels of sub-components.
+Goal: understand the core modeling concepts before building component.
 
 ---
 

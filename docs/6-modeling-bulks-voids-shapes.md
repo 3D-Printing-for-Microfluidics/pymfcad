@@ -41,7 +41,7 @@ index 0000000..1111111 100644
 
 ### Step 2 — Create a Component
 
-The `Component` is the sliceable 3D canvas of your design. The variables of a Component can be used to constrain your design to match the printer's physical hardware. Its dimensions are defined by size [x,y,z] (where x and y are measured in pixels and z is in layers), and the physical resolution (pixel and layer size in mm). It can contain sub-components as well, which we will get into later.
+Components are the basic building block in this package. They are defined by size [x,y,z] (where x and y are measured in pixels and z is in layers), and the physical resolution (pixel and layer size in mm). They can also contain sub-components as well, which we will get into later.
 
 <div class="diff2html-wrapper">
     <div class="diff2html"></div>
@@ -60,7 +60,7 @@ index 0000000..1111111 100644
      Sphere,
  )
 +
-+# Initialize our top-level Component, the "canvas" we work within
++# Initialize our Component
 +overlapping_shapes = pymfcad.Component(
 +    size=[300,300,300]
 +    px_size=0.01,
@@ -199,7 +199,7 @@ index 0000000..1111111 100644
      Sphere,
  )
 
- # Initialize our top-level Component, the "canvas" we work within
+ # Initialize our Component
  overlapping_shapes = pymfcad.Component(
      size=[300,300,300]
      px_size=0.01,
@@ -256,9 +256,9 @@ index 0000000..1111111 100644
     </script>
 </div>
 
-### Step 2 — Create a top-level Component
+### Step 2 — Create a Component
 
-We use a larger canvas so all shapes can fit in a grid.
+We use a larger component so all shapes can fit in a grid.
 
 <div class="diff2html-wrapper">
     <div class="diff2html"></div>
@@ -280,7 +280,7 @@ index 0000000..1111111 100644
      ImportModel,
  )
 +
-+# Initialize our top-level Component, the "canvas" we work within
++# Initialize our Component
 +gallery = pymfcad.Component(
 +    size=[1200,750,300]
 +    px_size=0.01,
@@ -352,7 +352,7 @@ index 0000000..1111111 100644
 
 ### Step 5 — Resize the imported model
 
-`ImportModel` usually needs to be resized to fit the canvas.
+`ImportModel` usually needs to be resized to fit the component.
 
 <div class="diff2html-wrapper">
     <div class="diff2html"></div>
@@ -488,10 +488,9 @@ index 0000000..1111111 100644
      ImportModel,
  )
  
- # Initialize our top-level Component, the "canvas" we work within
+ # Initialize our Component
  gallery = pymfcad.Component(
      size=[1200,750,300]
-     layers=300,
      px_size=0.01,
      layer_size=0.01,
  )

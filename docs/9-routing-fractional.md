@@ -99,7 +99,6 @@ index 0000000..1111111 100644
 + 
 +        super().__init__(
 +            size=(length, width, channel_size[2]*levels + channel_margin[2]*(levels + 1)),
-+            position=(0, 0, 0),
 +            px_size=px_size,
 +            layer_size=layer_size,
 +            quiet=quiet,
@@ -378,7 +377,6 @@ index 0000000..1111111 100644
  
          super().__init__(
              size=(length, width, channel_size[2]*levels + channel_margin[2]*(levels + 1)),
-             position=(0, 0, 0),
              px_size=px_size,
              layer_size=layer_size,
              quiet=quiet,

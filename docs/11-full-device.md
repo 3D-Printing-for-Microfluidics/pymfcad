@@ -18,7 +18,7 @@ Device plan:
 
 ---
 
-## Step 1 — Device component context + labels + bulk
+## Step 1 — Component context + labels + bulk
 
 <div class="diff2html-wrapper">
     <div class="diff2html"></div>
@@ -153,7 +153,7 @@ Preview the device at this stage.
 
 ## Step 3 — Relabel subcomponents
 
-Subcomponents bring their own labels (and colors). If you leave them as‑is, you’ll end up with many label names like `valve_a.pneumatic` or `mixer.void`. Use `relabel()` to **merge and normalize** those labels into a small, consistent device‑level set (e.g., `fluidic`, `pneumatic`, `membrane`, `bulk`).
+Subcomponents bring their own labels (and colors). If you leave them as‑is, you’ll end up with many label names like `valve_a.pneumatic` or `mixer.void`. Use `relabel()` to **merge and normalize** those labels into a small, consistent component‑level set (e.g., `fluidic`, `pneumatic`, `membrane`, `bulk`).
 
 This keeps the visualizer clean and makes downstream settings (like slicer regions) much easier to manage.
 
@@ -452,7 +452,7 @@ Preview the device after stubbing.
 
 ## Step 9 — Render device
 
-Rendering exports the device as a **portable 3D model file** so it can be used outside the pymfcad ecosystem. Any device or component can be rendered. The output is the final **bulk‑void** model, ready for other CAD tools and manufacturing pipelines. We support common formats like **.glb**, **.stl**, and **.3mf**, so your design works across most 3D workflows without relying on our custom printers.
+Rendering exports the device as a **portable 3D model file** so it can be used outside the pymfcad ecosystem. Any component can be rendered. The output is the final **bulk‑void** model, ready for other CAD tools and manufacturing pipelines. We support common formats like **.glb**, **.stl**, and **.3mf**, so your design works across most 3D workflows without relying on our custom printers. Advanced settings (which we will introduce shortly), will not be exported.
 
 <div class="diff2html-wrapper">
     <div class="diff2html"></div>

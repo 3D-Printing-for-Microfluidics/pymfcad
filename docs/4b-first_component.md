@@ -44,7 +44,6 @@ index 0000000..1111111 100644
 +
 +component = pymfcad.Component(
 +    size=(120, 40, 10), # X pixel count, Y pixel count, Z layer count
-+    position=(0, 0, 0),
 +    px_size=0.0076,
 +    layer_size=0.01,
 +)
@@ -67,7 +66,6 @@ index 0000000..1111111 100644
 @@ -3 +3 @@
  component = pymfcad.Component(
      size=(120, 40, 10), # X pixel count, Y pixel count, Z layer count
-     position=(0, 0, 0),
      px_size=0.0076,
      layer_size=0.01,
  )
@@ -218,7 +216,6 @@ index 0000000..1111111 100644
  
  component = pymfcad.Component(
      size=(120, 40, 10), # X pixel count, Y pixel count, Z layer count
-     position=(0, 0, 0),
      px_size=0.0076,
      layer_size=0.01,
  )
