@@ -24,7 +24,7 @@ outer.add_bulk("outer_bulk", outer_bulk, label="bulk_outer")
 
 # Inner device (higher resolution, smaller pixel/layer size)
 inner = Component(
-    size=(1920, 1080, 100),
+    size=(1920, 1080, 160),
     layer_size=0.0015,
     px_size=0.00075,
 )
@@ -55,9 +55,9 @@ from pymfcad import Workspace
 from pymfcad.printer_library import MR1v1
 from pymfcad.resin_library import NPS
 
-component_groups = [Workspace(MR1v1, outer._px_size, exposure_abs_pos_um=(0, 0), light_engine_stitching=(0,0))]
-component_groups[0].add_component("embedded_device_demo", outer, centered=True)
-component_groups[0].adjust_subcomponent_light_engine_position("embedded_device_demo.inner", (0,0))
+workspaces = [Workspace(MR1v1, outer._px_size, exposure_abs_pos_um=(0, 0), light_engine_stitching=(0,0))]
+workspaces[0].add_component("OuterDevice", outer, centered=True)
+workspaces[0].adjust_subcomponent_light_engine_position("OuterDevice.inner", (0,0))
 
 print_file_gen = PrintFileGenerator(
     filename="embedded_device_demo",
@@ -65,7 +65,7 @@ print_file_gen = PrintFileGenerator(
     purpose="Test Design",
     description="This is a test design for the PyMFCAD library.",
     # component=outer,
-    component_groups=component_groups,
+    workspaces=workspaces,
     printer=MR1v1,
     resin=NPS,
     minimize_file=True,
