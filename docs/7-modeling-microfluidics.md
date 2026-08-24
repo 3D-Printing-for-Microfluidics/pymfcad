@@ -32,18 +32,18 @@ Start with a simple picture: the final printed part begins as a solid block, and
 
 This means your design process is usually:
 
-1. **Add bulk** to define the outer body of the device.
+1. **Add bulk** to define the outer body of the component.
 2. **Subtract voids** to carve channels, reservoirs, and access ports.
 
-So the device you see is always **bulk minus voids**. This mental model maps directly to printing: a printer can only deposit solid material, so you must explicitly model the *absence* of material anywhere you want fluid to go. Once you internalize this, microfluidic features become straightforward—channels are just void shapes, and connections to the real world are just larger voids (like pinholes or reservoirs) that intersect those channels.
+So the component you see is always **bulk minus voids**. This mental model maps directly to printing: a printer can only deposit solid material, so you must explicitly model the *absence* of material anywhere you want fluid to go. Once you internalize this, microfluidic features become straightforward—channels are just void shapes, and connections to the real world are just larger voids (like pinholes or reservoirs) that intersect those channels.
 
 Let’s see an example.
 
 ---
 
-## Step 1 — Device context
+## Step 1 — "Device" Component context
 
-Before modeling, define the `Device` context. It maps your design to the printer's pixel grid and layer stack so geometry matches hardware resolution.
+Before modeling, define the context you'll be working in. It will map your design to the printer's pixel grid and layer stack so geometry matches hardware resolution. Printed designs that have active or passive microfluidic components are often called "devices," so that is the terminology used in this example.
 
 <div class="diff2html-wrapper">
     <div class="diff2html"></div>
@@ -55,7 +55,7 @@ index 0000000..1111111 100644
 @@ -0 +1 @@
 +import pymfcad
 +
-+# Define constants for device dimensions and resolution
++# Define constants for device component dimensions and resolution
 +# Pixel/layer units are the core constraint for DLP‑SLA 3D printing.
 +PX_SIZE = 0.0076
 +LAYER_SIZE = 0.01
@@ -64,13 +64,10 @@ index 0000000..1111111 100644
 +DEVICE_Y = 1600
 +DEVICE_Z = 300
 +
-+# Create a new device (final print = bulk minus voids)
-+device = pymfcad.Device(
-+    name="example_device",
-+    position=(0, 0, 0),
-+    layers=DEVICE_Z,
++# Create a new device component (final print = bulk minus voids)
++device = pymfcad.Component(
++    size=[DEVICE_X, DEVICE_Y, DEVICE_Z]
 +    layer_size=LAYER_SIZE,
-+    px_count=(DEVICE_X, DEVICE_Y),
 +    px_size=PX_SIZE,
 +)
 +
@@ -85,7 +82,7 @@ index 0000000..1111111 100644
 
 ## Step 2 — Define the bulk body (the printable solid)
 
-Start with a single bulk shape that matches the device bounds. Every channel, reservoir, or access port will be carved out as a **void** later.
+Start with a single bulk shape that matches the device component bounds. Every channel, reservoir, or access port will be carved out as a **void** later.
 
 <div class="diff2html-wrapper">
     <div class="diff2html"></div>
@@ -139,7 +136,7 @@ index 0000000..1111111 100644
 --- a/example_device.py
 +++ b/example_device.py
 @@ -27 +27 @@
- # Define bulk region and add it to the device
+ # Define bulk region and add it to the device component
  bulk = pymfcad.Cube((DEVICE_X, DEVICE_Y, DEVICE_Z))
  device.add_bulk("bulk_shape", bulk, label="bulk")
 +
@@ -149,7 +146,7 @@ index 0000000..1111111 100644
 +
 +# Create a channel (centered for easy placement, then translated)
 +channel = pymfcad.Cube(CHANNEL_SIZE, center=True)
-+# Translate to absolute device coordinates (centered x, absolute y/z)
++# Translate to absolute device component coordinates (centered x, absolute y/z)
 +channel.translate((CHANNEL_POS[0] + CHANNEL_SIZE[0] // 2, CHANNEL_POS[1], CHANNEL_POS[2]))
 +device.add_void("channel", channel, label="void")
   
@@ -179,7 +176,7 @@ index 0000000..1111111 100644
 @@ -35 +35 @@
  # Create a channel (centered for easy placement, then translated)
  channel = pymfcad.Cube(CHANNEL_SIZE, center=True)
- # Translate to absolute device coordinates (centered x, absolute y/z)
+ # Translate to absolute device component coordinates (centered x, absolute y/z)
  channel.translate((CHANNEL_POS[0] + CHANNEL_SIZE[0] // 2, CHANNEL_POS[1], CHANNEL_POS[2]))
  device.add_void("channel", channel, label="void")
 +
@@ -207,7 +204,7 @@ index 0000000..1111111 100644
     </script>
 </div>
 
-At this point you have a complete device: a bulk block with a channel and two pinholes carved out as voids.
+At this point you have a complete device component design: a bulk block with a channel and two pinholes carved out as voids.
 
 ![Channel with pinholes](resources/7/7-3.png)
 
@@ -231,7 +228,7 @@ index 0000000..1111111 100644
 @@ -35 +35 @@
  # Create a channel (centered for easy placement, then translated)
  channel = pymfcad.Cube(CHANNEL_SIZE, center=True)
- # Translate to absolute device coordinates (centered x, absolute y/z)
+ # Translate to absolute device component coordinates (centered x, absolute y/z)
  channel.translate((CHANNEL_POS[0] + CHANNEL_SIZE[0] // 2, CHANNEL_POS[1], CHANNEL_POS[2]))
 -device.add_void("channel", channel, label="void")
  
@@ -325,7 +322,7 @@ index 0000000..1111111 100644
 @@ -1 +1 @@
  import pymfcad
  
- # Define constants for device dimensions and resolution
+ # Define constants for device component dimensions and resolution
  # Pixel/layer units are the core constraint for DLP‑SLA printing.
  PX_SIZE = 0.0076
  LAYER_SIZE = 0.01
@@ -334,13 +331,10 @@ index 0000000..1111111 100644
  DEVICE_Y = 1600
  DEVICE_Z = 300
  
- # Create a new device (final print = bulk minus voids)
- device = pymfcad.Device(
-     name="example_device",
-     position=(0, 0, 0),
-     layers=DEVICE_Z,
+ # Create a new device component (final print = bulk minus voids)
+ device = pymfcad.Component(
+     size=[DEVICE_X, DEVICE_Y, DEVICE_Z]
      layer_size=LAYER_SIZE,
-     px_count=(DEVICE_X, DEVICE_Y),
      px_size=PX_SIZE,
  )
  
@@ -348,7 +342,7 @@ index 0000000..1111111 100644
  device.add_label("bulk", pymfcad.Color.from_name("aqua", 120))
  device.add_label("void", pymfcad.Color.from_name("tomato", 200))
  
- # Define bulk region and add it to the device
+ # Define bulk region and add it to the device component
  bulk = pymfcad.Cube((DEVICE_X, DEVICE_Y, DEVICE_Z))
  device.add_bulk("bulk_shape", bulk, label="bulk")
  
@@ -363,7 +357,7 @@ index 0000000..1111111 100644
  
  # Create a channel (centered for easy placement, then translated)
  channel = pymfcad.Cube(CHANNEL_SIZE, center=True)
- # Translate to absolute device coordinates (centered x, absolute y/z)
+ # Translate to absolute device component coordinates (centered x, absolute y/z)
  channel.translate((CHANNEL_POS[0]+CHANNEL_SIZE[0]//2, CHANNEL_POS[1], CHANNEL_POS[2]))
  
  # Create pinholes
@@ -424,7 +418,7 @@ index 0000000..1111111 100644
 @@ -1 +1 @@
  import pymfcad
  
- # Define constants for device dimensions and resolution
+ # Define constants for device component dimensions and resolution
  # Pixel/layer units are the core constraint for DLP‑SLA printing.
  PX_SIZE = 0.0076
  LAYER_SIZE = 0.01
@@ -433,13 +427,10 @@ index 0000000..1111111 100644
  DEVICE_Y = 1600
  DEVICE_Z = 300
  
- # Create a new device (final print = bulk minus voids)
- device = pymfcad.Device(
-     name="example_device",
-     position=(0, 0, 0),
-     layers=DEVICE_Z,
+ # Create a new device component (final print = bulk minus voids)
+ device = pymfcad.Component(
+     size=[DEVICE_X, DEVICE_Y, DEVICE_Z]
      layer_size=LAYER_SIZE,
-     px_count=(DEVICE_X, DEVICE_Y),
      px_size=PX_SIZE,
  )
  
@@ -447,7 +438,7 @@ index 0000000..1111111 100644
  device.add_label("bulk", pymfcad.Color.from_name("aqua", 120))
  device.add_label("void", pymfcad.Color.from_name("tomato", 200))
  
- # Define bulk region and add it to the device
+ # Define bulk region and add it to the device component
  bulk = pymfcad.Cube((DEVICE_X, DEVICE_Y, DEVICE_Z))
  device.add_bulk("bulk_shape", bulk, label="bulk")
  
@@ -462,7 +453,7 @@ index 0000000..1111111 100644
  
 -# Create a channel (centered for easy placement, then translated)
 -channel = pymfcad.Cube(CHANNEL_SIZE, center=True)
--# Translate to absolute device coordinates (centered x, absolute y/z)
+-# Translate to absolute device component coordinates (centered x, absolute y/z)
 -channel.translate((CHANNEL_POS[0]+CHANNEL_SIZE[0]//2, CHANNEL_POS[1], CHANNEL_POS[2]))
 -
 -# Create pinholes
@@ -511,7 +502,7 @@ index 0000000..1111111 100644
 +device.add_void("polychannel_unit", polychannel, label="void")
 +device.add_void("channel", channel_unit, label="void")
  
- # Preview the device
+ # Preview the device component
  device.preview()
     </script>
 </div>

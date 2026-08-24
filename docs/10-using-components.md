@@ -2,7 +2,7 @@
 
 Prev: [Part 9: Routing with Fractional Paths](9-routing-fractional.md)
 
-This step shows how to assemble a full device from **subcomponents**, apply **component operations**, and use **autoroute** when you don’t need strict path control.
+This step shows how to assemble a full microfluidic device from **subcomponents**, apply **component operations**, and use **autoroute** when you don’t need strict path control.
 
 We’ll build a device with:
 
@@ -51,13 +51,10 @@ index 0000000..1111111 100644
 +DEVICE_Y = 1600
 +DEVICE_Z = 300
 +
-+# Create a new device (final print = bulk minus voids)
-+device = pymfcad.Device(
-+    name="example_device",
-+    position=(0, 0, 0),
-+    layers=DEVICE_Z,
++# Create a new device component (final print = bulk minus voids)
++device = pymfcad.Component(
++    size=[DEVICE_X, DEVICE_Y, DEVICE_Z]
 +    layer_size=LAYER_SIZE,
-+    px_count=(DEVICE_X, DEVICE_Y),
 +    px_size=PX_SIZE,
 +)
 +
@@ -226,13 +223,10 @@ index 0000000..1111111 100644
  DEVICE_Y = 1600
  DEVICE_Z = 300
  
- # Create a new device (final print = bulk minus voids)
- device = pymfcad.Device(
-     name="example_device",
-     position=(0, 0, 0),
-     layers=DEVICE_Z,
+ # Create a new device component (final print = bulk minus voids)
+ device = pymfcad.Component(
+     size=[DEVICE_X, DEVICE_Y, DEVICE_Z]
      layer_size=LAYER_SIZE,
-     px_count=(DEVICE_X, DEVICE_Y),
      px_size=PX_SIZE,
  )
  

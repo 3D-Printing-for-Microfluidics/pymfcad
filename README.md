@@ -15,7 +15,7 @@ PyMFCAD is a Python package for rapid design and prototyping of 3D-printed micro
 ## Typical workflow
 
 1. Define components (bulk material + negative feature)
-2. Assemble devices (position and combine components)
+2. Position and assemble components under one top-level component (design "device")
 3. Route connections (ports + routing tools)
 4. Visualize and render (inspect in 3D)
 5. Slice and export (generate print files)

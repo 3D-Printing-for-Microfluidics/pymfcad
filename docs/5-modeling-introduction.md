@@ -4,14 +4,14 @@ Prev: [Part 4b: Creating Your First Component](4b-building_first_component.md)
 
 This short bridge introduces the **modeling mindset** you’ll use in the next steps. It explains what modeling means in PyMFCAD and how your design choices map to DLP‑SLA printing.
 
-Goal: understand the core modeling concepts before building full devices.
+Goal: understand the core modeling concepts before building full components with or without levels of sub-components.
 
 ---
 
 ## The core mental model
 
 - You start with **bulk** (solid material) and carve out **voids** (channels).
-- The final device is always **bulk minus voids**.
+- The final component is always **bulk minus voids**.
 - Everything is designed on a **pixel/layer grid**, not continuous millimeters.
 
 This mirrors how DLP‑SLA printers work: each layer is an image, and each pixel/layer is the smallest printable unit.

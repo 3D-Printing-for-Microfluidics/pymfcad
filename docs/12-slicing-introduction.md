@@ -2,7 +2,7 @@
 
 Prev: [Part 11: Full Device Assembly](11-full-device.md)
 
-Slicing converts a finished **bulk‑void device** into printer‑ready layers. It takes your rendered geometry plus print settings and produces a layer‑by‑layer representation the printer can execute.
+Slicing converts a finished **bulk‑void component** into printer‑ready layers. It takes your rendered geometry plus print settings and produces a layer‑by‑layer representation the printer can execute.
 
 Goal: understand what the slicer produces and how to verify the output.
 

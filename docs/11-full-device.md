@@ -2,7 +2,7 @@
 
 Prev: [Part 10: Using Components in a Device](10-using-components.md)
 
-This final modeling step builds a **complete device** and introduces advanced techniques:
+This final modeling step builds a **complete microfluidic device** and introduces advanced techniques:
 
 - **Bezier curve routing**
 - **Polychannel routing**
@@ -18,7 +18,7 @@ Device plan:
 
 ---
 
-## Step 1 — Device context + labels + bulk
+## Step 1 — Device component context + labels + bulk
 
 <div class="diff2html-wrapper">
     <div class="diff2html"></div>
@@ -29,7 +29,7 @@ index 0000000..1111111 100644
 +++ b/example_device.py
 @@ -0 +1 @@
 +import pymfcad
-+from pymfcad import Device, Router, Port, Color, Cube, PolychannelShape, BezierCurveShape
++from pymfcad import Component, Router, Port, Color, Cube, PolychannelShape, BezierCurveShape
 +from pymfcad.component_library import Pinhole, Valve20px
 +
 +from y_junction_mixer import YJunctionMixer
@@ -43,11 +43,8 @@ index 0000000..1111111 100644
 +DEVICE_Z = 300
 +
 +device = Device(
-+    name="full_device",
-+    position=(0, 0, 0),
-+    layers=DEVICE_Z,
++    size=[DEVICE_X, DEVICE_Y, DEVICE_Z]
 +    layer_size=LAYER_SIZE,
-+    px_count=(DEVICE_X, DEVICE_Y),
 +    px_size=PX_SIZE,
 +)
 +
@@ -493,7 +490,7 @@ index 0000000..1111111 100644
 +++ b/example_device.py
 @@ -1 +1 @@
  import pymfcad
- from pymfcad import Device, Router, Port, Color, Cube, PolychannelShape, BezierCurveShape
+ from pymfcad import Component, Router, Port, Color, Cube, PolychannelShape, BezierCurveShape
  from pymfcad.component_library import Pinhole, Valve20px
  
  from y_junction_mixer import YJunctionMixer
@@ -507,11 +504,8 @@ index 0000000..1111111 100644
  DEVICE_Z = 300
  
  device = Device(
-     name="full_device",
-     position=(0, 0, 0),
-     layers=DEVICE_Z,
+     size=[DEVICE_X, DEVICE_Y, DEVICE_Z]
      layer_size=LAYER_SIZE,
-     px_count=(DEVICE_X, DEVICE_Y),
      px_size=PX_SIZE,
  )
  

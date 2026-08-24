@@ -109,7 +109,7 @@ index 0000000..1111111 100644
 +        self.add_label("bulk", Color.from_name("aqua", 127))
 +        self.add_label("void", Color.from_name("red", 255))
 + 
-+        # The device starts as a solid block
++        # The component starts as a solid block
 +        self.add_bulk("bulk_shape", Cube(self._size, center=False), label="bulk")
 + 
 +        # Ports define where routing starts/ends

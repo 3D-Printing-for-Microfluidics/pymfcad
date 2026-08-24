@@ -2,7 +2,7 @@
 
 PyMFCAD is a Python package for rapidly designing and fabricating 3D‑printed microfluidic devices. It targets DLP‑SLA 3D printing workflows while remaining accessible to anyone who wants to prototype microfluidic systems with modern additive manufacturing.
 
-This guide is a **step‑by‑step learning path**. Each part builds on earlier concepts so you can progress from first principles to a complete, printable device. The API reference is kept separate so the tutorial can stay focused and beginner‑friendly.
+This guide is a **step‑by‑step learning path**. Each part builds on earlier concepts so you can progress from first principles to a complete, printable model or device. The API reference is kept separate so the tutorial can stay focused and beginner‑friendly.
 
 ## How to use this guide
 
@@ -29,7 +29,7 @@ This guide is a **step‑by‑step learning path**. Each part builds on earlier 
 ## Typical workflow
 
 1. **Define components:** Create basic building blocks using shapes and labels.
-2. **Assemble devices:** Combine components and subcomponents, positioning and transforming as needed.
+2. **Design "Device":** Combine components and subcomponents under one top-level component, positioning and transforming as needed.
 3. **Add connections:** Use routing tools to connect ports and features.
 4. **Preview and validate:** Inspect geometry, labels, and ports before fabrication.
 5. **Slice and print:** Generate printer‑ready outputs for your DLP‑SLA process.
@@ -39,7 +39,7 @@ This guide is a **step‑by‑step learning path**. Each part builds on earlier 
 - **Component**: a reusable block made of **bulk** material (solid) and negative **voids** (channels).
 - **Labels**: named color groups used to organize geometry and visualization.
 - **Ports + routing**: define and connect fluidic interfaces between components.
-- **PrintFileGenerator**: converts the device into a JSON print job plus an image stack.
+- **PrintFileGenerator**: converts all present components into a single JSON print job and image stack.
 
 You will gain a greater understanding of this mental model throughout the tutorial.
 
@@ -48,7 +48,7 @@ You will gain a greater understanding of this mental model throughout the tutori
 By the end of Part 15, you will be able to:
 
 - Design and preview components
-- Assemble devices and connect ports
+- Assemble components under one top-level component and connect ports
 - Configure slicing settings
 - Generate print files and inspect outputs
 - Apply regional settings (membranes, secondary dose, etc.)

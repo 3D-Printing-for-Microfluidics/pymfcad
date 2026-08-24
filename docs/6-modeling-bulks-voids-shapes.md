@@ -2,7 +2,7 @@
 
 Prev: [Part 5: Modeling Introduction](5-modeling-introduction.md)
 
-This step starts the **Modeling** section. Thoughout the **Modeling** section you will build a device in small, readable chunks. In this step you learn about **basic shapes** as well as how **bulks** and **voids** work together.
+This step starts the **Modeling** section. Thoughout the **Modeling** section you will build a component in small, readable chunks. In this step you learn about **basic shapes** as well as how **bulks** and **voids** work together.
 
 The basic example is a **cube void inside a cube bulk**. Then we expand into a **shape gallery** that shows every supported shape type side‑by‑side.
 
@@ -39,9 +39,9 @@ index 0000000..1111111 100644
     </script>
 </div>
 
-### Step 2 — Create a Device
+### Step 2 — Create a Component
 
-The `Device` is the sliceable 3D canvas that constrains your design to the printer's hardware limits. Its dimensions are defined by pixel counts (x,y), layer count (z), and physical resolution (pixel and layer size).
+The `Component` is the sliceable 3D canvas of your design. The variables of a Component can be used to constrain your design to match the printer's physical hardware. Its dimensions are defined by size [x,y,z] (where x and y are measured in pixels and z is in layers), and the physical resolution (pixel and layer size in mm). It can contain sub-components as well, which we will get into later.
 
 <div class="diff2html-wrapper">
     <div class="diff2html"></div>
@@ -60,12 +60,9 @@ index 0000000..1111111 100644
      Sphere,
  )
 +
-+# Initialize our Device, the "canvas" we work within
-+overlapping_shapes = pymfcad.Device(
-+    name="overlapping_shapes",
-+    position=[0,0,0],
-+    px_count=(300,300),
-+    layers=300,
++# Initialize our top-level Component, the "canvas" we work within
++overlapping_shapes = pymfcad.Component(
++    size=[300,300,300]
 +    px_size=0.01,
 +    layer_size=0.01,
 +)
@@ -84,11 +81,8 @@ index 0000000..1111111 100644
 --- a/overlapping_shapes.py
 +++ b/overlapping_shapes.py
 @@ -11 +11 @@
- overlapping_shapes = pymfcad.Device(
-     name="overlapping_shapes",
-     position=[0,0,0],
-     px_count=(300,300),
-     layers=300,
+ overlapping_shapes = pymfcad.Component(
+     size=[300,300,300]
      px_size=0.01,
      layer_size=0.01,
  )
@@ -144,7 +138,7 @@ index 0000000..1111111 100644
 
 ### Step 6 — Add the bulk and void
 
-Bulks add material; voids remove material from bulks. The order doesn’t matter for previewing, but both must be added to the same device.
+Bulks add material; voids remove material from bulks. The order doesn’t matter for previewing, but both must be added to the same component.
 
 <div class="diff2html-wrapper">
     <div class="diff2html"></div>
@@ -157,7 +151,7 @@ index 0000000..1111111 100644
  # Move our inner shape
  inner_shape.translate(translation=[50,50,50])
 +
-+# Add shapes to the Device
++# Add shapes to the Component
 +overlapping_shapes.add_void("inner", inner_shape, "void") # Name of shape, the shape itself (variable name), and label
 +overlapping_shapes.add_bulk("outer", outer_shape, "bulk")
     </script>
@@ -165,7 +159,7 @@ index 0000000..1111111 100644
 
 ### Step 7 — Preview the result
 
-Send the device to the visualizer so you can inspect it.
+Send the component to the visualizer so you can inspect it.
 
 <div class="diff2html-wrapper">
     <div class="diff2html"></div>
@@ -175,7 +169,7 @@ index 0000000..1111111 100644
 --- a/overlapping_shapes.py
 +++ b/overlapping_shapes.py
 @@ -31 +31 @@
- # Add shapes to the Device
+ # Add shapes to the Component
  overlapping_shapes.add_void("inner", inner_shape, "void") # Name of shape, the shape itself (variable name), and label
  overlapping_shapes.add_bulk("outer", outer_shape, "bulk")
 +
@@ -205,12 +199,9 @@ index 0000000..1111111 100644
      Sphere,
  )
 
- # Initialize our Device, the "canvas" we work within
- overlapping_shapes = pymfcad.Device(
-     name="overlapping_shapes",
-     position=[0,0,0],
-     px_count=(300,300),
-     layers=300,
+ # Initialize our top-level Component, the "canvas" we work within
+ overlapping_shapes = pymfcad.Component(
+     size=[300,300,300]
      px_size=0.01,
      layer_size=0.01,
  )
@@ -226,7 +217,7 @@ index 0000000..1111111 100644
  # Move our inner shape
  inner_shape.translate(translation=[50,50,50])
  
- # Add shapes to the Device
+ # Add shapes to the Component
  overlapping_shapes.add_void("inner", inner_shape, "void") # Name of shape, the shape itself (variable name), and label
  overlapping_shapes.add_bulk("outer", outer_shape, "bulk")
  
@@ -265,7 +256,7 @@ index 0000000..1111111 100644
     </script>
 </div>
 
-### Step 2 — Create a Device
+### Step 2 — Create a top-level Component
 
 We use a larger canvas so all shapes can fit in a grid.
 
@@ -289,12 +280,9 @@ index 0000000..1111111 100644
      ImportModel,
  )
 +
-+# Initialize our Device, the "canvas" we work within
-+gallery = pymfcad.Device(
-+    name="overlapping_shapes",
-+    position=[0,0,0],
-+    px_count=(1200,750),
-+    layers=300,
++# Initialize our top-level Component, the "canvas" we work within
++gallery = pymfcad.Component(
++    size=[1200,750,300]
 +    px_size=0.01,
 +    layer_size=0.01,
 +)
@@ -313,11 +301,8 @@ index 0000000..1111111 100644
 --- a/shape_gallery.py
 +++ b/shape_gallery.py
 @@ -14 +14 @@
- gallery = pymfcad.Device(
-     name="overlapping_shapes",
-     position=[0,0,0],
-     px_count=(1200,750),
-     layers=300,
+ gallery = pymfcad.Component(
+     size=[1200,750,300]
      px_size=0.01,
      layer_size=0.01,
  )
@@ -423,7 +408,7 @@ index 0000000..1111111 100644
     </script>
 </div>
 
-### Step 7 — Add shapes to the device
+### Step 7 — Add shapes to the component
 
 Each shape is added as a bulk and assigned its color label.
 
@@ -503,11 +488,9 @@ index 0000000..1111111 100644
      ImportModel,
  )
  
- # Initialize our Device, the "canvas" we work within
- gallery = pymfcad.Device(
-     name="overlapping_shapes",
-     position=[0,0,0],
-     px_count=(1200,750),
+ # Initialize our top-level Component, the "canvas" we work within
+ gallery = pymfcad.Component(
+     size=[1200,750,300]
      layers=300,
      px_size=0.01,
      layer_size=0.01,

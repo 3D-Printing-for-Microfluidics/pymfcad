@@ -2,7 +2,7 @@
 
 Prev: [Part 7: Modeling Microfluidics](7-modeling-microfluidics.md)
 
-This step introduces **reusable components**. The goal is to turn a feature (like a Y‑junction) into a class you can import and place in any device.
+This step introduces **reusable components**. The goal is to turn a feature (like a Y‑junction) into a class you can import and place in any future component.
 
 ---
 
@@ -171,7 +171,7 @@ index 0000000..1111111 100644
 
 ## Ports (what they are and why they matter)
 
-**Ports are connection points** used by routing and device assembly. A port defines:
+**Ports are connection points** used by routing and component/subcomponent assembly. A port defines:
 
 - **Type**: `IN`, `OUT`, or `INOUT`
 - **Position**: where the port starts
