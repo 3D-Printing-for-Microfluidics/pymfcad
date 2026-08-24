@@ -12,7 +12,7 @@ HR3v3 = Printer(
                 ExposureSettings(
                     grayscale_correction=True,
                     bulk_exposure_multiplier=1.0,
-                    power_setting=100.0,
+                    power_setting=100,
                     wavelength=365,
                 ),
             ],
@@ -40,7 +40,7 @@ OS1v0 = Printer(
                 ExposureSettings(
                     grayscale_correction=True,
                     bulk_exposure_multiplier=1.0,
-                    power_setting=100.0,
+                    power_setting=100,
                     wavelength=365,
                 ),
             ],
@@ -68,7 +68,7 @@ HR5 = Printer(
                 ExposureSettings(
                     grayscale_correction=True,
                     bulk_exposure_multiplier=1.0,
-                    power_setting=100.0,
+                    power_setting=100,
                     wavelength=365,
                 ),
             ],
@@ -95,12 +95,12 @@ MR1v1 = Printer(
             default_exposure_settings=[
                 ExposureSettings(
                     bulk_exposure_multiplier=10.0,
-                    power_setting=300.0,
+                    power_setting=300,
                     wavelength=405,
                 ),
                 ExposureSettings(
                     bulk_exposure_multiplier=10.0,
-                    power_setting=300.0,
+                    power_setting=300,
                     wavelength=365,
                 )
             ],
@@ -118,7 +118,7 @@ MR1v1 = Printer(
             default_exposure_settings=[
                 ExposureSettings(
                     bulk_exposure_multiplier=1.0,
-                    power_setting=60.0,
+                    power_setting=60,
                     wavelength=365,
                 )
             ],

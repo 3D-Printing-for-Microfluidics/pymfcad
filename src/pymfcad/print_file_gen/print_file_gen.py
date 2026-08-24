@@ -928,8 +928,8 @@ class PrintFileGenerator:
                         exposure_settings = copy.deepcopy(slice_info["exposure_settings"])
 
                         x_offset_um, y_offset_um = self._calculate_tile_xy_offset(le, stitching, tx, ty)
-                        exposure_settings.image_x_offset += x_offset_um
-                        exposure_settings.image_y_offset += y_offset_um
+                        exposure_settings.image_x_offset -= x_offset_um
+                        exposure_settings.image_y_offset -= y_offset_um
                         exposure_settings.image_x_offset = round(exposure_settings.image_x_offset, 1)
                         exposure_settings.image_y_offset = round(exposure_settings.image_y_offset, 1)
 
