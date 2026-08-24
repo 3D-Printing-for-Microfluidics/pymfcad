@@ -4,11 +4,7 @@ Quick reference to build, render, and slice a device.
 
 ## Core classes
 
-- `Component(size, position, px_size, layer_size, quiet=False)`
-- `Device(name, position, layers, layer_size, px_count, px_size, quiet=False)`
-- `StitchedDevice(name, position, layers, layer_size, tiles_x, tiles_y, base_px_count=(2560,1600), overlap_px=0, px_size=0.0076, quiet=False)`
-- `Both Device and StitchedDevice can use ._with_visitech_1x(), ._with_visitech_2x(), or ._with_wintech() contructors`
-- `If alternate constructor is used, you don't need to specify px_size or px_count`
+- `Component(size, px_size, layer_size, quiet=False)`
 - `VariableLayerThicknessComponent(size, position, px_size, layer_sizes, quiet=False)`
 
 ## Labels and colors
@@ -115,9 +111,8 @@ Helpers:
 
 Settings objects (key parameters):
 
-- `Settings(printer, resin, default_position_settings, default_exposure_settings, special_print_techniques=[...], user="", purpose="", description="")`
-- `Printer(name, light_engines, xy_stage_available=False, vacuum_available=False)`
-- `LightEngine(px_size, px_count, wavelengths, grayscale_available=[False])`
+- `Printer(name, light_engines, xy_stage_available=False, vacuum_available=False, default_position_settings=PositionSettings())`
+- `LightEngine(px_size, px_count, wavelengths, default_exposure_settings=[ExposureSettings()], grayscale_available=[False], settle_time_ms, stitched_px_overlap, x_offset_limits, y_offset_limits)`
 - `ResinType(bulk_exposure, exposure_offset=0.0, monomer=[...], uv_absorbers=[...], initiators=[...], additives=[...])`
 - `PositionSettings(distance_up, initial_wait, up_speed, up_acceleration, up_wait, down_speed, down_acceleration, final_wait, special_layer_techniques=[...])`
 - `ExposureSettings(grayscale_correction, bulk_exposure_multiplier, power_setting, wavelength, relative_focus_position, wait_before_exposure, wait_after_exposure, special_image_techniques=[...])`
@@ -149,14 +144,20 @@ Device‑level defaults:
 
 Slicer:
 
-- `Slicer(device, settings, filename, minimize_file=True, zip_output=False)`
-- `slicer.make_print_file()`
+- `PrintFileGenerator(filename, author, purpose, description, component, workspaces, printer, resin, special_print_techniques, minimize_file=True, zip_output=False)`
+- `print_file_gen.run()`
+
+Workspaces:
+
+- Workspace(printer, pixel_size, exposure_abs_pos_um, light_engine_stitching=(1,1))
+- workspace.add_component(name, component, centered=True)
+- workspace.adjust_subcomponent_light_engine_position(subcomponent_fqn, exposure_rel_pos_um)
 
 Stitching notes:
 
-- `StitchedDevice` requires printer `xy_stage_available=True`
+- light_engine_stitching > (1,1) requires printer `xy_stage_available=True`
 - Device is centered; per‑tile offsets are written in JSON
-- Use `overlap_px` to overlap tiles (step = base size − overlap)
+- Use light_engine `stitched_px_overlap` to overlap tiles
 
 ## Regional settings
 

@@ -71,7 +71,7 @@ The visualizer supports **versioned models**. If a model has multiple versions, 
 
 Key points:
 
-- Versions are grouped by base name (for example, names like `device__v2` become version `V2`).
+- Versions are grouped by base name (for example, names like `component__v2` become version `V2`).
 - The **Default model version** setting (General tab) selects the initial version (Smallest or Largest).
 - You can mix versions across models to compare geometry changes side‑by‑side.
 - Versioned models are especially useful for advanced animations and comparisons over time.

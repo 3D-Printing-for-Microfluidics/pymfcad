@@ -1,7 +1,7 @@
 # Customizing Labels and Colors
 Prev: [Part 15: Slicing Process](15-slicing-process.md)
 
-This section explains how to **relabel** shapes and labels so colors are consistent across a full device, including nested subcomponents.
+This section explains how to **relabel** shapes and labels so colors are consistent across a full component, including nested subcomponents.
 
 Relabeling uses a single function:
 
@@ -85,7 +85,7 @@ device.relabel({"pump.pneumatic": "control"}, recursive=True)
 
 ## Why relabel at all?
 
-Relabeling makes multi‑component devices readable and consistent:
+Relabeling makes hierarchical components readable and consistent:
 
 - All fluidic channels can share one color
 - All pneumatic/control lines can share another

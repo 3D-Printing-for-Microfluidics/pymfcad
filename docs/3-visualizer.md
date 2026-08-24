@@ -3,7 +3,7 @@
 
 Prev: [Part 2: Installation](2-installation.md)
 
-PyMFCAD includes a browser‑based visualizer for inspecting and validating devices. You will use it throughout the tutorial to confirm geometry, labeling, ports, and routing.
+PyMFCAD includes a browser‑based visualizer for inspecting and validating components. You will use it throughout the tutorial to confirm geometry, labeling, ports, and routing.
 
 Goal: get comfortable navigating the preview so you can validate every step later.
 
@@ -71,21 +71,21 @@ The visualizer supports two control styles: **Orbit** and **Trackball** (selecta
 
 ## Step 4 — Model selector (overview)
 
-The **Model Selector** controls visibility for the main geometry and overlays. Each group has a master toggle (Device) and may include sub‑toggles for specific content.
+The **Model Selector** controls visibility for the main geometry and overlays. Each group has a master toggle (Component) and may include sub‑toggles for specific content.
 
 ![Model selector](resources/3/model_selector.png)
 
-### Device
+### Component
 
-- **Device** — final bulk‑minus‑void geometry, used for export and slicing
+- **Component** — final bulk‑minus‑void geometry, used for export and slicing
 
-![Device toggle](resources/3/device_ms.png)
+![Component toggle](resources/3/device_ms.png)
 
-![Device only](resources/3/device.png)
+![Component only](resources/3/device.png)
 
 ### Bounding box
 
-- **Bounding Box** — black outline of the device bounds
+- **Bounding Box** — black outline of the component bounds
 
 ![Bounding box toggle](resources/3/bbox_ms.png)
 
@@ -176,6 +176,6 @@ The visualizer includes detailed settings panels for rendering and navigation. T
 - You can identify the overview, toolbar, view cube, model selector, and reload controls.
 - You understand the purpose of each model selector group.
 
-With this overview, you should be ready to begin designing your own devices.
+With this overview, you should be ready to begin designing your own components.
 
 Next: [Part 4a: Reading Code Examples](4a-reading-code-examples.md)

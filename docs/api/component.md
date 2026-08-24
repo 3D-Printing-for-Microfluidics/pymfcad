@@ -1,4 +1,4 @@
-# Component & Device API
+# Component API
 
 ## Component Types
 ::: pymfcad.Component

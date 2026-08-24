@@ -99,7 +99,6 @@ index 0000000..1111111 100644
 + 
 +        super().__init__(
 +            size=(length, width, channel_size[2]*levels + channel_margin[2]*(levels + 1)),
-+            position=(0, 0, 0),
 +            px_size=px_size,
 +            layer_size=layer_size,
 +            quiet=quiet,
@@ -109,7 +108,7 @@ index 0000000..1111111 100644
 +        self.add_label("bulk", Color.from_name("aqua", 127))
 +        self.add_label("void", Color.from_name("red", 255))
 + 
-+        # The device starts as a solid block
++        # The component starts as a solid block
 +        self.add_bulk("bulk_shape", Cube(self._size, center=False), label="bulk")
 + 
 +        # Ports define where routing starts/ends
@@ -378,7 +377,6 @@ index 0000000..1111111 100644
  
          super().__init__(
              size=(length, width, channel_size[2]*levels + channel_margin[2]*(levels + 1)),
-             position=(0, 0, 0),
              px_size=px_size,
              layer_size=layer_size,
              quiet=quiet,

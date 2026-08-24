@@ -2,7 +2,7 @@
 
 Prev: [Part 10: Using Components in a Device](10-using-components.md)
 
-This final modeling step builds a **complete device** and introduces advanced techniques:
+This final modeling step builds a **complete microfluidic device** and introduces advanced techniques:
 
 - **Bezier curve routing**
 - **Polychannel routing**
@@ -18,7 +18,7 @@ Device plan:
 
 ---
 
-## Step 1 — Device context + labels + bulk
+## Step 1 — Component context + labels + bulk
 
 <div class="diff2html-wrapper">
     <div class="diff2html"></div>
@@ -29,7 +29,7 @@ index 0000000..1111111 100644
 +++ b/example_device.py
 @@ -0 +1 @@
 +import pymfcad
-+from pymfcad import Device, Router, Port, Color, Cube, PolychannelShape, BezierCurveShape
++from pymfcad import Component, Router, Port, Color, Cube, PolychannelShape, BezierCurveShape
 +from pymfcad.component_library import Pinhole, Valve20px
 +
 +from y_junction_mixer import YJunctionMixer
@@ -43,11 +43,8 @@ index 0000000..1111111 100644
 +DEVICE_Z = 300
 +
 +device = Device(
-+    name="full_device",
-+    position=(0, 0, 0),
-+    layers=DEVICE_Z,
++    size=[DEVICE_X, DEVICE_Y, DEVICE_Z]
 +    layer_size=LAYER_SIZE,
-+    px_count=(DEVICE_X, DEVICE_Y),
 +    px_size=PX_SIZE,
 +)
 +
@@ -156,7 +153,7 @@ Preview the device at this stage.
 
 ## Step 3 — Relabel subcomponents
 
-Subcomponents bring their own labels (and colors). If you leave them as‑is, you’ll end up with many label names like `valve_a.pneumatic` or `mixer.void`. Use `relabel()` to **merge and normalize** those labels into a small, consistent device‑level set (e.g., `fluidic`, `pneumatic`, `membrane`, `bulk`).
+Subcomponents bring their own labels (and colors). If you leave them as‑is, you’ll end up with many label names like `valve_a.pneumatic` or `mixer.void`. Use `relabel()` to **merge and normalize** those labels into a small, consistent component‑level set (e.g., `fluidic`, `pneumatic`, `membrane`, `bulk`).
 
 This keeps the visualizer clean and makes downstream settings (like slicer regions) much easier to manage.
 
@@ -455,7 +452,7 @@ Preview the device after stubbing.
 
 ## Step 9 — Render device
 
-Rendering exports the device as a **portable 3D model file** so it can be used outside the pymfcad ecosystem. Any device or component can be rendered. The output is the final **bulk‑void** model, ready for other CAD tools and manufacturing pipelines. We support common formats like **.glb**, **.stl**, and **.3mf**, so your design works across most 3D workflows without relying on our custom printers.
+Rendering exports the device as a **portable 3D model file** so it can be used outside the pymfcad ecosystem. Any component can be rendered. The output is the final **bulk‑void** model, ready for other CAD tools and manufacturing pipelines. We support common formats like **.glb**, **.stl**, and **.3mf**, so your design works across most 3D workflows without relying on our custom printers. Advanced settings (which we will introduce shortly), will not be exported.
 
 <div class="diff2html-wrapper">
     <div class="diff2html"></div>
@@ -493,7 +490,7 @@ index 0000000..1111111 100644
 +++ b/example_device.py
 @@ -1 +1 @@
  import pymfcad
- from pymfcad import Device, Router, Port, Color, Cube, PolychannelShape, BezierCurveShape
+ from pymfcad import Component, Router, Port, Color, Cube, PolychannelShape, BezierCurveShape
  from pymfcad.component_library import Pinhole, Valve20px
  
  from y_junction_mixer import YJunctionMixer
@@ -507,11 +504,8 @@ index 0000000..1111111 100644
  DEVICE_Z = 300
  
  device = Device(
-     name="full_device",
-     position=(0, 0, 0),
-     layers=DEVICE_Z,
+     size=[DEVICE_X, DEVICE_Y, DEVICE_Z]
      layer_size=LAYER_SIZE,
-     px_count=(DEVICE_X, DEVICE_Y),
      px_size=PX_SIZE,
  )
  

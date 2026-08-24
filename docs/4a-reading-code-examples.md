@@ -68,4 +68,4 @@ index 0000000..1111111 100644
 
 Now that you know how to read the code diffs, let’s walk through a minimal example using PyMFCAD.
 
-Next: [Part 4b: Hello World Component](4b-building_first_component.md)
+Next: [Part 4b: Creating Your First Component](4b-first_component.md)
