@@ -1,28 +1,10 @@
-from pymfcad import (
-    Device,
-    Cube,
-    RoundedCube,
-    Sphere,
-    Cylinder,
-    TextExtrusion,
-    ImportModel,
-    TPMS,
-    Polychannel,
-    PolychannelShape,
-    BezierCurveShape,
-    Component,
-    Color,
-    set_fn,
-    Router,
-)
-from pymfcad.component_library import Valve20px, TestCube, Pinhole
+from pymfcad import *
+from pymfcad.component_library import *
 
 set_fn(50)
 
-# # ############### 1 Test all basic components ##################
-# component = Component(
-#     size=(2560, 1600, 10), position=(0, 0, 0), px_size=0.0076, layer_size=0.01
-# )
+# ############### 1 Test all basic components ##################
+# component = Component(size=(2560, 1600, 10), px_size=0.0076, layer_size=0.01)
 # chan_size = (8, 8, 6)
 # # Add label
 # component.add_label("default", Color.from_rgba((0, 255, 0, 127)))
@@ -50,7 +32,7 @@ set_fn(50)
 # #     label="default",
 # # )
 # # component.add_bulk(
-# #     f"tpms",
+# #     "tpms",
 # #     TPMS(func=TPMS.diamond, size=(10, 10, 8), fill=0.0, refinement=50),
 # #     label="default",
 # # )
@@ -74,21 +56,21 @@ set_fn(50)
 # #     ),
 # #     label="default",
 # # )
-# # component.add_bulk(
-# #     "beziercurve",
-# #     Polychannel(
-# #         [
-# #             PolychannelShape("sphere", position=(0, 0, 0), size=chan_size),
-# #             BezierCurveShape(
-# #                 control_points=[(100, 0, 0), (100, 100, 0)],
-# #                 bezier_segments=10,
-# #                 shape_type="sphere",
-# #                 position=(100, 100, 100),
-# #             ),
-# #         ]
-# #     ),
-# #     label="default",
-# # )
+# component.add_bulk(
+#     "beziercurve",
+#     Polychannel(
+#         [
+#             PolychannelShape("sphere", position=(0, 0, 0), size=chan_size),
+#             BezierCurveShape(
+#                 control_points=[(100, 0, 0), (100, 100, 0)],
+#                 bezier_segments=10,
+#                 shape_type="sphere",
+#                 position=(100, 100, 100),
+#             ),
+#         ]
+#     ),
+#     label="default",
+# )
 
 # # Mesh the component
 # component.preview()
@@ -96,7 +78,7 @@ set_fn(50)
 # ################ 2 Test subcomonents ##################
 # device_size = (2560, 1600, 250)
 # device_position = (0, 0, 0)
-# device = Device.with_visitech_1x("TestDevice", device_position, layers=250, layer_size=0.01)
+# device = Component(device_size, px_size=0.0076, layer_size=0.01)
 
 # component = Valve20px()
 # device.add_subcomponent("valve", component)
@@ -112,9 +94,7 @@ set_fn(50)
 
 
 # ############### 3 Test translations, mirroring and rotations ##################
-# component = Component(
-#     size=(255, 255, 15), position=(0, 0, 0), px_size=0.0076, layer_size=0.01
-# )
+# component = Component(size=(255, 255, 15), px_size=0.0076, layer_size=0.01)
 
 # component.add_label("default", Color.from_rgba((0, 255, 0, 0)))
 
@@ -154,14 +134,18 @@ set_fn(50)
 # # c3 = TestCube().mirror(mirror_x=True, mirror_y=True, in_place=True).translate((150, 0, 0))
 # # c4 = TestCube().mirror(mirror_y=True, in_place=True).translate((225, 0, 0))
 
+
+# c1.translate((component._size[0] // 2, component._size[1] // 2, 0))
+# c2.translate((component._size[0] // 2, component._size[1] // 2, 0))
+# c3.translate((component._size[0] // 2, component._size[1] // 2, 0))
+# c4.translate((component._size[0] // 2, component._size[1] // 2, 0))
+
 # component.add_subcomponent("C1", c1)
 # component.add_subcomponent("C2", c2)
 # component.add_subcomponent("C3", c3)
 # component.add_subcomponent("C4", c4)
 
-# component.add_bulk(
-#     "bulk_cube", Cube(component._size, center=False), label="default"
-# )
+# component.add_bulk("bulk_cube", Cube(component._size, center=False), label="default")
 
 # # Mesh the component
 # component.preview()
@@ -170,13 +154,13 @@ set_fn(50)
 # ################ 4 Test Routing ##################
 # device_size = (150, 150, 100)
 # device_position = (0, 0, 0)
-# device = Device.with_visitech_1x("TestDevice", device_position, layers=250, layer_size=0.01)
+# device = Component(device_size, px_size=0.0076, layer_size=0.01)
 
 # device.add_label("autopath", Color.from_rgba((0, 255, 0, 127)))
 # device.add_label("device", Color.from_name("aqua", 63))
 
 # c1 = Valve20px().translate((18, 35, 40))
-# c2 = Valve20px().translate((52, 35, 40))
+# c2 = Valve20px().translate((54, 35, 40))
 
 # device.add_subcomponent("Valve1", c1)
 # device.add_subcomponent("Valve2", c2)
@@ -216,9 +200,7 @@ set_fn(50)
 # # device.render()
 
 # ############## 6 Create serpentine channel ##################
-# component = Component(
-#     size=(2560, 1600, 20), position=(0, 0, 0), px_size=0.0076, layer_size=0.01
-# )
+# component = Component(size=(2560, 1600, 20), px_size=0.0076, layer_size=0.01)
 # chan_size = (8, 8, 6)
 # # Add label
 # component.add_label("default", Color.from_rgba((0, 255, 0, 127)))
