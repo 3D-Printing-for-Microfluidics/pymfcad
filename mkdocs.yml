@@ -43,7 +43,7 @@ nav:
       - "AI Integration Guide": r5-ai_integration.md
   - "API Reference":
       - "Core": api/core.md
-      - "Component/Device": api/component.md
+      - "Component": api/component.md
       - "Color": api/color.md
       - "Shape": api/shapes.md
       - "Port": api/port.md
@@ -51,7 +51,7 @@ nav:
       - "Router": api/router.md
       - "Settings": api/settings.md
       - "Special Techniques": api/special_techniques.md
-      - "Slicer": api/slicer.md
+      - "Print File Generator": api/print_file_gen.md
       - "Component Library": api/component_library.md
       - "Printer Library": api/printer_library.md
       - "Resin Library": api/resin_library.md
