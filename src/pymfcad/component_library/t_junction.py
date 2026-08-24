@@ -1,4 +1,4 @@
-from pymfcad import Component, Port, Color, Cube, Router
+from pymfcad import Color, Component, Cube, Port, Router
 
 
 class TJunction(Component):

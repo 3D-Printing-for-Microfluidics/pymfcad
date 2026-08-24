@@ -1,6 +1,6 @@
 ### SERPINTINE CHANNEL COMPONENT
 
-from pymfcad import Component, Port, Router, Color, Cube
+from pymfcad import Color, Component, Cube, Port, Router
 
 
 class SerpentineChannel(Component):

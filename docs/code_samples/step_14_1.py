@@ -1,4 +1,4 @@
-from pymfcad import Component, Port, Color, Cylinder, Cube
+from pymfcad import Color, Component, Cube, Cylinder, Port
 
 
 class Valve20px(Component):

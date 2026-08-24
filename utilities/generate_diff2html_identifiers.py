@@ -7,8 +7,8 @@ import builtins
 import json
 import keyword
 import re
+from collections.abc import Iterable
 from pathlib import Path
-from typing import Iterable
 
 DOCS_DIR = Path(__file__).resolve().parents[1] / "docs"
 OUTPUT_JS = DOCS_DIR / "static" / "diff2html-identifiers.js"

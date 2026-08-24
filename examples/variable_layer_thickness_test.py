@@ -1,23 +1,15 @@
 from pymfcad import (
-    set_fn,
-    Device,
-    Component,
-    VariableLayerThicknessComponent,
-    Port,
     Color,
     Cube,
     Cylinder,
+    ExposureSettings,
+    MembraneSettings,
     Polychannel,
     PolychannelShape,
-    MembraneSettings,
-    SecondaryDoseSettings,
     PositionSettings,
-    ExposureSettings,
-    Slicer,
-    Settings,
-    ResinType,
-    Printer,
-    LightEngine,
+    SecondaryDoseSettings,
+    VariableLayerThicknessComponent,
+    set_fn,
 )
 
 set_fn(100)

@@ -1,9 +1,15 @@
-import pymfcad
-from pymfcad import Device, Router, Port, Color, Cube, PolychannelShape, BezierCurveShape
+from pymfcad import (
+    BezierCurveShape,
+    Color,
+    Cube,
+    Device,
+    PolychannelShape,
+    Port,
+    Router,
+)
 from pymfcad.component_library import Pinhole, Valve20px
 
-from . import YJunctionMixer
-from . import SerpentineChannel
+from . import SerpentineChannel, YJunctionMixer
 
 PX_SIZE = 0.0076
 LAYER_SIZE = 0.01

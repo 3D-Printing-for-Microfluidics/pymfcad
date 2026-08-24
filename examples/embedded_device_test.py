@@ -1,8 +1,8 @@
 from pymfcad import (
-    Component,
-    ExposureSettings,
     Color,
+    Component,
     Cube,
+    ExposureSettings,
     PrintFileGenerator,
 )
 

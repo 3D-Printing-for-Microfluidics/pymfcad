@@ -1,10 +1,9 @@
 import pymfcad
-from pymfcad import Component, Router, Color, Cube
+from pymfcad import Color, Cube, Router
 from pymfcad.component_library import Pinhole
 
 # Import custom components from previous steps
-from . import YJunctionMixer
-from . import SerpentineChannel
+from . import SerpentineChannel, YJunctionMixer
 
 PX_SIZE = 0.0076
 LAYER_SIZE = 0.01

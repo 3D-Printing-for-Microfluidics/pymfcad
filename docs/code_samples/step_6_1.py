@@ -4,8 +4,6 @@ import pymfcad
 from pymfcad import (
     Cube,
     RoundedCube,
-    Cylinder,
-    Sphere,
 )
 
 # Initialize our Device, the "canvas" we work within

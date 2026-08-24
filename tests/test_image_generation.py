@@ -1,19 +1,17 @@
 from __future__ import annotations
 
 import pytest
-from pathlib import Path
 
 from pymfcad import Component
 from pymfcad.backend import Color, Cube
-
 from pymfcad.print_file_gen import (
     ExposureSettings,
     LightEngine,
+    MembraneSettings,
     PositionSettings,
     Printer,
-    ResinType,
     PrintFileGenerator,
-    MembraneSettings,
+    ResinType,
     SecondaryDoseSettings,
 )
 

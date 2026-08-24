@@ -1,4 +1,4 @@
-from pymfcad import Component, Port, Color, Cube, Polychannel, PolychannelShape
+from pymfcad import Color, Component, Cube, Polychannel, PolychannelShape, Port
 
 
 class Pinhole(Component):

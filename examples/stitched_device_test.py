@@ -1,16 +1,9 @@
 from pymfcad import (
-    Component,
-    # StitchedDevice,
-    # Printer,
-    # LightEngine,
-    # ResinType,
-    # PositionSettings,
-    # ExposureSettings,
     Color,
+    Component,
     Cube,
     PrintFileGenerator,
 )
-
 from pymfcad.printer_library import OS1v0
 from pymfcad.resin_library import NPS
 

@@ -1,4 +1,4 @@
-from pymfcad import Component, Port, Color, Cube
+from pymfcad import Color, Component, Cube, Port
 
 
 class TestCube(Component):

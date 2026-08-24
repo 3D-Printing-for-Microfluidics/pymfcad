@@ -1,4 +1,4 @@
-from pymfcad import Printer, LightEngine, PositionSettings, ExposureSettings
+from pymfcad import ExposureSettings, LightEngine, PositionSettings, Printer
 
 HR3v3 = Printer(
     name="HR3v3",

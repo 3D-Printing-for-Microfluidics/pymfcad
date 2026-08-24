@@ -1,17 +1,17 @@
 from pymfcad import (
+    Color,
     Component,
-    Printer,
-    LightEngine,
-    ResinType,
-    PositionSettings,
+    Cube,
     ExposureSettings,
+    LightEngine,
+    PositionSettings,
+    Printer,
+    PrintFileGenerator,
+    PrintOnFilm,
     PrintUnderVacuum,
+    ResinType,
     SqueezeOutResin,
     ZeroMicronLayer,
-    PrintOnFilm,
-    Color,
-    Cube,
-    PrintFileGenerator,
 )
 
 # Base exposure settings (no special image techniques)

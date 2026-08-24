@@ -19,43 +19,37 @@ try:
 except importlib.metadata.PackageNotFoundError:
     __version__ = "0.0.0-development"  # Fallback for editable/uninstalled local runs
 
-from .pymfcad import (
-    Port,
-    Component,
-    VariableLayerThicknessComponent,
-    TPMSComponent
-)
-
 from .backend import (
-    set_fn,
-    Shape,
+    TPMS,
+    BezierCurveShape,
+    Color,
     Cube,
     Cylinder,
-    Sphere,
-    RoundedCube,
-    TextExtrusion,
     ImportModel,
-    TPMS,
-    TPMSGrid,
-    Color,
     Polychannel,
     PolychannelShape,
-    BezierCurveShape,
+    RoundedCube,
+    Shape,
+    Sphere,
+    TextExtrusion,
+    TPMSGrid,
+    set_fn,
 )
-from .router import Router
 from .print_file_gen import (
-    ResinType,
-    Printer,
-    LightEngine,
-    SpecialPrintTechniques,
-    PositionSettings,
     ExposureSettings,
+    LightEngine,
     MembraneSettings,
-    SecondaryDoseSettings,
-    PrintUnderVacuum,
-    SqueezeOutResin,
-    ZeroMicronLayer,
-    PrintOnFilm,
+    PositionSettings,
+    Printer,
     PrintFileGenerator,
+    PrintOnFilm,
+    PrintUnderVacuum,
+    ResinType,
+    SecondaryDoseSettings,
+    SpecialPrintTechniques,
+    SqueezeOutResin,
     Workspace,
+    ZeroMicronLayer,
 )
+from .pymfcad import Component, Port, TPMSComponent, VariableLayerThicknessComponent
+from .router import Router

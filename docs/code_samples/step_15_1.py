@@ -1,12 +1,16 @@
-import pymfcad
-from pymfcad import Device, Router, Port, Color, Cube, PolychannelShape, BezierCurveShape
+from pymfcad import (
+    BezierCurveShape,
+    Color,
+    Cube,
+    Device,
+    PolychannelShape,
+    Port,
+    Router,
+)
 from pymfcad.component_library import Pinhole
 
 # Replace this import with your updated valve
-from . import Valve20px
-
-from . import YJunctionMixer
-from . import SerpentineChannel
+from . import SerpentineChannel, Valve20px, YJunctionMixer
 
 PX_SIZE = 0.0076
 LAYER_SIZE = 0.01
@@ -213,12 +217,12 @@ device.connect_port(device.ports["ctrl_b_stub"])
 router.finalize_routes()
 
 from pymfcad import (
-    Settings,
-    ResinType,
-    Printer,
+    ExposureSettings,
     LightEngine,
     PositionSettings,
-    ExposureSettings,
+    Printer,
+    ResinType,
+    Settings,
 )
 
 settings = Settings(

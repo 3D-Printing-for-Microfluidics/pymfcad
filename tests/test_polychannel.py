@@ -1,9 +1,9 @@
 from __future__ import annotations
 
-import pytest
 import numpy as np
+import pytest
 
-from pymfcad import Polychannel, PolychannelShape, BezierCurveShape
+from pymfcad import BezierCurveShape, Polychannel, PolychannelShape
 
 
 def _shape(

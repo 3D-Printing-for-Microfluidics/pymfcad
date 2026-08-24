@@ -1,5 +1,4 @@
 from pymfcad import *
-from pymfcad.component_library import Pinhole
 
 set_fn(50)
 

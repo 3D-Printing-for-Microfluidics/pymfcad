@@ -1,17 +1,16 @@
 from pymfcad import (
-    set_fn,
-    Device,
-    Component,
     Color,
     Cube,
-    Router,
-    Slicer,
-    Settings,
-    ResinType,
-    Printer,
+    Device,
+    ExposureSettings,
     LightEngine,
     PositionSettings,
-    ExposureSettings,
+    Printer,
+    ResinType,
+    Router,
+    Settings,
+    Slicer,
+    set_fn,
 )
 from pymfcad.component_library import Valve20px
 

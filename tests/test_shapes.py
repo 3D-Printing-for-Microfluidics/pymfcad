@@ -7,6 +7,7 @@ import trimesh
 
 from pymfcad import Component
 from pymfcad.backend import (
+    TPMS,
     Color,
     Cube,
     Cylinder,
@@ -15,7 +16,6 @@ from pymfcad.backend import (
     Shape,
     Sphere,
     TextExtrusion,
-    TPMS,
 )
 from tests.utils.mesh_metrics import compute_mesh_metrics, load_mesh
 

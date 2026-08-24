@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import importlib.util
 import runpy
 import zipfile
 from pathlib import Path

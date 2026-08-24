@@ -1,7 +1,6 @@
-import time
-import math
-import numpy as np
 from pathlib import Path
+
+import numpy as np
 from PIL import Image, ImageDraw
 from shapely.geometry import Polygon
 

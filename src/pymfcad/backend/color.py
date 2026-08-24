@@ -1,7 +1,6 @@
 from __future__ import annotations
-from typing import Union
+
 from pathlib import Path
-import importlib.util
 
 
 def _get_colors_dir() -> Path:
@@ -227,7 +226,7 @@ class Color:
         return f"Color(r={self._r}, g={self._g}, b={self._b}, a={self._a})"
 
     @staticmethod
-    def _clamp(value: Union[float, int]) -> int:
+    def _clamp(value: float) -> int:
         """
         Clamp the value between 0 and 255.
 

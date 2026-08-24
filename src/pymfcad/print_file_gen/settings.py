@@ -280,7 +280,7 @@ class ExposureSettings:
             special_image_techniques=self.special_image_techniques.copy(),
         )
 
-    def get_exposure_time(self, resin: "ResinType") -> float | None:
+    def get_exposure_time(self, resin: ResinType) -> float | None:
         if self.bulk_exposure_multiplier is None:
             return None
         return (

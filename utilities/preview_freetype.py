@@ -4,11 +4,11 @@
 ###### It requires the `freetype-py` and `matplotlib` libraries.
 """
 
+from pathlib import Path
+
 import freetype
 import matplotlib.pyplot as plt
 import numpy as np
-import importlib.util
-from pathlib import Path
 
 
 def glyph_to_polygons(face, char, scale=1.0):

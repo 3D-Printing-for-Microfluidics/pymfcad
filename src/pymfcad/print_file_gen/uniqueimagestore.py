@@ -1,12 +1,10 @@
-import sys
-import PIL
-import shutil
 import hashlib
+import shutil
+from collections import defaultdict
+from pathlib import Path
+
 import numpy as np
 from PIL import Image
-from pathlib import Path
-from typing import NamedTuple
-from collections import defaultdict
 
 
 def get_unique_path(
@@ -135,4 +133,4 @@ class UniqueImageStore:
         return len(self.image_files)
 
     def __repr__(self):
-        return f"UniqueImageStore({repr(self.image_directory)})"
+        return f"UniqueImageStore({self.image_directory!r})"

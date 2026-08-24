@@ -3,8 +3,8 @@ from __future__ import annotations
 import difflib
 import hashlib
 import json
+from collections.abc import Iterable
 from pathlib import Path
-from typing import Iterable
 
 from tests.utils.mesh_metrics import (
     assert_mesh_metrics_close,

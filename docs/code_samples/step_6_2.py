@@ -2,13 +2,13 @@ import pymfcad
 
 # Import shapes
 from pymfcad import (
+    TPMS,
     Cube,
-    RoundedCube,
     Cylinder,
+    ImportModel,
+    RoundedCube,
     Sphere,
     TextExtrusion,
-    TPMS,
-    ImportModel,
 )
 
 # Initialize our Device, the "canvas" we work within
