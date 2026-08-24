@@ -36,17 +36,22 @@ from .image_generation import (
             generate_position_images_from_folders,
         )
 
-class ComponentGroup:
+class Workspace:
     """
-    A class representing a group of components with the same pixel size positioned within a single light engine's exposure region.
+    A Workspace defines an exposure area based on a light engine and stitching parameters, centered 
+    around its given position. A Workspace is initialized with a printer and pixel size, which it uses 
+    to look up the appropriate light engine. Multiple components can be placed in the Workspace, and it 
+    checks that they fit within the light engine's exposure region. If a subcomponent somewhere in a 
+    component's hierarchy uses a different light engine than its parent, you can adjust the light engine 
+    exposure position for that subcomponent.
     """
     def __init__(self, printer: Printer, pixel_size: float, exposure_abs_pos_um: tuple[float, float], light_engine_stitching: tuple[int, int] = (1,1)):
         """
-        Initialize a ComponentGroup.
+        Initialize a Workspace.
         
         Parameters:
         - printer: The printer object containing printer settings.
-        - pixel_size: The pixel size of the components in the group.
+        - pixel_size: The pixel size of the components in the workspace.
         - exposure_abs_pos_um: The absolute position of the exposure region in micrometers.
         - light_engine_stitching: The stitching configuration of the light engine exposure region.
         """
@@ -76,20 +81,20 @@ class ComponentGroup:
                 f"Configuration results in exposure region y position limits ({region_min_y_pos}, {region_max_y_pos}) that exceed the light engine's y offset limits {self.le.y_offset_limits}."
             )
 
-    def add_component(self, component: "Component", centered: bool = True):
+    def add_component(self, name: str, component: "Component", centered: bool = True):
         """
-        Add a component to the group. To position component use standard translation functions
-        Component is centered in group by default with translations modifying that position relative to the group's center.
+        Add a component to the workspace. To position component use standard translation functions
+        Component is centered in workspace by default with translations modifying that position relative to the workspaces's center.
 
         Parameters:
         - component: The component to add.
-        - centered: Whether to center the component in the group. Default is True.
+        - centered: Whether to center the component in the workspace. Default is True.
         """
 
-        # validate that the component's pixel size matches the group's pixel size
+        # validate that the component's pixel size matches the workspace's pixel size
         if component._px_size != self.pixel_size:
             raise ValueError(
-                f"Component pixel size {component._px_size} does not match group pixel size {self.pixel_size}."
+                f"Component pixel size {component._px_size} does not match workspace pixel size {self.pixel_size}."
             )
 
         # validate that the component fits within the light engine's exposure region based on the stitching configuration and the component's position
@@ -116,9 +121,14 @@ class ComponentGroup:
             raise ValueError(
                 f"Component at relative position {component._position} with height {component_height_px} exceeds the light engine's exposure region height {region_height_px}."
             )
+
+        if name in self.components:
+            raise ValueError(
+                f"Component with name '{name}' already exists in the workspace. Please use a unique name."
+            )
         
         self.centered.append(centered)
-        component._name = f"Component_{len(self.components)}"
+        component._name = name
         self.components.append(component)
 
     def adjust_subcomponent_light_engine_position(self, subcomponent_fqn: str, exposure_rel_pos_um: tuple[float, float]):
@@ -129,12 +139,12 @@ class ComponentGroup:
         - subcomponent_fqn: The fully qualified name of the subcomponent.
         - exposure_rel_pos_um: The relative position of the exposure region in micrometers.
         """
-        # check that top-level component is in group
+        # check that top-level component is in workspace
         subcomponent_fqn_parts = subcomponent_fqn.strip().split(".")
         top_level_component = subcomponent_fqn_parts[0]
         if top_level_component not in [comp.get_fully_qualified_name() for comp in self.components]:
             raise ValueError(
-                f"Subcomponent {subcomponent_fqn} is not part of this component group."
+                f"Subcomponent {subcomponent_fqn} is not part of this component workspace."
             )
 
         # check that subcomponent_fqn is a valid subcomponent of the top-level component
@@ -142,7 +152,7 @@ class ComponentGroup:
         for part in subcomponent_fqn_parts[1:]:
             if not hasattr(component, "subcomponents") or part not in component.subcomponents:
                 raise ValueError(
-                    f"Subcomponent {subcomponent_fqn} is not part of this component group."
+                    f"Subcomponent {subcomponent_fqn} is not part of this component workspace."
                 )
             component = component.subcomponents[part]
 
@@ -164,7 +174,7 @@ class ComponentGroup:
         Returns:
         - A tuple of (x_offset_um, y_offset_um) in micrometers.
         """
-        # check if component is in the group
+        # check if component is in the workspace
         _component = component
         is_different_px_size = False
         while _component._parent is not None:
@@ -209,7 +219,7 @@ class PrintFileGenerator:
         purpose: str = "",
         description: str = "",
         component: list["Component"] = None,
-        component_groups: list[ComponentGroup] = None,
+        workspaces: list[Workspace] = None,
         printer: Printer = None,
         resin: ResinType = None,
         special_print_techniques: list = None,
@@ -217,7 +227,9 @@ class PrintFileGenerator:
         zip_output: bool = True,
     ):
         """
-        Initialize the PrintFileGenerator with a component/component groups and settings.
+        Initialize the PrintFileGenerator. Accepts either a component or a list of workspaces. 
+        If a component is provided, it will be wrapped in a default workspace for slicing. If 
+        multiple components are going to be printed, they should be placed in a workspace.
 
         Parameters:
 
@@ -225,8 +237,8 @@ class PrintFileGenerator:
         - author: Name of the author.
         - purpose: Purpose of the print job.
         - description: Description of the print job.
-        - component: Used for simple slicing of a single component. If multiple components are used, use component_groups instead.
-        - component_groups: List of component groups to be sliced.
+        - component: Used for simple slicing of a single component. If multiple components are used, use workspaces instead.
+        - workspaces: List of workspaces to be sliced.
         - printer: Printer object containing printer settings.
         - resin: ResinType object containing resin formulation.
         - special_print_techniques: List of SpecialPrintTechniques to apply.
@@ -235,14 +247,14 @@ class PrintFileGenerator:
         """
 
         # Validation
-        if component_groups is not None and component is not None:
+        if workspaces is not None and component is not None:
             raise ValueError(
-                "Cannot provide both component and component_groups. Use one or the other."
+                "Cannot provide both component and workspaces. Use one or the other."
             )
         if component is not None:
-            # create a component group for the single component
-            component_groups = [ComponentGroup(printer, component._px_size, exposure_abs_pos_um=(0, 0), light_engine_stitching=(0,0))]
-            component_groups[0].add_component(component)
+            # create a component workspace for the single component
+            workspaces = [Workspace(printer, component._px_size, exposure_abs_pos_um=(0, 0), light_engine_stitching=(0,0))]
+            workspaces[0].add_component(filename, component)
 
         if special_print_techniques is None:
             special_print_techniques = []
@@ -253,7 +265,7 @@ class PrintFileGenerator:
         self.author = author
         self.purpose = purpose
         self.description = description
-        self.component_groups = component_groups
+        self.workspaces = workspaces
         self.printer = printer
         self.resin = resin
         self.special_print_techniques = special_print_techniques
@@ -424,51 +436,51 @@ class PrintFileGenerator:
         # Set layer thickness
         component.default_position_settings.layer_thickness = component._layer_size * 1000
 
-        # Add z_offset to slices
-        if fill_layer_position:
-            _, _, origin_z_mm = _relative_origin_mm(
-                component, root_component
-            )
-            z_offset_um = origin_z_mm * 1000
-            for slice_info in info["slices"]:
-                slice_info["layer_position"] = round(
-                    slice_info["layer_position"] + z_offset_um, 1
-                )
+        # # Add z_offset to slices
+        # if fill_layer_position:
+        #     _, _, origin_z_mm = _relative_origin_mm(
+        #         component, root_component
+        #     )
+        #     z_offset_um = origin_z_mm * 1000
+        #     for slice_info in info["slices"]:
+        #         slice_info["layer_position"] = round(
+        #             slice_info["layer_position"] + z_offset_um, 1
+        #         )
 
-        # Set light engine name
-        le = self.printer._get_light_engine(
-            component._px_size,
-            component.default_exposure_settings.wavelength,
-        )
-        component.default_exposure_settings.light_engine = le.name
+        # # Set light engine name
+        # le = self.printer._get_light_engine(
+        #     component._px_size,
+        #     component.default_exposure_settings.wavelength,
+        # )
+        # component.default_exposure_settings.light_engine = le.name
 
-        # Set image offsets
-        component_offset_x_um, component_offset_y_um = None, None
-        for group in self.component_groups:
-            component_offset_x_um, component_offset_y_um = group._get_component_le_offset(component)
-            if component_offset_x_um is not None and component_offset_y_um is not None:
-                break
+        # # Set image offsets
+        # component_offset_x_um, component_offset_y_um = None, None
+        # for workspace in self.workspaces:
+        #     component_offset_x_um, component_offset_y_um = workspace._get_component_le_offset(component)
+        #     if component_offset_x_um is not None and component_offset_y_um is not None:
+        #         break
 
-        component.default_exposure_settings.image_x_offset = -round(component_offset_x_um,1)
-        component.default_exposure_settings.image_y_offset = -round(component_offset_y_um,1)
-        if component.default_exposure_settings.image_x_offset == -0.0:
-            component.default_exposure_settings.image_x_offset = 0.0
-        if component.default_exposure_settings.image_y_offset == -0.0:
-            component.default_exposure_settings.image_y_offset = 0.0
+        # component.default_exposure_settings.image_x_offset = -round(component_offset_x_um,1)
+        # component.default_exposure_settings.image_y_offset = -round(component_offset_y_um,1)
+        # if component.default_exposure_settings.image_x_offset == -0.0:
+        #     component.default_exposure_settings.image_x_offset = 0.0
+        # if component.default_exposure_settings.image_y_offset == -0.0:
+        #     component.default_exposure_settings.image_y_offset = 0.0
 
         ###### Fill slice info settings ######
         for i, slice in enumerate(info["slices"]):
             slice["position_settings"] = component.default_position_settings
             slice["exposure_settings"] = copy.deepcopy(component.default_exposure_settings)
-            slice["exposure_settings"].image_x_offset = (
-                component.default_exposure_settings.image_x_offset
-            )
-            slice["exposure_settings"].image_y_offset = (
-                component.default_exposure_settings.image_y_offset
-            )
-            slice["exposure_settings"].light_engine = (
-                component.default_exposure_settings.light_engine
-            )
+            # slice["exposure_settings"].image_x_offset = (
+            #     component.default_exposure_settings.image_x_offset
+            # )
+            # slice["exposure_settings"].image_y_offset = (
+            #     component.default_exposure_settings.image_y_offset
+            # )
+            # slice["exposure_settings"].light_engine = (
+            #     component.default_exposure_settings.light_engine
+            # )
 
             # Generate burn-in exposure settings
             if i < len(component.burnin_settings):
@@ -483,6 +495,82 @@ class PrintFileGenerator:
                     (burnin_ms - resin.exposure_offset) / denom
                 )
                 slice["exposure_settings"].burnin = True
+
+    def _fill_component_offsets(self, component, info):
+        def _get_root_component(target):
+            current = target
+            while current._parent is not None:
+                current = current._parent
+            return current
+
+        def _relative_origin_mm(child, stop_parent):
+            x_mm = 0.0
+            y_mm = 0.0
+            z_mm = 0.0
+            current = child
+            while current is not None and current is not stop_parent:
+                if current._parent is None:
+                    x_mm += current.get_position()[0] * current._px_size
+                    y_mm += current.get_position()[1] * current._px_size
+                    z_mm += current.get_position()[2] * current._layer_size
+                    break
+                parent = current._parent
+                pos_in_parent = current.get_position(
+                    px_size=parent._px_size, layer_size=parent._layer_size
+                )
+                x_mm += pos_in_parent[0] * parent._px_size
+                y_mm += pos_in_parent[1] * parent._px_size
+                z_mm += pos_in_parent[2] * parent._layer_size
+                current = parent
+            return x_mm, y_mm, z_mm
+
+        root_component = _get_root_component(component)
+
+        # Add z_offset to slices
+        _, _, origin_z_mm = _relative_origin_mm(
+            component, root_component
+        )
+        z_offset_um = origin_z_mm * 1000
+        for slice_info in info["slices"]:
+            slice_info["layer_position"] = round(
+                slice_info["layer_position"] + z_offset_um, 1
+            )
+
+        # Set light engine name
+        le = self.printer._get_light_engine(
+            component._px_size,
+            component.default_exposure_settings.wavelength,
+        )
+        component.default_exposure_settings.light_engine = le.name
+
+        # Set image offsets
+        component_offset_x_um, component_offset_y_um = None, None
+        for workspace in self.workspaces:
+            component_offset_x_um, component_offset_y_um = workspace._get_component_le_offset(component)
+            if component_offset_x_um is not None and component_offset_y_um is not None:
+                break
+
+        component.default_exposure_settings.image_x_offset = -round(component_offset_x_um,1)
+        component.default_exposure_settings.image_y_offset = -round(component_offset_y_um,1)
+        if component.default_exposure_settings.image_x_offset == -0.0:
+            component.default_exposure_settings.image_x_offset = 0.0
+        if component.default_exposure_settings.image_y_offset == -0.0:
+            component.default_exposure_settings.image_y_offset = 0.0
+
+        ###### Fill slice info settings ######
+        for i, slice in enumerate(info["slices"]):
+            # slice["position_settings"] = component.default_position_settings
+            # slice["exposure_settings"] = copy.deepcopy(component.default_exposure_settings)
+            slice["exposure_settings"].image_x_offset = (
+                component.default_exposure_settings.image_x_offset
+            )
+            slice["exposure_settings"].image_y_offset = (
+                component.default_exposure_settings.image_y_offset
+            )
+            slice["exposure_settings"].light_engine = (
+                component.default_exposure_settings.light_engine
+            )
+
 
     def _make_secondary_images(self, sliced_components, sliced_components_data, temp_directory, save_temp_files=False):
             print("Make secondary images...")
@@ -650,8 +738,9 @@ class PrintFileGenerator:
                         # set new/updated slice list
                         _info["slices"] = _slice_list
 
-                        # update slices with instance position
-                        self._fill_component_default_settings(pos[0], _info)
+                        # # update slices with instance position
+                        # self._fill_component_default_settings(pos[0], _info)
+                        self._fill_component_offsets(pos[0], _info)
 
                         # add to final component list
                         embedded_components.append((pos[0], _info))
@@ -733,7 +822,7 @@ class PrintFileGenerator:
 
     def _calculate_tile_xy_offset(self, le, stitching, tile_x, tile_y):
         """
-        Calculate the x and y offset (in um) for a specific tile in a stitched image. (center of both group and tile is 0,0)
+        Calculate the x and y offset (in um) for a specific tile in a stitched image. (center of both workspace and tile is 0,0)
         """
         max_width, max_height, step_x, step_y = self._calculate_stitching_sizes(le, stitching)
 
@@ -751,24 +840,24 @@ class PrintFileGenerator:
         # we need to create projectable images for each slice in the component's info
         # the images need to be the size of the light engine's exposure region, and the component's slice needs to be placed in the correct position within that region.
         # The position of the component's slice within the light engine's exposure region is determined by the component's position
-        # if the group has stitching parameters > 1,1 then the component's slice needs to be placed in the correct tile(s) within the light engine's exposure region
-        # the stitching parameters are determined by the group; and the light engine's px_count, stitched_px_overlay, and x/y_offset_limits
+        # if the workspace has stitching parameters > 1,1 then the component's slice needs to be placed in the correct tile(s) within the light engine's exposure region
+        # the stitching parameters are determined by the workspace; and the light engine's px_count, stitched_px_overlay, and x/y_offset_limits
 
-        # check if component is in a group
-        group = None
-        for g in self.component_groups:
+        # check if component is in a workspace
+        workspace = None
+        for g in self.workspaces:
             for comp in g.components:
                 if component is comp:
-                    group = g
+                    workspace = g
                     break
 
         # calculate the position of the component's slice within the light engine's exposure region (and stitching if not available)
-        if group is not None and (group.stitching != (0,0) and self.printer.xy_stage_available):
-            index = group.components.index(component)
-            position = [group.components[index].get_position()[0], group.components[index].get_position()[1]]
-            stitching = group.stitching 
+        if workspace is not None and (workspace.stitching != (0,0) and self.printer.xy_stage_available):
+            index = workspace.components.index(component)
+            position = [workspace.components[index].get_position()[0], workspace.components[index].get_position()[1]]
+            stitching = workspace.stitching 
 
-            if group.centered[index]:
+            if workspace.centered[index]:
                 max_width, max_height, step_x, step_y = self._calculate_stitching_sizes(self.printer._get_light_engine(component._px_size, component.default_exposure_settings.wavelength), stitching)
                 position[0] += (max_width - component.get_size()[0]) / 2
                 position[1] += (max_height - component.get_size()[1]) / 2
@@ -795,7 +884,7 @@ class PrintFileGenerator:
             position = (int((max_width - component.get_size()[0]) / 2), int((max_height - component.get_size()[1]) / 2))
 
 
-        # Handle case where the component is part of a group with stitching parameters
+        # Handle case where the component is part of a workspace with stitching parameters
         expanded_slices = []
         for slice_info in info["slices"]:
             print(
@@ -835,25 +924,26 @@ class PrintFileGenerator:
                     tile_slice = slice_info.copy()
                     tile_slice["image_data"] = rle_encode_packed(tile)
 
-                    exposure_settings = copy.deepcopy(component.default_exposure_settings)
+                    if stitching != (1, 1):
+                        exposure_settings = copy.deepcopy(slice_info["exposure_settings"])
 
-                    x_offset_um, y_offset_um = self._calculate_tile_xy_offset(le, stitching, tx, ty)
-                    exposure_settings.image_x_offset += x_offset_um
-                    exposure_settings.image_y_offset += y_offset_um
-                    exposure_settings.image_x_offset = round(exposure_settings.image_x_offset, 1)
-                    exposure_settings.image_y_offset = round(exposure_settings.image_y_offset, 1)
+                        x_offset_um, y_offset_um = self._calculate_tile_xy_offset(le, stitching, tx, ty)
+                        exposure_settings.image_x_offset += x_offset_um
+                        exposure_settings.image_y_offset += y_offset_um
+                        exposure_settings.image_x_offset = round(exposure_settings.image_x_offset, 1)
+                        exposure_settings.image_y_offset = round(exposure_settings.image_y_offset, 1)
 
-                    # check if limits are exceeded
-                    if exposure_settings.image_x_offset < le_x_offset_limits[0] or exposure_settings.image_y_offset < le_y_offset_limits[0] or exposure_settings.image_x_offset > le_x_offset_limits[1] or exposure_settings.image_y_offset > le_y_offset_limits[1]:
-                        raise ValueError(f"Tile offsets exceed light engine limits: x_offset={exposure_settings.image_x_offset}, y_offset={exposure_settings.image_y_offset}, limits_x={le_x_offset_limits}, limits_y={le_y_offset_limits}")
+                        # check if limits are exceeded
+                        if exposure_settings.image_x_offset < le_x_offset_limits[0] or exposure_settings.image_y_offset < le_y_offset_limits[0] or exposure_settings.image_x_offset > le_x_offset_limits[1] or exposure_settings.image_y_offset > le_y_offset_limits[1]:
+                            raise ValueError(f"Tile offsets exceed light engine limits: x_offset={exposure_settings.image_x_offset}, y_offset={exposure_settings.image_y_offset}, limits_x={le_x_offset_limits}, limits_y={le_y_offset_limits}")
 
-                    if exposure_settings.image_x_offset == -0.0:
-                        exposure_settings.image_x_offset = 0.0
-                    if exposure_settings.image_y_offset == -0.0:
-                        exposure_settings.image_y_offset = 0.0
-                    exposure_settings.light_engine = le.name
+                        if exposure_settings.image_x_offset == -0.0:
+                            exposure_settings.image_x_offset = 0.0
+                        if exposure_settings.image_y_offset == -0.0:
+                            exposure_settings.image_y_offset = 0.0
+                        exposure_settings.light_engine = le.name
 
-                    tile_slice["exposure_settings"] = exposure_settings
+                        tile_slice["exposure_settings"] = exposure_settings
                     expanded_slices.append(tile_slice)
 
         info["slices"] = expanded_slices
@@ -1589,8 +1679,8 @@ class PrintFileGenerator:
             # Slice the component components
             slice_dir = temp_directory if save_temp_files else None
             print("Slicing...")
-            for group in self.component_groups:
-                for component in group.components:
+            for workspace in self.workspaces:
+                for component in workspace.components:
                     slice_component(
                         component, slice_dir, sliced_components, sliced_components_data
                     )

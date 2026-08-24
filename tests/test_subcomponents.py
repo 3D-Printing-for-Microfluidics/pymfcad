@@ -10,7 +10,7 @@ from tests.utils.mesh_metrics import compute_mesh_metrics, load_mesh
 
 
 def _build_parent_component(size=(40, 30, 20)) -> Component:
-    comp = Component(size=size, position=(0, 0, 0), quiet=True)
+    comp = Component(size=size, quiet=True)
     comp.add_label("device", Color.from_name("gray", 255))
     comp.add_label("fluidic", Color.from_name("blue", 255))
     comp.add_bulk("device_bulk", Cube(size=size, center=False), label="device")
@@ -43,7 +43,8 @@ def _bbox_min_max(shape: Shape):
 def test_subcomponent_preview_outputs_and_labels(tmp_path):
     parent = _build_parent_component()
 
-    child = Component(size=(12, 10, 8), position=(5, 4, 3), quiet=True)
+    child = Component(size=(12, 10, 8), quiet=True)
+    child.translate((5, 4, 3))
     child.add_label("device", Color.from_name("green", 255))
     child.add_label("fluidic", Color.from_name("red", 255))
     child.add_bulk("child_bulk", Cube(size=(12, 10, 8), center=False), label="device")
@@ -108,7 +109,7 @@ def test_subcomponent_preview_outputs_and_labels(tmp_path):
 def test_subcomponent_translation_applied_and_locking():
     parent = _build_parent_component(size=(30, 30, 30))
 
-    child = Component(size=(10, 8, 6), position=(0, 0, 0), quiet=True)
+    child = Component(size=(10, 8, 6), quiet=True)
     child.add_label("device", Color.from_name("green", 255))
     child.add_bulk("child_bulk", Cube(size=(10, 8, 6), center=False), label="device")
     child.translate((5, 4, 3))
@@ -139,7 +140,8 @@ def test_subcomponent_translation_applied_and_locking():
 def test_component_ops_translate_rotate_mirror():
     parent = _build_parent_component(size=(50, 50, 50))
 
-    child = Component(size=(10, 8, 6), position=(5, 4, 3), quiet=True)
+    child = Component(size=(10, 8, 6), quiet=True)
+    child.translate((5, 4, 3))
     child.add_label("device", Color.from_name("green", 255))
     child.add_bulk("child_bulk", Cube(size=(10, 8, 6), center=False), label="device")
     child.add_port(
@@ -176,7 +178,7 @@ def test_component_ops_translate_rotate_mirror():
 
 
 def test_component_no_bulk():
-    comp = Component(size=(10, 10, 10), position=(0, 0, 0), quiet=True)
+    comp = Component(size=(10, 10, 10), quiet=True)
     comp.add_label("device", Color.from_name("gray", 255))
     comp.add_port(
         "P1",

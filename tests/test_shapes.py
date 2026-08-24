@@ -21,7 +21,7 @@ from tests.utils.mesh_metrics import compute_mesh_metrics, load_mesh
 
 
 def _build_component_with_bulk(shape: Shape, *, size=(30, 30, 30)) -> Component:
-    comp = Component(size=size, position=(0, 0, 0), quiet=False)
+    comp = Component(size=size, quiet=False)
     comp.add_label("bulk", Color.from_name("blue", 255))
     comp.add_bulk("shape", shape, "bulk")
     return comp

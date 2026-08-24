@@ -1,4 +1,4 @@
-from pymfcad import Component, Port, Color, Cylinder, Cube, MembraneSettings
+from pymfcad import Component, Port, Color, Cylinder, Cube, MembraneSettings, ExposureSettings
 
 
 class Valve20px(Component):
@@ -66,9 +66,11 @@ class Valve20px(Component):
             "MembraneExposure",
             Cylinder(height=1, radius=10, center_z=False).translate((18, 18, 6)),
             MembraneSettings(
+                ExposureSettings(
+                    bulk_exposure_multiplier=500 / 300.0,
+                    relative_focus_position=50,
+                ),
                 max_membrane_thickness_um=20,
-                bulk_exposure_multiplier=500 / 300.0,
-                defocus_um=50,
                 dilation_px=2,
             ),
             label="membrane",

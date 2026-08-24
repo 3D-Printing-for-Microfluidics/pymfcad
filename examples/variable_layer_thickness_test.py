@@ -99,10 +99,12 @@ class MembraneValve6px(VariableLayerThicknessComponent):
             "membrane_settings",
             Cylinder(height=2, radius=3, center_xy=True).translate((9, 9, 39)),
             MembraneSettings(
+                ExposureSettings(
+                    bulk_exposure_multiplier=350 / 300.0,
+                    relative_focus_position=100.0,
+                ),
                 max_membrane_thickness_um=10,
-                bulk_exposure_multiplier=350 / 300.0,
                 dilation_px=2,
-                defocus_um=100.0,
             ),
             label="pneumatic",
         )

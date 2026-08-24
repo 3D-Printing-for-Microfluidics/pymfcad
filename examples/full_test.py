@@ -68,7 +68,7 @@ class Valve20px(VariableLayerThicknessComponent):
             MembraneSettings(
                 exposure_settings=ExposureSettings(
                     bulk_exposure_multiplier=500 / 300.0,
-                    defocus_um=50,
+                    relative_focus_position=50,
                 ),
                 max_membrane_thickness_um=20,
                 dilation_px=2,
@@ -173,7 +173,7 @@ class DC(VariableLayerThicknessComponent):
             MembraneSettings(
                 exposure_settings=ExposureSettings(
                     bulk_exposure_multiplier=500 / 300.0,
-                    defocus_um=50,
+                    relative_focus_position=50,
                 ),
                 max_membrane_thickness_um=20,
                 dilation_px=2,
@@ -815,4 +815,4 @@ print_file_gen = PrintFileGenerator(
     minimize_file=True,
     zip_output=False,
 )
-print_file_gen.run(overwrite=True, save_temp_files=True)
+print_file_gen.run(overwrite=True)

@@ -95,6 +95,7 @@ test:
 	set -e; \
 	$(ENSURE_UV_VENV) \
 	$(UV) run pytest -v
+# 	$(UV) run pytest -v -m "fast"
 
 test-coverage:
 	set -e; \

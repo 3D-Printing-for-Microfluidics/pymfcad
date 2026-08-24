@@ -1,5 +1,5 @@
 ## Print File Generator
-::: pymfcad.ComponentGroup
+::: pymfcad.Workspace
     options:
       heading_level: 3
 

@@ -12,7 +12,7 @@ from .settings import (
     ZeroMicronLayer,
     PrintOnFilm,
 )
-from .print_file_gen import PrintFileGenerator, ComponentGroup
+from .print_file_gen import PrintFileGenerator, Workspace
 from .image_generation import (
     generate_membrane_images_from_folders,
     generate_secondary_images_from_folders,

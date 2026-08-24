@@ -23,7 +23,7 @@ def _render_and_validate(component: Component, out_path: Path) -> None:
 
 
 def _build_parent_component(size=(40, 30, 20)) -> Component:
-    comp = Component(size=size, position=(0, 0, 0), quiet=True)
+    comp = Component(size=size, quiet=True)
     comp.add_label("device", Color.from_name("gray", 255))
     comp.add_label("fluidic", Color.from_name("blue", 255))
     comp.add_bulk("device_bulk", Cube(size=size, center=False), label="device")

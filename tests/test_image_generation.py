@@ -3,7 +3,7 @@ from __future__ import annotations
 import pytest
 from pathlib import Path
 
-from pymfcad import Device
+from pymfcad import Component
 from pymfcad.backend import Color, Cube
 
 from pymfcad.print_file_gen import (
@@ -12,14 +12,13 @@ from pymfcad.print_file_gen import (
     PositionSettings,
     Printer,
     ResinType,
-    Settings,
-    Slicer,
+    PrintFileGenerator,
     MembraneSettings,
     SecondaryDoseSettings
 )
 
-def _build_parent_component() -> Device:
-    comp = Device("dev", position=(0, 0, 0), px_size=0.01, layer_size=0.01, layers=40, px_count=(20,20))
+def _build_parent_component() -> Component:
+    comp = Component(size=(20, 20, 40), px_size=0.01, layer_size=0.01)
     comp.add_label("device", Color.from_name("gray", 255))
     comp.add_label("fluidic", Color.from_name("blue", 255))
     return comp
@@ -43,21 +42,12 @@ def _build_settings() -> Settings:
     )
     printer = Printer(name="TestPrinter", light_engines=[light_engine])
 
-    return Settings(
-        printer=printer,
-        resin=resin,
-        default_position_settings=PositionSettings(),
-        default_exposure_settings=ExposureSettings(),
-        special_print_techniques=[],
-        user="tester",
-        purpose="unit-test",
-        description="settings roundtrip",
-    )
+    return resin, printer
 
 @pytest.mark.fast
 def test_image_generation_with_saving(tmp_path):
     comp = _build_parent_component()
-    settings = _build_settings()
+    resin, printer = _build_settings()
 
     comp.add_bulk("bulk", Cube(size=(20, 20, 40)), label="device")
     comp.add_void("void1", Cube(size=(5, 5, 1)).translate((2,2,1)), label="fluidic")
@@ -78,6 +68,14 @@ def test_image_generation_with_saving(tmp_path):
 
     comp.preview()
 
-    slicer = Slicer(device=comp, settings=settings, filename=tmp_path / "out", zip_output=False)
-    # slicer = Slicer(device=comp, settings=settings, filename="out", zip_output=False)
-    slicer.make_print_file(save_temp_files=True)
+    slicer = PrintFileGenerator(
+        filename=tmp_path / "out",
+        author="tester",
+        purpose="unit-test",
+        description="settings roundtrip",
+        component=comp,
+        printer=printer,
+        resin=resin,
+        zip_output=False,
+    )
+    slicer.run(save_temp_files=True)

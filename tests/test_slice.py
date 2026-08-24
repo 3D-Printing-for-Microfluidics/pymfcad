@@ -4,12 +4,12 @@ from pathlib import Path
 
 import pytest
 
-from pymfcad import Component
+from pymfcad import Component, PositionSettings, SqueezeOutResin
 from pymfcad.backend import Color, Cube
 from pymfcad.backend.slice import slice_component
 
 def _build_parent_component(size=(40, 30, 20)) -> Component:
-    comp = Component(size=size, position=(0, 0, 0), quiet=True)
+    comp = Component(size=size, quiet=True)
     comp.add_label("device", Color.from_name("gray", 255))
     comp.add_label("fluidic", Color.from_name("blue", 255))
     return comp
@@ -54,3 +54,15 @@ def test_component_slicing(tmp_path):
         assert slice_path.exists(), f"Slice image for layer {layer} was not created"
         mask_slice_path = masks_regional_dir / f"test_component-slice{layer:04d}.png"
         assert mask_slice_path.exists(), f"Mask slice image for layer {layer} was not created"
+
+def test_special_layer_techniques_are_serialized():
+    settings = PositionSettings(
+        special_layer_techniques=[
+            SqueezeOutResin(enabled=True, count=2, squeeze_force=5.0, squeeze_time=200.0)
+        ]
+    )
+
+    payload = settings.to_dict()
+
+    assert payload["Special layer techniques"]["Squeeze out resin"]["Enable squeeze"] is True
+    assert payload["Special layer techniques"]["Squeeze out resin"]["Squeeze count"] == 2

@@ -564,7 +564,7 @@ class PositionSettings:
             "Final wait (ms)": self.final_wait,
         }
         if len(self.special_layer_techniques) > 0:
-            temp_dict["Special layer techniques"] = SpecialImageTechniques.to_dict(self.special_layer_techniques)
+            temp_dict["Special layer techniques"] = SpecialLayerTechniques.to_dict(self.special_layer_techniques)
         return temp_dict
 
     @classmethod

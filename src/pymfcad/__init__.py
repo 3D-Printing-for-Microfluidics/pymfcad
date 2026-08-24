@@ -57,5 +57,5 @@ from .print_file_gen import (
     ZeroMicronLayer,
     PrintOnFilm,
     PrintFileGenerator,
-    ComponentGroup,
+    Workspace,
 )
