@@ -166,9 +166,11 @@ index 0000000..1111111 100644
 +            name="membrane_layer",
 +            shape=membrane_region,
 +            settings=MembraneSettings(
++                ExposureSettings(
++                    bulk_exposure_multiplier=0.5,
++                    relative_focus_position=50,
++                ),
 +                max_membrane_thickness_um=20,
-+                bulk_exposure_multiplier=0.5,
-+                defocus_um=50,
 +                dilation_px=2,
 +            ),
 +            label="region_membrane",
@@ -260,11 +262,12 @@ index 0000000..1111111 100644
              name="membrane_layer",
              shape=membrane_region,
              settings=MembraneSettings(
+                 ExposureSettings(
+                     bulk_exposure_multiplier=0.5,
+                     relative_focus_position=50,
+                 ),
                  max_membrane_thickness_um=20,
-                 bulk_exposure_multiplier=0.5,
-                 defocus_um=50,
                  dilation_px=2,
-                 scan_for_membrane=False,
              ),
              label="region_membrane",
          )
@@ -364,9 +367,11 @@ index 0000000..1111111 100644
              name="membrane_layer",
              shape=membrane_region,
              settings=MembraneSettings(
+                 ExposureSettings(
+                     bulk_exposure_multiplier=0.5,
+                     relative_focus_position=50,
+                 ),
                  max_membrane_thickness_um=20,
-                 bulk_exposure_multiplier=0.5,
-                 defocus_um=50,
                  dilation_px=2,
              ),
              label="region_membrane",
@@ -482,9 +487,11 @@ index 0000000..1111111 100644
              name="membrane_layer",
              shape=membrane_region,
              settings=MembraneSettings(
+                 ExposureSettings(
+                     bulk_exposure_multiplier=0.5,
+                     relative_focus_position=50,
+                 ),
                  max_membrane_thickness_um=20,
-                 bulk_exposure_multiplier=0.5,
-                 defocus_um=50,
                  dilation_px=2,
              ),
              label="region_membrane",

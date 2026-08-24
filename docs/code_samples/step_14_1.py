@@ -54,9 +54,11 @@ class Valve20px(Component):
             name="membrane_layer",
             shape=membrane_region,
             settings=MembraneSettings(
+                ExposureSettings(
+                    bulk_exposure_multiplier=0.5,
+                    relative_focus_position=50,
+                ),
                 max_membrane_thickness_um=20,
-                bulk_exposure_multiplier=0.5,
-                defocus_um=50,
                 dilation_px=2,
             ),
             label="region_membrane",

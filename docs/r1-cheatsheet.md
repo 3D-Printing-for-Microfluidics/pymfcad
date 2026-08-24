@@ -163,7 +163,7 @@ Stitching notes:
 - `component.add_regional_settings(name, shape, settings, label)`
 - `ExposureSettings(bulk_exposure_multiplier, power_setting, wavelength, relative_focus_position, wait_before_exposure, wait_after_exposure, special_image_techniques=[...])`
 - `PositionSettings(distance_up, initial_wait, up_speed, up_acceleration, up_wait, down_speed, down_acceleration, final_wait, special_layer_techniques=[...])`
-- `MembraneSettings(max_membrane_thickness_um, bulk_exposure_multiplier, dilation_px, defocus_um, special_image_techniques=[...])`
+- `MembraneSettings(exposure_settings, max_membrane_thickness_um, dilation_px)`
 - `SecondaryDoseSettings(edge_bulk_exposure_multiplier, edge_erosion_px, edge_dilation_px, roof_bulk_exposure_multiplier, roof_erosion_px, roof_layers_above)`
 
 ## Global tessellation (optional)
