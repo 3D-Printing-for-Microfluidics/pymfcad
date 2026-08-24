@@ -1,16 +1,14 @@
 from __future__ import annotations
 
 import os
-import trimesh
-import freetype
-import numpy as np
-import importlib.util
-from numba import njit
+from collections.abc import Callable
 from pathlib import Path
 
-
-from collections.abc import Callable
-from manifold3d import set_circular_segments, Manifold, Mesh, CrossSection, OpType
+import freetype
+import numpy as np
+import trimesh
+from manifold3d import CrossSection, Manifold, Mesh, OpType, set_circular_segments
+from numba import njit
 
 
 def _resolve_font_path(font: str) -> Path:
@@ -91,7 +89,7 @@ class Shape:
         self._keepouts = []
 
     @classmethod
-    def union(cls, others: list["Shape"]) -> "Shape":
+    def union(cls, others: list[Shape]) -> Shape:
         """
         Return the boolean union of multiple shapes.
 
@@ -172,8 +170,8 @@ class Shape:
 
     @classmethod
     def _batch_boolean_union_and_difference(
-        cls, additions: list["Shape"], subtractions: list["Shape"]
-    ) -> "Shape":
+        cls, additions: list[Shape], subtractions: list[Shape]
+    ) -> Shape:
         """
         Add a list of shapes together, then subtract another list of shapes from the result.
 
@@ -315,7 +313,7 @@ class Shape:
             new_keepouts.append([nx0, ny0, nz0, nx1, ny1, nz1])
         self._keepouts = new_keepouts
 
-    def translate(self, translation: tuple[int, int, int]) -> "Shape":
+    def translate(self, translation: tuple[int, int, int]) -> Shape:
         """
         Translate the shape by a given translation vector.
 
@@ -337,7 +335,7 @@ class Shape:
         )
         return self
 
-    def rotate(self, rotation: tuple[float, float, float]) -> "Shape":
+    def rotate(self, rotation: tuple[float, float, float]) -> Shape:
         """
         Rotate the shape by a given rotation vector (in degrees).
 
@@ -353,7 +351,7 @@ class Shape:
         self._object = self._object.rotate(rotation)
         return self
 
-    def resize(self, size: tuple[int, int, int]) -> "Shape":
+    def resize(self, size: tuple[int, int, int]) -> Shape:
         """
         Resize the shape to a given size in px/layer space.
 
@@ -391,7 +389,7 @@ class Shape:
         self._object = self._object.scale((sx, sy, sz))
         return self
 
-    def mirror(self, axis: tuple[bool, bool, bool]) -> "Shape":
+    def mirror(self, axis: tuple[bool, bool, bool]) -> Shape:
         """
         Mirror the shape along the specified axes.
 
@@ -407,7 +405,7 @@ class Shape:
         self._object = self._object.mirror(axis)
         return self
 
-    def __add__(self, other: "Shape") -> "Shape":
+    def __add__(self, other: Shape) -> Shape:
         """
         Combine two shapes using union operation.
 
@@ -423,7 +421,7 @@ class Shape:
         self._object = self._object + other._object
         return self
 
-    def __sub__(self, other: "Shape") -> "Shape":
+    def __sub__(self, other: Shape) -> Shape:
         """
         Subtract another shape from this shape.
 
@@ -489,7 +487,7 @@ class Shape:
                     intersections.append(inter)
         return intersections
 
-    def __and__(self, other: "Shape") -> "Shape":
+    def __and__(self, other: Shape) -> Shape:
         """
         Intersect this shape with another shape.
 
@@ -508,7 +506,7 @@ class Shape:
         )
         return self
 
-    def hull(self, other: "Shape") -> "Shape":
+    def hull(self, other: Shape) -> Shape:
         """
         Create a convex hull of this shape and another shape.
         This method combines the keepouts of both shapes and creates a bridge between their bounding boxes.
@@ -577,7 +575,7 @@ class Shape:
         self._object = Manifold.batch_hull([self._object, other._object])
         return self
 
-    def copy(self, _internal: bool = False) -> "Shape":
+    def copy(self, _internal: bool = False) -> Shape:
         """
         Create a copy of the shape.
 
@@ -653,19 +651,19 @@ class Cube(Shape):
             if size[0] % 2 != 0:
                 if not quiet:
                     print(
-                        f"\t⚠️ Centered cube x dimension is odd. Shifting 0.5 px to align with px grid"
+                        "\t⚠️ Centered cube x dimension is odd. Shifting 0.5 px to align with px grid"
                     )
                 x = 0.5
             if size[1] % 2 != 0:
                 if not quiet:
                     print(
-                        f"\t⚠️ Centered cube y dimension is odd. Shifting 0.5 px to align with px grid"
+                        "\t⚠️ Centered cube y dimension is odd. Shifting 0.5 px to align with px grid"
                     )
                 y = 0.5
             if size[2] % 2 != 0:
                 if not quiet:
                     print(
-                        f"\t⚠️ Centered cube z dimension is odd. Shifting 0.5 px to align with px grid"
+                        "\t⚠️ Centered cube z dimension is odd. Shifting 0.5 px to align with px grid"
                     )
                 z = 0.5
 
@@ -749,7 +747,7 @@ class Cylinder(Shape):
         if center_z and height % 2 != 0:
             if not quiet:
                 print(
-                    f"\t⚠️ Centered cylinder z dimension is odd. Shifting 0.5 px to align with px grid"
+                    "\t⚠️ Centered cylinder z dimension is odd. Shifting 0.5 px to align with px grid"
                 )
             z = 0.5
         if height == 0:
@@ -758,7 +756,7 @@ class Cylinder(Shape):
             if top * 2 % 2 != 0:  # can check either to or bottom
                 if not quiet:
                     print(
-                        f"\t⚠️ Centered cylinder radius is odd. Shifting 0.5 px to align with px grid"
+                        "\t⚠️ Centered cylinder radius is odd. Shifting 0.5 px to align with px grid"
                     )
                 xy = 0.5
             self._object = Manifold.cylinder(
@@ -813,19 +811,19 @@ class Sphere(Shape):
                 if size[0] % 2 != 0:
                     if not quiet:
                         print(
-                            f"\t⚠️ Centered sphere x dimension is odd. Shifting 0.5 px to align with px grid"
+                            "\t⚠️ Centered sphere x dimension is odd. Shifting 0.5 px to align with px grid"
                         )
                     x = 0.5
                 if size[1] % 2 != 0:
                     if not quiet:
                         print(
-                            f"\t⚠️ Centered sphere y dimension is odd. Shifting 0.5 px to align with px grid"
+                            "\t⚠️ Centered sphere y dimension is odd. Shifting 0.5 px to align with px grid"
                         )
                     y = 0.5
                 if size[2] % 2 != 0:
                     if not quiet:
                         print(
-                            f"\t⚠️ Centered sphere z dimension is odd. Shifting 0.5 px to align with px grid"
+                            "\t⚠️ Centered sphere z dimension is odd. Shifting 0.5 px to align with px grid"
                         )
                     z = 0.5
 
@@ -891,19 +889,19 @@ class RoundedCube(Shape):
             if size[0] % 2 != 0:
                 if not quiet:
                     print(
-                        f"\t⚠️ Centered rounded cube x dimension is odd. Shifting 0.5 px to align with px grid"
+                        "\t⚠️ Centered rounded cube x dimension is odd. Shifting 0.5 px to align with px grid"
                     )
                 x = 0.5
             if size[1] % 2 != 0:
                 if not quiet:
                     print(
-                        f"\t⚠️ Centered rounded cube y dimension is odd. Shifting 0.5 px to align with px grid"
+                        "\t⚠️ Centered rounded cube y dimension is odd. Shifting 0.5 px to align with px grid"
                     )
                 y = 0.5
             if size[2] % 2 != 0:
                 if not quiet:
                     print(
-                        f"\t⚠️ Centered rounded cube z dimension is odd. Shifting 0.5 px to align with px grid"
+                        "\t⚠️ Centered rounded cube z dimension is odd. Shifting 0.5 px to align with px grid"
                     )
                 z = 0.5
 
@@ -1530,7 +1528,7 @@ class TPMSGrid(Shape):
             validated.append(int(round(value)))
         return tuple(validated)
 
-    def rotate(self, rotation: tuple[float, float, float]) -> "Shape":
+    def rotate(self, rotation: tuple[float, float, float]) -> Shape:
         """Rotate grid and update unit cell axes for 90-degree Z rotations."""
         rx, ry, rz = rotation
         if rx == 0 and ry == 0:

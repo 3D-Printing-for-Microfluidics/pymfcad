@@ -1,15 +1,15 @@
 from __future__ import annotations
 
 import gc
-import trimesh
-import numpy as np
 from pathlib import Path
+
+import numpy as np
+import trimesh
 from trimesh.scene import Scene
 from trimesh.visual import ColorVisuals
 from trimesh.visual.material import PBRMaterial
 
-from . import Shape
-from . import Color
+from . import Color, Shape
 
 
 def _draw_bounding_box(
@@ -52,7 +52,7 @@ def _draw_arrow(
     length: float,
     position: np.typing.NDArray[np.int_],
     direction: np.typing.NDArray[np.int_],
-    port: "Port",
+    port: Port,
     reflect: bool = False,
     half_size: bool = False,
 ) -> None:
@@ -101,7 +101,7 @@ def _draw_arrow(
     del arrow
 
 
-def _draw_port(scene: Scene, port: "Port", component: "Component") -> None:
+def _draw_port(scene: Scene, port: Port, component: Component) -> None:
     """
     Draw a port in the scene.
 
@@ -171,7 +171,7 @@ def _draw_port(scene: Scene, port: "Port", component: "Component") -> None:
         )
 
 
-def _manifold3d_shape_to_trimesh(shape: "Shape") -> trimesh.Trimesh:
+def _manifold3d_shape_to_trimesh(shape: Shape) -> trimesh.Trimesh:
     """
     Convert a Manifold3D shape to a trimesh object.
 
@@ -195,15 +195,15 @@ def _manifold3d_shape_to_trimesh(shape: "Shape") -> trimesh.Trimesh:
 
 
 def _component_to_manifold(
-    component: "Component",
+    component: Component,
     render_bulk: bool = True,
     do_bulk_difference: bool = True,
 ) -> tuple[
-    dict[str, "Shape"],
-    dict[str, "Shape"],
-    dict[str, "Shape"],
-    "Shape" | None,
-    list[tuple["Port", "Component"]],
+    dict[str, Shape],
+    dict[str, Shape],
+    dict[str, Shape],
+    Shape | None,
+    list[tuple[Port, Component]],
 ]:
     """
     Convert a Component to manifolds and bulk shapes for rendering.
@@ -228,7 +228,7 @@ def _component_to_manifold(
     regional_manifolds = {}
     ports = []
 
-    def get_component_bounding_box_shape(comp: "Component") -> "Shape":
+    def get_component_bounding_box_shape(comp: Component) -> Shape:
         bbox = comp.get_bounding_box(comp._px_size, comp._layer_size)
         from . import Cube
 
@@ -247,7 +247,7 @@ def _component_to_manifold(
             )
         )
 
-    def accumulate_shape(comp: "Component", _top_level: bool = True) -> None:
+    def accumulate_shape(comp: Component, _top_level: bool = True) -> None:
         """
         Accumulate shapes from the component and its subcomponents.
 
@@ -268,7 +268,7 @@ def _component_to_manifold(
             tmp_shape._object = tmp_shape._object.scale(
                 [comp._px_size, comp._px_size, comp._layer_size]
             )
-            if key in manifolds.keys():
+            if key in manifolds:
                 manifolds[key].append(tmp_shape)
             else:
                 manifolds[key] = [tmp_shape]
@@ -285,8 +285,8 @@ def _component_to_manifold(
                     manifolds[key] = Shape.union(shape_list)
 
     def accumulate_bulk_shape(
-        comp: "Component", _top_level: bool = True
-    ) -> dict[str, "Shape"]:
+        comp: Component, _top_level: bool = True
+    ) -> dict[str, Shape]:
         """
         Accumulate bulk shapes from the component and its subcomponents.
 
@@ -317,7 +317,7 @@ def _component_to_manifold(
             temp_bulk._object = temp_bulk._object.scale(
                 [comp._px_size, comp._px_size, comp._layer_size]
             )
-            if key in bulks.keys():
+            if key in bulks:
                 bulks[key].append(temp_bulk)
             else:
                 bulks[key] = [temp_bulk]
@@ -353,7 +353,7 @@ def _component_to_manifold(
             if not sub.hide_in_render:
                 _bulks = accumulate_bulk_shape(sub, _top_level=False)
                 for key, item in _bulks.items():
-                    if key in comp_bulks.keys():
+                    if key in comp_bulks:
                         comp_bulks[key].append(item)
                     else:
                         comp_bulks[key] = [item]
@@ -364,14 +364,14 @@ def _component_to_manifold(
                 continue
             bulks[key] = Shape.union(bulk)
             bulks[key] = bulks[key] - comp_cubes if comp_cubes is not None else bulks[key]
-            if key in comp_bulks.keys():
+            if key in comp_bulks:
                 bulks[key] = Shape.union([bulks[key]] + comp_bulks[key])
         for key, bulk in comp_bulks.items():
-            if key not in bulks.keys():
-                bulks[key] = Shape.union(comp_bulks[key])
+            if key not in bulks:
+                bulks[key] = Shape.union(bulk)
         return bulks
 
-    def accumulate_regional_settings(comp: "Component", _top_level: bool = True) -> None:
+    def accumulate_regional_settings(comp: Component, _top_level: bool = True) -> None:
         """
         Accumulate regional settings from the component and its subcomponents.
 
@@ -411,7 +411,7 @@ def _component_to_manifold(
             tmp_shape._object = tmp_shape._object.scale(
                 [comp._px_size, comp._px_size, comp._layer_size]
             )
-            if key in regional_manifolds.keys():
+            if key in regional_manifolds:
                 regional_manifolds[key].append(tmp_shape)
             else:
                 regional_manifolds[key] = [tmp_shape]
@@ -427,7 +427,7 @@ def _component_to_manifold(
                 if len(shape_list) > 0:
                     regional_manifolds[key] = Shape.union(shape_list)
 
-    def get_unconnected_ports(comp: "Component") -> None:
+    def get_unconnected_ports(comp: Component) -> None:
         """
         Recursive function to traverse the component tree and collect unconnected ports.
 
@@ -466,7 +466,7 @@ def _component_to_manifold(
 
 
 def render_component(
-    component: "Component",
+    component: Component,
     path: str = "",
     render_bulk: bool = True,
     do_bulk_difference: bool = True,

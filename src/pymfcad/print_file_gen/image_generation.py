@@ -1,19 +1,18 @@
 from __future__ import annotations
 
 from pathlib import Path
-import re
 
 import cv2
 import numpy as np
 from PIL import Image
 
-from .uniqueimagestore import get_unique_path
 from ..backend import (
-    rle_encode_packed,
     rle_decode_packed,
-    rle_is_all_zeros,
+    rle_encode_packed,
     rle_is_all_non_zeros,
+    rle_is_all_zeros,
 )
+from .uniqueimagestore import get_unique_path
 
 
 def get_slice_list_from_data(
@@ -42,9 +41,12 @@ def get_slice(
         decoded = rle_decode_packed(*image)
         if invert_check is None:
             return decoded
-        if invert_check and not rle_is_all_non_zeros(decoded):
-            return decoded
-        elif not invert_check and not rle_is_all_zeros(decoded):
+        if (
+            invert_check
+            and not rle_is_all_non_zeros(decoded)
+            or not invert_check
+            and not rle_is_all_zeros(decoded)
+        ):
             return decoded
     return None
 
@@ -65,7 +67,7 @@ def get_mask_from_masks_data(
 def generate_position_images_from_folders(
     data: list[dict],
     mask_key: str,
-    settings: "PositionSettings",
+    settings: PositionSettings,
 ):
     """Generate position images from existing image and mask folders."""
     slices = get_slice_list_from_data(data)
@@ -83,7 +85,7 @@ def generate_exposure_images_from_folders(
     data: dict,
     image_dir: Path,
     mask_key: str,
-    settings: "ExposureSettings",
+    settings: ExposureSettings,
     save_temp_files: bool = False,
 ):
     """Generate exposure images from existing image and mask folders."""
@@ -145,7 +147,7 @@ def generate_membrane_images_from_folders(
     data: dict,
     image_dir: Path,
     mask_key: str,
-    membrane_settings: "MembraneSettings",
+    membrane_settings: MembraneSettings,
     save_temp_files: bool = False,
 ):
     """Generate membrane images from existing image and mask folders."""
@@ -350,8 +352,8 @@ def generate_secondary_images_from_folders(
     data: dict,
     image_dir: Path,
     mask_key: str,
-    settings: "SecondaryDoseSettings",
-    resin: "ResinType",
+    settings: SecondaryDoseSettings,
+    resin: ResinType,
     save_temp_files: bool = False,
 ):
     """Generate secondary images from existing image and mask folders."""
@@ -462,7 +464,7 @@ def generate_secondary_images_from_folders(
                 else cv2.bitwise_and(roof_eroded, cv2.bitwise_not(roof_image))
             )
 
-        if len(prev_images) >= layers_above and layers_above > 0:
+        if len(prev_images) >= layers_above > 0:
             prev_images.pop(0)
         if layers_above > 0:
             prev_images.append(image.copy())

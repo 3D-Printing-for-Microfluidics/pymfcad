@@ -1,40 +1,38 @@
-import re
-import os
-import cv2
-import sys
-import json
 import copy
-import math
-import shutil
 import datetime
+import json
+import math
+import os
+import re
+import shutil
+import sys
+from datetime import datetime
+from pathlib import Path
+from types import ModuleType
+
+import cv2
 import numpy as np
 from PIL import Image
-import importlib.util
-from pathlib import Path
-from typing import Union
-from types import ModuleType
-from datetime import datetime
 
 from pymfcad import __version__ as PYMFCAD_VERSION
-from ..backend import slice_component, rle_encode_packed, rle_decode_packed
-from .uniqueimagestore import get_unique_path, load_image_from_file, UniqueImageStore
-from .json_prettier import pretty_json
 
+from ..backend import rle_decode_packed, rle_encode_packed, slice_component
+from .image_generation import (
+    generate_exposure_images_from_folders,
+    generate_membrane_images_from_folders,
+    generate_position_images_from_folders,
+    generate_secondary_images_from_folders,
+)
+from .json_prettier import pretty_json
 from .settings import (
+    ExposureSettings,
+    MembraneSettings,
+    PositionSettings,
     Printer,
     ResinType,
-    MembraneSettings,
     SecondaryDoseSettings,
-    ExposureSettings,
-    PositionSettings,
 )
-
-from .image_generation import (
-    generate_membrane_images_from_folders,
-    generate_secondary_images_from_folders,
-    generate_exposure_images_from_folders,
-    generate_position_images_from_folders,
-)
+from .uniqueimagestore import UniqueImageStore, get_unique_path
 
 
 class Workspace:
@@ -806,7 +804,7 @@ class PrintFileGenerator:
             for pos in info["positions"]:
                 parent = pos[0]._parent
                 _id = id(parent) if parent is not None else "TOP_LEVEL"
-                if _id not in parents.keys():
+                if _id not in parents:
                     parents[_id] = {"component": parent, "positions": [pos]}
                 else:
                     parents[id(parent)]["positions"].append(pos)
@@ -1503,20 +1501,14 @@ class PrintFileGenerator:
 
         if group_exposure_settings is None:
             group_exposure_settings = new_image_settings
-        if (
-            new_image_settings["Wait before exposure (ms)"]
-            > group_exposure_settings["Wait before exposure (ms)"]
-        ):
-            group_exposure_settings["Wait before exposure (ms)"] = new_image_settings[
-                "Wait before exposure (ms)"
-            ]
-        if (
-            new_image_settings["Wait after exposure (ms)"]
-            > group_exposure_settings["Wait after exposure (ms)"]
-        ):
-            group_exposure_settings["Wait after exposure (ms)"] = new_image_settings[
-                "Wait after exposure (ms)"
-            ]
+        group_exposure_settings["Wait before exposure (ms)"] = max(
+            group_exposure_settings["Wait before exposure (ms)"],
+            new_image_settings["Wait before exposure (ms)"],
+        )
+        group_exposure_settings["Wait after exposure (ms)"] = max(
+            group_exposure_settings["Wait after exposure (ms)"],
+            new_image_settings["Wait after exposure (ms)"],
+        )
         return group_exposure_settings
 
     def _match_or_find_closest_named_setting(
@@ -1845,7 +1837,7 @@ class PrintFileGenerator:
 
             # Make print slices directory
             if self.minimize_file:
-                slices_folder = temp_directory / f"minimized_slices"
+                slices_folder = temp_directory / "minimized_slices"
                 self.unique_image_store = {}
                 self.unique_image_store = UniqueImageStore(slices_folder)
             else:
@@ -1940,4 +1932,3 @@ class PrintFileGenerator:
                     shutil.rmtree(temp_directory)
                 except Exception:
                     pass
-            pass

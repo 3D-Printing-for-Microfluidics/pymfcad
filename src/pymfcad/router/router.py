@@ -1,16 +1,17 @@
 from __future__ import annotations
 
-import os
-import time
 import heapq
+import os
 import pickle
+import time
+from copy import deepcopy
+
 import numpy as np
 from rtree import index
-from typing import Union
-from copy import deepcopy
+
 from pymfcad import __version__ as PYMFCAD_VERSION
 
-from .. import Polychannel, PolychannelShape, BezierCurveShape
+from .. import BezierCurveShape, Polychannel, PolychannelShape
 from ..backend.manifold3d import _is_integer
 
 
@@ -77,7 +78,7 @@ class Router:
 
     def __init__(
         self,
-        component: "Component",
+        component: Component,
         channel_size: tuple[int, int, int] = (0, 0, 0),
         channel_margin: tuple[int, int, int] = (0, 0, 0),
         quiet: bool = False,
@@ -187,7 +188,7 @@ class Router:
         mx, my, mz = margin
         return (x0 - mx, y0 - my, z0 - mz, x1 + mx, y1 + my, z1 + mz)
 
-    def _port_from_fqn(self, fqn: str) -> "Port":
+    def _port_from_fqn(self, fqn: str) -> Port:
         """
         Retrieves a Port instance from its fully qualified name (FQN).
 
@@ -218,8 +219,8 @@ class Router:
 
     def autoroute_channel(
         self,
-        input_port: "Port" | str,
-        output_port: "Port" | str,
+        input_port: Port | str,
+        output_port: Port | str,
         label: str,
         timeout: int = 120,
         heuristic_weight: int = 10,
@@ -267,9 +268,9 @@ class Router:
 
     def route_with_polychannel(
         self,
-        input_port: "Port" | str,
-        output_port: "Port" | str,
-        polychannel_shapes: list[Union[PolychannelShape, BezierCurveShape]],
+        input_port: Port | str,
+        output_port: Port | str,
+        polychannel_shapes: list[PolychannelShape | BezierCurveShape],
         label: str,
     ):
         """
@@ -365,8 +366,8 @@ class Router:
 
     def route_with_fractional_path(
         self,
-        input_port: "Port" | str,
-        output_port: "Port" | str,
+        input_port: Port | str,
+        output_port: Port | str,
         route: list[tuple[float, float, float]],
         label: str,
         corner_radius: float = None,
@@ -600,7 +601,7 @@ class Router:
             self._add_keepouts_from_polychannel(name, self._component.shapes[name])
 
         if not self._quiet:
-            print(f"\r\n\t\tManual Routing...", end="", flush=True)
+            print("\r\n\t\tManual Routing...", end="", flush=True)
         for i, (name, route_info) in enumerate(new_routes):
             input_port = route_info["input"]
             output_port = route_info["output"]
@@ -616,7 +617,7 @@ class Router:
                 self._add_port_keepouts(removed_keepouts)
 
         if not self._quiet:
-            print(f"\r\n\t\tAutorouting...", end="", flush=True)
+            print("\r\n\t\tAutorouting...", end="", flush=True)
         for i, (name, route_info) in enumerate(new_routes):  # Autoroute paths
             input_port = route_info["input"]
             output_port = route_info["output"]
@@ -719,7 +720,7 @@ class Router:
             return False
 
         # validate path (for non-autorouted channels)
-        if "_path" in route_info.keys():
+        if "_path" in route_info:
             if len(route_info["_path"]) != len(cached_info["_path"]):
                 return False
             for a, b in zip(route_info["_path"], cached_info["_path"]):
@@ -731,7 +732,7 @@ class Router:
         self._route(name, route_info, loaded=True)
         return True
 
-    def _validate_keepouts(self, polychannel: "Shape"):
+    def _validate_keepouts(self, polychannel: Shape):
         """
         Checks if the polychannel does not violate any keepouts.
 
@@ -912,7 +913,7 @@ class Router:
             return True
         return False
 
-    def _remove_port_keepouts(self, input_port: "Port", output_port: "Port"):
+    def _remove_port_keepouts(self, input_port: Port, output_port: Port):
         """
         Removes the keepouts associated with the input and output ports.
 
@@ -982,9 +983,7 @@ class Router:
             turn_weight=route_info["turn_weight"],
             direction_preference=route_info["direction_preference"],
         )
-        if path is None:
-            violation = True
-        elif len(path) < 2:
+        if path is None or len(path) < 2:
             violation = True
 
         if violation:
@@ -1177,7 +1176,7 @@ class Router:
 
         return None  # No path found
 
-    def _move_outside_port(self, port: "Port"):
+    def _move_outside_port(self, port: Port):
         """
         Moves the port position outside its bounding box in the direction of its vector.
 

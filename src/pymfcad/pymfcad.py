@@ -1,27 +1,25 @@
 from __future__ import annotations
 
-import sys
-import inspect
-import importlib
 import functools
-from math import gcd
+import inspect
+import sys
+from collections.abc import Callable
 from enum import Enum
-from pathlib import Path
-from typing import Union, Callable
-from functools import reduce
 from fractions import Fraction
+from functools import reduce
+from math import gcd
+from pathlib import Path
 
 from .backend import (
-    Shape,
     Color,
     Cube,
+    Shape,
     render_component,
 )
-
 from .print_file_gen import (
     ExposureSettings,
-    PositionSettings,
     MembraneSettings,
+    PositionSettings,
     SecondaryDoseSettings,
 )
 
@@ -65,7 +63,7 @@ class _InstantiationTrackerMixin:
 
     @property
     def instantiation_dir(self) -> Path:
-        from . import Component, VariableLayerThicknessComponent, TPMSComponent
+        from . import Component, TPMSComponent, VariableLayerThicknessComponent
 
         if type(self) in (Component, VariableLayerThicknessComponent, TPMSComponent):
             return self._instantiation_path.parent
@@ -76,7 +74,7 @@ class _InstantiationTrackerMixin:
 
     @property
     def instantiating_file_stem(self) -> str:
-        from . import Component, VariableLayerThicknessComponent, TPMSComponent
+        from . import Component, TPMSComponent, VariableLayerThicknessComponent
 
         if type(self) in (Component, VariableLayerThicknessComponent, TPMSComponent):
             return self._instantiation_path.stem
@@ -162,7 +160,7 @@ class Port(_InstantiationTrackerMixin):
         self._size = size
         self._surface_normal = surface_normal
 
-    def copy(self) -> "Port":
+    def copy(self) -> Port:
         """Create a copy of the port."""
         p = Port(
             self._type,
@@ -177,14 +175,14 @@ class Port(_InstantiationTrackerMixin):
     def get_name(self) -> str:
         # """Get the name of the port, including parent name."""
         if self._name is None:
-            raise ValueError(f"Port has not been named")
+            raise ValueError("Port has not been named")
         else:
             return f"{self._parent._name}_{self._name}"
 
     def get_fully_qualified_name(self) -> str:
         # """Get the fully qualified name of the port, including all parent components names."""
         if self._name is None:
-            raise ValueError(f"Port has not been named")
+            raise ValueError("Port has not been named")
         name = self._name
         parent = self._parent
         while parent is not None:
@@ -532,7 +530,7 @@ class Component(_InstantiationTrackerMixin):
             return self.ports[name]
         raise AttributeError(f"'{type(self).__name__}' object has no attribute '{name}'")
 
-    def copy(self) -> "Component":
+    def copy(self) -> Component:
         """
         Create a copy of the component.
 
@@ -630,7 +628,7 @@ class Component(_InstantiationTrackerMixin):
     def get_fully_qualified_name(self):
         # """Get the fully qualified name of the component, including all parent components names."""
         if self._name is None:
-            raise ValueError(f"Component has not been named")
+            raise ValueError("Component has not been named")
         name = self._name
         parent = self._parent
         while parent is not None:
@@ -936,7 +934,7 @@ class Component(_InstantiationTrackerMixin):
             or subcomp_bbox[2] < parent_bbox[2]
             or subcomp_bbox[5] > parent_bbox[5]
         ):
-            err = f""
+            err = ""
             err += f"\nParent component '{self._name}' bounding box: {parent_bbox}. "
             err += f"\nSubcomponent '{component._name}' bounding box: {subcomp_bbox}. "
             if subcomp_bbox[0] < parent_bbox[0]:
@@ -974,7 +972,7 @@ class Component(_InstantiationTrackerMixin):
                     and subcomp_bbox[5] > existing_bbox[2]
                 )
             ):
-                err = f""
+                err = ""
                 err += f"\nExisting subcomponent '{existing_name}' bounding box: {existing_bbox}. "
                 err += f"\nNew subcomponent '{component._name}' bounding box: {subcomp_bbox}. "
                 if subcomp_bbox[0] < existing_bbox[3]:
@@ -1081,12 +1079,9 @@ class Component(_InstantiationTrackerMixin):
         self,
         name: str,
         shape: Shape,
-        settings: Union[
-            PositionSettings,
-            ExposureSettings,
-            MembraneSettings,
-            SecondaryDoseSettings,
-        ],
+        settings: (
+            PositionSettings | ExposureSettings | MembraneSettings | SecondaryDoseSettings
+        ),
         label: str,
     ):
         """
@@ -1155,7 +1150,7 @@ class Component(_InstantiationTrackerMixin):
 
     def relabel(
         self,
-        mapping: dict[Union[Component, Shape, str], str],
+        mapping: dict[Component | Shape | str, str],
         recursive=False,
         _color_mapping: dict[str, Color] = None,
     ):
@@ -1573,9 +1568,10 @@ class Component(_InstantiationTrackerMixin):
             if mirror_x:
                 x = -x - sx
                 # If pointing in +X or -X, correct for sticking out
-                if port._surface_normal == Port.SurfaceNormal.POS_X:
-                    x += sx
-                elif port._surface_normal == Port.SurfaceNormal.NEG_X:
+                if (
+                    port._surface_normal == Port.SurfaceNormal.POS_X
+                    or port._surface_normal == Port.SurfaceNormal.NEG_X
+                ):
                     x += sx
                 port._surface_normal = mirror_vector_map["x"].get(
                     port._surface_normal, port._surface_normal
@@ -1584,9 +1580,10 @@ class Component(_InstantiationTrackerMixin):
             if mirror_y:
                 y = -y - sy
                 # If pointing in +Y or -Y, correct for sticking out
-                if port._surface_normal == Port.SurfaceNormal.POS_Y:
-                    y += sy
-                elif port._surface_normal == Port.SurfaceNormal.NEG_Y:
+                if (
+                    port._surface_normal == Port.SurfaceNormal.POS_Y
+                    or port._surface_normal == Port.SurfaceNormal.NEG_Y
+                ):
                     y += sy
                 port._surface_normal = mirror_vector_map["y"].get(
                     port._surface_normal, port._surface_normal
@@ -1660,7 +1657,7 @@ class Component(_InstantiationTrackerMixin):
     @classmethod
     def preview_components(
         cls,
-        components: "Component | list[Component]",
+        components: Component | list[Component],
         preview_dir: str = "_visualization",
     ):
         """
