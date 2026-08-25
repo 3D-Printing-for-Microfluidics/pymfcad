@@ -22,8 +22,7 @@ Your class should:
 
 - Subclass `Component`.
 - Accept parameters you want to expose (sizes, margins, labels, etc.).
-- Store init args/kwargs for equality checks (`self.init_args`, `self.init_kwargs`).
-- Call `super().__init__()` with size, position, and resolution.
+- Call `super().__init__()` with size and resolution.
 
 Use the same API you already know: `add_label`, `add_void`, and `add_bulk`.
 
@@ -37,8 +36,9 @@ index 0000000..1111111 100644
 --- a/example_device.py
 +++ b/example_device.py
 @@ -0 +1 @@
-+ from pymfcad import Component, Port, Color, Cube, Polychannel, PolychannelShape
-+ 
++from pymfcad import Color, Component, Cube, Polychannel, PolychannelShape
++
++
 +class YJunctionMixer(Component):
 +    """
 +    Simple Y-junction mixer with two inlets and one outlet.
@@ -56,12 +56,14 @@ index 0000000..1111111 100644
 --- a/example_device.py
 +++ b/example_device.py
 @@ -1 +1 @@
- from pymfcad import Component, Port, Color, Cube, Polychannel, PolychannelShape
+ from pymfcad import Color, Component, Cube, Polychannel, PolychannelShape
+ 
  
  class YJunctionMixer(Component):
      """
      Simple Y-junction mixer with two inlets and one outlet.
      """
++
 +    def __init__(
 +        self,
 +        channel_size=(8, 8, 6),
@@ -70,14 +72,13 @@ index 0000000..1111111 100644
 +        layer_size=0.01,
 +        quiet=False,
 +    ):
-+ 
++
 +        super().__init__(
 +            size=(
 +                4 * channel_size[0],
 +                2 * channel_size[1] + 3 * channel_margin[1],
 +                channel_size[2] + 2 * channel_margin[2],
 +            ),
-+            position=(0, 0, 0),
 +            px_size=px_size,
 +            layer_size=layer_size,
 +            quiet=quiet,
@@ -94,19 +95,18 @@ diff --git a/example_device.py b/example_device.py
 index 0000000..1111111 100644
 --- a/example_device.py
 +++ b/example_device.py
-@@ -21 +21 @@
-        super().__init__(
-            size=(
-                4 * channel_size[0],
-                2 * channel_size[1] + 3 * channel_margin[1],
-                channel_size[2] + 2 * channel_margin[2],
-            ),
-            position=(0, 0, 0),
-            px_size=px_size,
-            layer_size=layer_size,
-            quiet=quiet,
-        )
-+ 
+@@ -18 +18 @@
+         super().__init__(
+             size=(
+                 4 * channel_size[0],
+                 2 * channel_size[1] + 3 * channel_margin[1],
+                 channel_size[2] + 2 * channel_margin[2],
+             ),
+             px_size=px_size,
+             layer_size=layer_size,
+             quiet=quiet,
+         )
++
 +        self.add_label("bulk", Color.from_name("aqua", 127))
 +        self.add_label("void", Color.from_name("red", 255))
 +
@@ -157,15 +157,22 @@ diff --git a/example_device.py b/example_device.py
 index 0000000..1111111 100644
 --- a/example_device.py
 +++ b/example_device.py
-@@ -68 +68 @@
+@@ -64 +64 @@
          self.add_void("y_channel", y_shape, label="void")
- 
++
++
 +if __name__ == "__main__":
 +    YJunctionMixer().preview()
     </script>
 </div>
 
-![Y Junction](resources/8/8-1.png)
+<img
+    class="theme-aware-image"
+    alt="Y-junction"
+    src="resources/8/8-1_dark.png"
+    data-light-src="resources/8/8-1_light.png"
+    data-dark-src="resources/8/8-1_dark.png"
+/>
 
 ---
 
@@ -189,9 +196,9 @@ diff --git a/example_device.py b/example_device.py
 index 0000000..1111111 100644
 --- a/example_device.py
 +++ b/example_device.py
-@@ -68 +68 @@
+@@ -64 +64 @@
          self.add_void("y_channel", y_shape, label="void")
-+ 
++
 +        self.add_port(
 +            "inlet1",
 +            Port(
@@ -224,8 +231,9 @@ index 0000000..1111111 100644
 +            ),
 +        )
 
- if __name__ == "__main__":
-     YJunctionMixer().preview()
+
+if __name__ == "__main__":
+    YJunctionMixer().preview()
     </script>
 </div>
 
@@ -233,7 +241,13 @@ index 0000000..1111111 100644
 
 Now instantiate and preview again **after** ports are added. This confirms the ports did not affect geometry and the component is ready for routing.
 
-![Y Junction](resources/8/8-2.png)
+<img
+    class="theme-aware-image"
+    alt="Y-junction with ports"
+    src="resources/8/8-2_dark.png"
+    data-light-src="resources/8/8-2_light.png"
+    data-dark-src="resources/8/8-2_dark.png"
+/>
 
 ---
 
@@ -247,12 +261,14 @@ index 0000000..1111111 100644
 --- a/example_device.py
 +++ b/example_device.py
 @@ -1 +1 @@
- from pymfcad import Component, Port, Color, Cube, Polychannel, PolychannelShape
+ from pymfcad import Color, Component, Cube, Polychannel, PolychannelShape, Port
+ 
  
  class YJunctionMixer(Component):
      """
      Simple Y-junction mixer with two inlets and one outlet.
      """
+ 
      def __init__(
          self,
          channel_size=(8, 8, 6),
@@ -268,7 +284,6 @@ index 0000000..1111111 100644
                  2 * channel_size[1] + 3 * channel_margin[1],
                  channel_size[2] + 2 * channel_margin[2],
              ),
-             position=(0, 0, 0),
              px_size=px_size,
              layer_size=layer_size,
              quiet=quiet,
@@ -343,6 +358,7 @@ index 0000000..1111111 100644
              ),
          )
  
+ 
  if __name__ == "__main__":
      YJunctionMixer().preview()
     </script>
@@ -353,7 +369,6 @@ index 0000000..1111111 100644
 ## Notes
 
 - Keep custom components in their own Python files so they’re easy to import.
-- Use `self.init_args` / `self.init_kwargs` to make components comparable and cacheable.
 - Ports make your component connectable for routing later.
 
 ---
