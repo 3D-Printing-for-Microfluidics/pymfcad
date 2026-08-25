@@ -94,6 +94,7 @@ extra_javascript:
   - static/diff2html-identifiers.js
   - https://cdn.jsdelivr.net/npm/diff2html/bundles/js/diff2html.min.js
   - static/diff2html.js
+  - static/theme-images.js
   - static/theme-toggle.js
 
 extra_css:
