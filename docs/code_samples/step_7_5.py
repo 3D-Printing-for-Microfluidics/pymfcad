@@ -32,7 +32,6 @@ CHANNEL_POS = (0, 800, 150)
 channel = pymfcad.Cube(CHANNEL_SIZE, center=True)
 # Translate to absolute coordinates (centered x, absolute y/z)
 channel.translate((CHANNEL_POS[0] + CHANNEL_SIZE[0] // 2, CHANNEL_POS[1], CHANNEL_POS[2]))
-device.add_void("channel", channel, label="void")
 
 # Define pinhole dimensions
 PINHOLE_WIDTH = 150
@@ -53,7 +52,32 @@ pinhole_b.translate(
     (CHANNEL_POS[0] + CHANNEL_SIZE[0] - PINHOLE_LENGTH, CHANNEL_POS[1], CHANNEL_POS[2])
 )
 
-device.add_void("pin_a", pinhole_a, label="void")
-device.add_void("pin_b", pinhole_b, label="void")
+channel_unit = channel + pinhole_a + pinhole_b
+
+# Parametric toggles make it easy to explore variants without editing geometry
+INCLUDE_TEXT = True
+
+FONT_SIZE = 100
+FONT_HEIGHT = 10
+LABELS = ["A", "B", "C", "D", "E"]
+
+for i, letter in enumerate(LABELS):
+    offset = (0, (i - 2) * 300, 0)
+
+    unit = channel_unit.copy().translate(offset)
+    device.add_void(f"channel_{letter}", unit, label="void")
+
+    # Example conditional: only add text for the first four
+    if i < 4:
+        text = pymfcad.TextExtrusion(letter, height=FONT_HEIGHT, font_size=FONT_SIZE)
+        text.rotate((90, 0, 90))
+        text.translate(
+            (
+                CHANNEL_POS[0],
+                CHANNEL_POS[1] + (i - 2) * 300 - 20,
+                CHANNEL_POS[2] + PINHOLE_HEIGHT / 2 + 10,
+            )
+        )
+        device.add_void(f"label_{letter}", text, label="void")
 
 device.preview()

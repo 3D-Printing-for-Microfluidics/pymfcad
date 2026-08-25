@@ -32,7 +32,6 @@ CHANNEL_POS = (0, 800, 150)
 channel = pymfcad.Cube(CHANNEL_SIZE, center=True)
 # Translate to absolute coordinates (centered x, absolute y/z)
 channel.translate((CHANNEL_POS[0] + CHANNEL_SIZE[0] // 2, CHANNEL_POS[1], CHANNEL_POS[2]))
-device.add_void("channel", channel, label="void")
 
 # Define pinhole dimensions
 PINHOLE_WIDTH = 150
@@ -53,7 +52,7 @@ pinhole_b.translate(
     (CHANNEL_POS[0] + CHANNEL_SIZE[0] - PINHOLE_LENGTH, CHANNEL_POS[1], CHANNEL_POS[2])
 )
 
-device.add_void("pin_a", pinhole_a, label="void")
-device.add_void("pin_b", pinhole_b, label="void")
+channel_unit = channel + pinhole_a + pinhole_b
+device.add_void("channel", channel_unit, label="void")
 
 device.preview()

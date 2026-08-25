@@ -56,6 +56,7 @@ index 0000000..1111111 100644
 
 Labels are named color groups used for visualization and organization.
 
+
 <div class="diff2html-wrapper">
     <div class="diff2html"></div>
     <script type="text/plain" class="diff2html-source">
@@ -157,7 +158,13 @@ By default, `preview()` writes to the `_visualization/` directory. You can chang
 
 You should see a solid block with the “Hello World” void cut out.
 
-![visualizer-difference](resources/4/4-1.png)
+<img
+    class="theme-aware-image"
+    alt="visualizer-difference"
+    src="resources/4/4-1_dark.png"
+    data-light-src="resources/4/4-1_light.png"
+    data-dark-src="resources/4/4-1_dark.png"
+/>
 
 ---
 
@@ -230,7 +237,7 @@ index 0000000..1111111 100644
  bulk_cube = pymfcad.Cube((120, 40, 10))
  component.add_bulk("bulk_shape", bulk_cube, label="bulk")
  
-component.preview()
+ component.preview()
     </script>
 </div>
 

@@ -28,32 +28,42 @@ device.add_bulk("bulk_shape", bulk, label="bulk")
 CHANNEL_SIZE = (2560, 13, 10)
 CHANNEL_POS = (0, 800, 150)
 
-# Create a channel (centered for easy placement, then translated)
-channel = pymfcad.Cube(CHANNEL_SIZE, center=True)
-# Translate to absolute coordinates (centered x, absolute y/z)
-channel.translate((CHANNEL_POS[0] + CHANNEL_SIZE[0] // 2, CHANNEL_POS[1], CHANNEL_POS[2]))
-device.add_void("channel", channel, label="void")
-
 # Define pinhole dimensions
 PINHOLE_WIDTH = 150
 PINHOLE_LENGTH = 200
 # Convert a physical width to layer units to keep pinholes circular in mm
 PINHOLE_HEIGHT = PINHOLE_WIDTH * PX_SIZE / LAYER_SIZE
 
-# Create pinholes and add them as voids
-pinhole_a = pymfcad.Cylinder(height=1, radius=1).rotate((0, 90, 0))
-# Resize to keep pinholes circular in mm (px and layer sizes differ)
-pinhole_a.resize((PINHOLE_LENGTH, PINHOLE_WIDTH, PINHOLE_HEIGHT))
-pinhole_a.translate((CHANNEL_POS[0], CHANNEL_POS[1], CHANNEL_POS[2]))
-
-pinhole_b = pymfcad.Cylinder(height=1, radius=1).rotate((0, 90, 0))
-# Resize to keep pinholes circular in mm (px and layer sizes differ)
-pinhole_b.resize((PINHOLE_LENGTH, PINHOLE_WIDTH, PINHOLE_HEIGHT))
-pinhole_b.translate(
-    (CHANNEL_POS[0] + CHANNEL_SIZE[0] - PINHOLE_LENGTH, CHANNEL_POS[1], CHANNEL_POS[2])
+# Polychannel basics: a path of cross-sections that are hulled together
+polychannel = pymfcad.Polychannel(
+    [
+        pymfcad.PolychannelShape(
+            shape_type="sphere",
+            position=(CHANNEL_POS[0], CHANNEL_POS[1], CHANNEL_POS[2]),
+            size=(0, PINHOLE_WIDTH, PINHOLE_HEIGHT),
+        ),
+        pymfcad.PolychannelShape(
+            position=(PINHOLE_LENGTH, 0, 0),
+        ),
+        pymfcad.PolychannelShape(
+            shape_type="cube",
+            position=(0, 0, 0),
+            size=(0, CHANNEL_SIZE[1], CHANNEL_SIZE[2]),
+        ),
+        pymfcad.PolychannelShape(
+            position=(CHANNEL_SIZE[0] - PINHOLE_LENGTH * 2, 0, 0),
+        ),
+        pymfcad.PolychannelShape(
+            shape_type="sphere",
+            position=(0, 0, 0),
+            size=(0, PINHOLE_WIDTH, PINHOLE_HEIGHT),
+        ),
+        pymfcad.PolychannelShape(
+            position=(PINHOLE_LENGTH, 0, 0),
+        ),
+    ]
 )
 
-device.add_void("pin_a", pinhole_a, label="void")
-device.add_void("pin_b", pinhole_b, label="void")
+device.add_void("polychannel_unit", polychannel, label="void")
 
 device.preview()

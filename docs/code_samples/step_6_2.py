@@ -11,12 +11,9 @@ from pymfcad import (
     TextExtrusion,
 )
 
-# Initialize our Device, the "canvas" we work within
-gallery = pymfcad.Device(
-    name="overlapping_shapes",
-    position=[0, 0, 0],
-    px_count=(1200, 750),
-    layers=300,
+# Initialize our Component
+gallery = pymfcad.Component(
+    size=[1200, 750, 300],
     px_size=0.01,
     layer_size=0.01,
 )

@@ -39,7 +39,8 @@ This guide is a **step‑by‑step learning path**. Each part builds on earlier 
 - **Component**: a reusable block made of **bulk** material (solid) and negative **voids** (channels).
 - **Labels**: named color groups used to organize geometry and visualization.
 - **Ports + routing**: define and connect fluidic interfaces between components.
-- **PrintFileGenerator**: converts all present components into a single JSON print job and image stack.
+- **PrintFileGenerator**: converts components into a single JSON print job and image stack. Accepts single component or multiple workspaces.
+- **Workspace**: a data structure that allows the user to position multiple devices within a single optical engine's projection resolution. Each workspace is assigned a pixel size and physical position.
 
 You will gain a greater understanding of this mental model throughout the tutorial.
 

@@ -1,8 +1,6 @@
 import pymfcad
 
-c = pymfcad.Component(
-    size=(15, 15, 15), position=(0, 0, 0), px_size=0.01, layer_size=0.01
-)
+c = pymfcad.Component(size=(15, 15, 15), px_size=0.01, layer_size=0.01)
 c.add_port(
     "p1",
     pymfcad.Port(

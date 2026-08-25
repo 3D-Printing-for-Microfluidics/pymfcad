@@ -6,12 +6,9 @@ from pymfcad import (
     RoundedCube,
 )
 
-# Initialize our Device, the "canvas" we work within
-overlapping_shapes = pymfcad.Device(
-    name="overlapping_shapes",
-    position=[0, 0, 0],
-    px_count=(300, 300),
-    layers=300,
+# Initialize our Component
+overlapping_shapes = pymfcad.Component(
+    size=[300, 300, 300],
     px_size=0.01,
     layer_size=0.01,
 )
@@ -29,7 +26,7 @@ outer_shape = Cube(size=[300, 300, 300])  # try changing the size!
 # Move our inner shape
 inner_shape.translate(translation=[50, 50, 50])
 
-# Add shapes to the Device
+# Add shapes to the Component
 overlapping_shapes.add_void(
     "inner", inner_shape, "void"
 )  # Name of shape, the shape itself (variable name), and label
