@@ -1,5 +1,3 @@
-### SERPINTINE CHANNEL COMPONENT
-
 from pymfcad import Color, Component, Cube, Port, Router
 
 
@@ -14,31 +12,34 @@ class SerpentineChannel(Component):
         channel_margin=(16, 16, 6),
         width=800,
         loops=11,
-        layers=5,
+        levels=5,
         px_size=0.0076,
         layer_size=0.01,
         quiet=False,
     ):
 
+        # Overall component size (bulk)
         length = channel_size[0] * loops + channel_margin[0] * (loops + 1)
 
         super().__init__(
             size=(
                 length,
                 width,
-                channel_size[2] * layers + channel_margin[2] * (layers + 1),
+                channel_size[2] * levels + channel_margin[2] * (levels + 1),
             ),
-            position=(0, 0, 0),
             px_size=px_size,
             layer_size=layer_size,
             quiet=quiet,
         )
 
+        # Labels define which geometry is solid vs. empty
         self.add_label("bulk", Color.from_name("aqua", 127))
         self.add_label("void", Color.from_name("red", 255))
 
+        # The component starts as a solid block
         self.add_bulk("bulk_shape", Cube(self._size, center=False), label="bulk")
 
+        # Ports define where routing starts/ends
         self.add_port(
             "inlet",
             Port(
@@ -55,7 +56,7 @@ class SerpentineChannel(Component):
                 (
                     length,
                     width - 2 * channel_margin[1],
-                    layers * (channel_margin[2] + channel_size[2]) - channel_margin[2],
+                    levels * (channel_margin[2] + channel_size[2]) - channel_margin[2],
                 ),
                 channel_size,
                 Port.SurfaceNormal.POS_X,
@@ -66,7 +67,7 @@ class SerpentineChannel(Component):
         router = Router(self, channel_size=channel_size, channel_margin=channel_margin)
 
         # Simple fractional path: go straight in X, then offset in Y, then finish in X
-        # X fractions must sum to 1.0, Y fractions must sum to 1.0, Z fractions to 1.0
+        # X fractions must sum to 1.0, Y fractions must sum to 1.0, Z fractions to 0.0
         simple_path = [
             (0.6, 0.0, 0.0),  # move mostly along X
             (0.0, 1.0, 0.0),  # shift to the outlet's Y

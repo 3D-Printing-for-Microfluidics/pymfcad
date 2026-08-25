@@ -1,5 +1,3 @@
-### SERPINTINE CHANNEL COMPONENT
-
 from pymfcad import Color, Component, Cube, Port, Router
 
 
@@ -14,31 +12,34 @@ class SerpentineChannel(Component):
         channel_margin=(16, 16, 6),
         width=800,
         loops=11,
-        layers=5,
+        levels=5,
         px_size=0.0076,
         layer_size=0.01,
         quiet=False,
     ):
 
+        # Overall component size (bulk)
         length = channel_size[0] * loops + channel_margin[0] * (loops + 1)
 
         super().__init__(
             size=(
                 length,
                 width,
-                channel_size[2] * layers + channel_margin[2] * (layers + 1),
+                channel_size[2] * levels + channel_margin[2] * (levels + 1),
             ),
-            position=(0, 0, 0),
             px_size=px_size,
             layer_size=layer_size,
             quiet=quiet,
         )
 
+        # Labels define which geometry is solid vs. empty
         self.add_label("bulk", Color.from_name("aqua", 127))
         self.add_label("void", Color.from_name("red", 255))
 
+        # The component starts as a solid block
         self.add_bulk("bulk_shape", Cube(self._size, center=False), label="bulk")
 
+        # Ports define where routing starts/ends
         self.add_port(
             "inlet",
             Port(
@@ -55,7 +56,7 @@ class SerpentineChannel(Component):
                 (
                     length,
                     width - 2 * channel_margin[1],
-                    layers * (channel_margin[2] + channel_size[2]) - channel_margin[2],
+                    levels * (channel_margin[2] + channel_size[2]) - channel_margin[2],
                 ),
                 channel_size,
                 Port.SurfaceNormal.POS_X,
@@ -64,21 +65,46 @@ class SerpentineChannel(Component):
 
         router = Router(self, channel_size=channel_size, channel_margin=channel_margin)
 
-        total_height = channel_size[2] * (layers - 1) + channel_margin[2] * (layers - 1)
-        layer_height = (channel_size[2] + channel_margin[2]) / total_height
-        n = loops * 2 + 1
+        # Build a fractional serpentine path.
+        # Each tuple is a fraction of the *total* vector from inlet to outlet.
+        # All X fractions must sum to 1.0, same for Y and Z.
+        total_height = (channel_size[2] + channel_margin[2]) * (levels - 1)
+        layer_step = (
+            (channel_size[2] + channel_margin[2]) / total_height if levels > 1 else 0.0
+        )
+
+        # We split X into small steps: left/right moves + a final nudge to reach the outlet
+        x_steps = loops * 2 + 1
+        x_step = 1.0 / x_steps
+
         serpentine = []
-        for i in range(layers):
-            sign = 1 if i % 2 == 0 else -1
-            for j in range(loops):
-                if i == 0 or j != 0:
-                    serpentine += [(sign * 1 / n, 0.0, 0)]
-                serpentine += [(0.0, sign * 1.0 if j % 2 == 0 else sign * -1.0, 0)]
-                if i == layers - 1 or j != loops - 1:
-                    serpentine += [(sign * 1 / n, 0.0, 0)]
-            if i != layers - 1:
-                serpentine += [(0.0, 0.0, layer_height)]
-        serpentine += [(1 / n, 0.0, 0.0)]
+        for layer in range(levels):
+            # Alternate direction each layer (zig-zag)
+            direction = 1 if layer % 2 == 0 else -1
+
+            for loop in range(loops):
+                # Move along X into the next segment
+                if layer == 0 or loop != 0:
+                    serpentine.append((direction * x_step, 0.0, 0.0))
+
+                # Sweep across Y (up/down alternates each loop)
+                y_dir = 1 if loop % 2 == 0 else -1
+                serpentine.append((0.0, direction * y_dir, 0.0))
+
+                # Move along X again to complete the loop
+                if layer == levels - 1 or loop != loops - 1:
+                    serpentine.append((direction * x_step, 0.0, 0.0))
+
+            # Step up in Z between levels (except after the last one)
+            if layer != levels - 1:
+                serpentine.append((0.0, 0.0, layer_step))
+
+        # Final X step to land exactly on the outlet
+        serpentine.append((x_step, 0.0, 0.0))
+
+        if levels == 1:
+            # If there's only one level, we need to finish the Z movement to reach the outlet
+            serpentine.append((0.0, 0.0, 1.0))
 
         router.route_with_fractional_path(
             self.inlet, self.outlet, serpentine, label="void"
