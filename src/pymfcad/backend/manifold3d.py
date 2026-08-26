@@ -351,6 +351,63 @@ class Shape:
         self._object = self._object.rotate(rotation)
         return self
 
+    def scale(self, scale: tuple[float, float, float]) -> Shape:
+        """
+        Scale the shape by independent factors along each axis.
+
+        Parameters:
+
+        - scale (tuple[float, float, float]): Scale factors for the x, y, and z axes.
+
+        Returns:
+
+        - self (Shape): The scaled shape.
+
+        Raises:
+
+        - ValueError: If the scale does not contain three positive factors.
+        """
+        if len(scale) != 3 or any(factor <= 0 for factor in scale):
+            raise ValueError("scale must contain three positive factors.")
+
+        self._scale_keepouts(scale)
+        self._object = self._object.scale(scale)
+        return self
+
+    def resize_locked(self, dimension: float, axis: int) -> Shape:
+        """
+        Resize the shape uniformly using one dimension as the reference.
+
+        Parameters:
+
+        - dimension (float): The desired size along the selected axis.
+        - axis (int): The reference axis: 0 for x, 1 for y, or 2 for z.
+
+        Returns:
+
+        - self (Shape): The resized shape.
+
+        Raises:
+
+        - ValueError: If the axis or dimension is invalid.
+        """
+        if axis not in (0, 1, 2):
+            raise ValueError("axis must be 0, 1, or 2.")
+        if dimension <= 0:
+            raise ValueError("dimension must be positive.")
+
+        bounds = self._object.bounding_box()
+        extents = (
+            bounds[3] - bounds[0],
+            bounds[4] - bounds[1],
+            bounds[5] - bounds[2],
+        )
+        if extents[axis] <= 0:
+            raise ValueError("Cannot resize a shape with a zero-sized dimension.")
+
+        factor = dimension / extents[axis]
+        return self.scale((factor, factor, factor))
+
     def resize(self, size: tuple[int, int, int]) -> Shape:
         """
         Resize the shape to a given size in px/layer space.
@@ -385,9 +442,7 @@ class Shape:
         sy = size[1] / (bounds[4] - bounds[1])
         sz = size[2] / (bounds[5] - bounds[2])
 
-        self._scale_keepouts((sx, sy, sz))
-        self._object = self._object.scale((sx, sy, sz))
-        return self
+        return self.scale((sx, sy, sz))
 
     def mirror(self, axis: tuple[bool, bool, bool]) -> Shape:
         """

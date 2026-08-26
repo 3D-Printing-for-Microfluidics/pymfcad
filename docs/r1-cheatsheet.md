@@ -29,7 +29,8 @@ Primitives and key parameters:
 
 Transforms (shapes):
 
-- `translate((x,y,z))`, `rotate((rx,ry,rz))`, `resize((x,y,z))`, `mirror((x,y,z))`
+- `translate((x,y,z))`, `rotate((rx,ry,rz))`, `scale((sx,sy,sz))`, `resize((x,y,z))`, `mirror((x,y,z))`
+- `resize_locked(dimension, axis)` scales uniformly to a target dimension while preserving proportions; `axis` is `0` for x, `1` for y, or `2` for z
 
 Boolean ops:
 

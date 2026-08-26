@@ -403,14 +403,16 @@ index 0000000..1111111 100644
  )
  imported = ImportModel("[YOUR FILE PATH HERE]")
 +
-+# There are 4 main ways to transform shapes:
++# There are 6 main ways to transform shapes:
 +# translate((x,y,z))
 +# rotate((rx,ry,rz))
++# scale((sx,sy,sz))
 +# resize((x,y,z))
++# resize_locked(dimension, axis)
 +# and mirror((x,y,z))
 +
-+# Resize the imported model
-+imported.resize([300, 160, 250])
++# Resize the imported model while preserving its proportions
++imported.resize_locked(300, axis=0)
     </script>
 </div>
 
@@ -426,8 +428,8 @@ index 0000000..1111111 100644
 --- a/shape_gallery.py
 +++ b/shape_gallery.py
 @@ -51 +51 @@
- # Resize the imported model
- imported.resize([300, 160, 250])
+ # Resize the imported model while preserving its proportions
+ imported.resize_locked(300, axis=0)
 +
 +# Move our shapes
 +cube.translate([0, 0, 0])
@@ -558,14 +560,16 @@ index 0000000..1111111 100644
  )
  imported = ImportModel("[YOUR FILE PATH HERE]")
  
- # There are 4 main ways to transform shapes:
+ # There are 6 main ways to transform shapes:
  # translate((x,y,z))
  # rotate((rx,ry,rz))
+ # scale((sx,sy,sz))
  # resize((x,y,z))
+ # resize_locked(dimension, axis)
  # and mirror((x,y,z))
  
- # Resize the imported model
- imported.resize([300, 160, 250])
+ # Resize the imported model while preserving its proportions
+ imported.resize_locked(300, axis=0)
  
  # Move our shapes
  cube.translate([0, 0, 0])

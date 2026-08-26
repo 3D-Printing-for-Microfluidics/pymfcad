@@ -293,7 +293,7 @@ def test_shape_ops_add_sub_and_hull_copy():
     assert _bbox_min_max(c) == _bbox_min_max(a)
 
 
-def test_shape_ops_translate_rotate_mirror_resize():
+def test_shape_ops_translate_rotate_mirror_scale_and_resize():
     shape = Cube(size=(4, 6, 8), center=False, quiet=False)
     min_x, min_y, min_z, max_x, max_y, max_z = _bbox_min_max(shape)
 
@@ -321,6 +321,18 @@ def test_shape_ops_translate_rotate_mirror_resize():
     assert s_max_x - s_min_x == pytest.approx(10)
     assert s_max_y - s_min_y == pytest.approx(12)
     assert s_max_z - s_min_z == pytest.approx(14)
+
+    shape.scale((2, 3, 4))
+    s_min_x, s_min_y, s_min_z, s_max_x, s_max_y, s_max_z = _bbox_min_max(shape)
+    assert s_max_x - s_min_x == pytest.approx(20)
+    assert s_max_y - s_min_y == pytest.approx(36)
+    assert s_max_z - s_min_z == pytest.approx(56)
+
+    shape.resize_locked(10, axis=1)
+    s_min_x, s_min_y, s_min_z, s_max_x, s_max_y, s_max_z = _bbox_min_max(shape)
+    assert s_max_x - s_min_x == pytest.approx(20 / 3.6)
+    assert s_max_y - s_min_y == pytest.approx(10)
+    assert s_max_z - s_min_z == pytest.approx(56 / 3.6)
 
     shape.resize((0, 0, 0))
     s_min_x, s_min_y, s_min_z, s_max_x, s_max_y, s_max_z = _bbox_min_max(shape)
