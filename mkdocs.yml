@@ -41,6 +41,10 @@ nav:
       - "Custom Component Template": r3-component_template.md
       - "JSON Print File Reference": r4-json_print_file_reference.md
       - "AI Integration Guide": r5-ai_integration.md
+  - "Libraries":
+      - "Component Library": api/component_library.md
+      - "Printer Library": api/printer_library.md
+      - "Resin Library": api/resin_library.md
   - "API Reference":
       - "Core": api/core.md
       - "Component": api/component.md
@@ -52,10 +56,6 @@ nav:
       - "Settings": api/settings.md
       - "Special Techniques": api/special_techniques.md
       - "Print File Generator": api/print_file_gen.md
-  - "Libraries":
-      - "Component Library": api/component_library.md
-      - "Printer Library": api/printer_library.md
-      - "Resin Library": api/resin_library.md
 
 theme:
   name: readthedocs
