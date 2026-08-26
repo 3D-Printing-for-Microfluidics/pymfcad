@@ -14,7 +14,7 @@ We’ll build a device with:
 
 ## Component operations (quick recap)
 
-Subcomponents are just components placed inside a larger device. You can transform them before adding them:
+Subcomponents are just components placed inside another component. You can transform them before adding them:
 
 - `translate((x, y, z))` moves the component
 - `rotate(x)` rotates it in degrees (multiples of 90)
@@ -35,14 +35,14 @@ index 0000000..1111111 100644
 +++ b/example_device.py
 @@ -0 +1 @@
 +import pymfcad
-+from pymfcad import Component, Router, Color, Cube
++from pymfcad import Color, Cube
 +from pymfcad.component_library import Pinhole
 +
 +# Import custom components from previous steps
 +from y_junction_mixer import YJunctionMixer
 +from serpentine_channel import SerpentineChannel
 +
-+# Make sure the files are named y_junction_mixer.py and serpentine_channel.py and are in the same folder as this script. If you saved them elsewhere, update the import path accordingly.
++# Make sure the files are named y_junction_mixer.py and serpentine_channel.py and are in the same folder as this script. If you saved +them elsewhere, update the import path accordingly.
 +
 +PX_SIZE = 0.0076
 +LAYER_SIZE = 0.01
@@ -53,7 +53,7 @@ index 0000000..1111111 100644
 +
 +# Create a new component (final print = bulk minus voids)
 +device = pymfcad.Component(
-+    size=[DEVICE_X, DEVICE_Y, DEVICE_Z]
++    size=[DEVICE_X, DEVICE_Y, DEVICE_Z],
 +    layer_size=LAYER_SIZE,
 +    px_size=PX_SIZE,
 +)
@@ -67,10 +67,16 @@ index 0000000..1111111 100644
     </script>
 </div>
 
-Preview the empty device canvas.
+Preview the device bulk.
 
 
-![Step 1 preview](resources/10/10-1.png)
+<img
+    class="theme-aware-image"
+    alt="Device bulk"
+    src="resources/10/10-1_dark.png"
+    data-light-src="resources/10/10-1_light.png"
+    data-dark-src="resources/10/10-1_dark.png"
+/>
 
 ---
 
@@ -87,39 +93,28 @@ diff --git a/example_device.py b/example_device.py
 index 0000000..1111111 100644
 --- a/example_device.py
 +++ b/example_device.py
-@@ -31 +31 @@
+@@ -28 +28 @@
  device.add_bulk("bulk_shape", Cube(device._size, center=False), label="bulk")
 +
 +# Inlet pinholes (left side, pointing into the device)
 +inlet_a = Pinhole()
-+inlet_a.translate(
-+    (0, 
-+    500 - inlet_a._size[1]/2, 
-+    DEVICE_Z/2 - inlet_a._size[2]/2
-+    )
-+)
++inlet_a.translate((0, 500 - inlet_a._size[1] / 2, DEVICE_Z / 2 - inlet_a._size[2] / 2))
 +inlet_b = Pinhole()
 +inlet_b.translate(
-+    (0, 
-+    (DEVICE_Y - 500) - inlet_b._size[1]/2, 
-+    DEVICE_Z/2 - inlet_b._size[2]/2
-+    )
++    (0, (DEVICE_Y - 500) - inlet_b._size[1] / 2, DEVICE_Z / 2 - inlet_b._size[2] / 2)
 +)
 +# Y‑junction near the left side
 +y = YJunctionMixer()
-+y.translate((DEVICE_X/3, DEVICE_Y/2, DEVICE_Z/2 - y._size[2]/2))
++y.translate((DEVICE_X / 3, DEVICE_Y / 2, DEVICE_Z / 2 - y._size[2] / 2))
 +
 +# Serpentine between Y‑junction and outlet
 +serp = SerpentineChannel()
-+serp.translate((DEVICE_X/2, 800 - serp._size[1]/2, DEVICE_Z/2 - serp._size[2]/2))
++serp.translate((DEVICE_X / 2, 800 - serp._size[1] / 2, DEVICE_Z / 2 - serp._size[2] / 2))
 +
 +# Outlet pinhole on the right side (flip to face inward)
 +outlet = Pinhole().rotate(180)
 +outlet.translate(
-+    (DEVICE_X, 
-+    DEVICE_Y/2 + outlet._size[1]/2, 
-+    DEVICE_Z/2 - outlet._size[2]/2
-+    )
++    (DEVICE_X, DEVICE_Y / 2 + outlet._size[1] / 2, DEVICE_Z / 2 - outlet._size[2] / 2)
 +)
 +
 +device.add_subcomponent("inlet_a", inlet_a)
@@ -134,7 +129,13 @@ index 0000000..1111111 100644
 
 Preview component placement before routing.
 
-![Step 2 preview](resources/10/10-2.png)
+<img
+    class="theme-aware-image"
+    alt="Component layout"
+    src="resources/10/10-2_dark.png"
+    data-light-src="resources/10/10-2_light.png"
+    data-dark-src="resources/10/10-2_dark.png"
+/>
 
 ---
 
@@ -149,7 +150,7 @@ diff --git a/example_device.py b/example_device.py
 index 0000000..1111111 100644
 --- a/example_device.py
 +++ b/example_device.py
-@@ -69 +69 @@
+@@ -55 +55 @@
  device.add_subcomponent("outlet", outlet)
 +
 +router = Router(device, channel_size=(8, 8, 6), channel_margin=(8, 8, 6))
@@ -192,7 +193,13 @@ index 0000000..1111111 100644
 
 Preview the routed device. 
 
-![Step 3 preview](resources/10/10-3.png)
+<img
+    class="theme-aware-image"
+    alt="Routed device"
+    src="resources/10/10-3_dark.png"
+    data-light-src="resources/10/10-3_light.png"
+    data-dark-src="resources/10/10-3_dark.png"
+/>
 
 ---
 
@@ -207,7 +214,7 @@ index 0000000..1111111 100644
 +++ b/example_device.py
 @@ -1 +1 @@
  import pymfcad
- from pymfcad import Component, Router, Color, Cube
+ from pymfcad import Color, Cube, Router
  from pymfcad.component_library import Pinhole
  
  # Import custom components from previous steps
@@ -225,7 +232,7 @@ index 0000000..1111111 100644
  
  # Create a new component (final print = bulk minus voids)
  device = pymfcad.Component(
-     size=[DEVICE_X, DEVICE_Y, DEVICE_Z]
+     size=[DEVICE_X, DEVICE_Y, DEVICE_Z],
      layer_size=LAYER_SIZE,
      px_size=PX_SIZE,
  )
@@ -237,34 +244,23 @@ index 0000000..1111111 100644
  
  # Inlet pinholes (left side, pointing into the device)
  inlet_a = Pinhole()
- inlet_a.translate(
-     (0, 
-     500 - inlet_a._size[1]/2, 
-     DEVICE_Z/2 - inlet_a._size[2]/2
-     )
- )
+ inlet_a.translate((0, 500 - inlet_a._size[1] / 2, DEVICE_Z / 2 - inlet_a._size[2] / 2))
  inlet_b = Pinhole()
  inlet_b.translate(
-     (0, 
-     (DEVICE_Y - 500) - inlet_b._size[1]/2, 
-    DEVICE_Z/2 - inlet_b._size[2]/2
-    )
+     (0, (DEVICE_Y - 500) - inlet_b._size[1] / 2, DEVICE_Z / 2 - inlet_b._size[2] / 2)
  )
  # Y‑junction near the left side
  y = YJunctionMixer()
- y.translate((DEVICE_X/3, DEVICE_Y/2, DEVICE_Z/2 - y._size[2]/2))
+ y.translate((DEVICE_X / 3, DEVICE_Y / 2, DEVICE_Z / 2 - y._size[2] / 2))
  
  # Serpentine between Y‑junction and outlet
  serp = SerpentineChannel()
- serp.translate((DEVICE_X/2, 800 - serp._size[1]/2, DEVICE_Z/2 - serp._size[2]/2))
+ serp.translate((DEVICE_X / 2, 800 - serp._size[1] / 2, DEVICE_Z / 2 - serp._size[2] / 2))
  
  # Outlet pinhole on the right side (flip to face inward)
  outlet = Pinhole().rotate(180)
  outlet.translate(
-     (DEVICE_X, 
-     DEVICE_Y/2 + outlet._size[1]/2, 
-     DEVICE_Z/2 - outlet._size[2]/2
-     )
+     (DEVICE_X, DEVICE_Y / 2 + outlet._size[1] / 2, DEVICE_Z / 2 - outlet._size[2] / 2)
  )
  
  device.add_subcomponent("inlet_a", inlet_a)
@@ -304,6 +300,8 @@ index 0000000..1111111 100644
      label="void",
      direction_preference=("Z", "Y", "X"),
  )
+ 
+ router.finalize_routes()
  
  device.preview()
     </script>
