@@ -1,12 +1,10 @@
 import pymfcad
-from pymfcad import Color, Cube, Router
+from pymfcad import Color, Cube
 from pymfcad.component_library import Pinhole
 
 # Import custom components from previous steps
-from .step_8_2 import YJunctionMixer  # from y_junction_mixer import YJunctionMixer
-from .step_9_3 import (
-    SerpentineChannel,  # from serpentine_channel import SerpentineChannel
-)
+from .serpentine_channel import SerpentineChannel
+from .y_junction_mixer import YJunctionMixer
 
 # Make sure the files are named y_junction_mixer.py and serpentine_channel.py and are in the same folder as this script. If you saved them elsewhere, update the import path accordingly.
 

@@ -39,8 +39,8 @@ index 0000000..1111111 100644
 +from pymfcad.component_library import Pinhole
 +
 +# Import custom components from previous steps
-+from y_junction_mixer import YJunctionMixer
-+from serpentine_channel import SerpentineChannel
++from .y_junction_mixer import YJunctionMixer
++from .serpentine_channel import SerpentineChannel
 +
 +# Make sure the files are named y_junction_mixer.py and serpentine_channel.py and are in the same folder as this script. If you saved +them elsewhere, update the import path accordingly.
 +
