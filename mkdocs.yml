@@ -22,7 +22,7 @@ nav:
       - "Part 9: Routing with Fractional Paths": 9-routing-fractional.md
       - "Part 10: Using Components in a Device": 10-using-components.md
       - "Part 11: Full Device Assembly": 11-full-device.md
-  - "Slicing with PyMFCAD":
+  - "Generating Print Files with PyMFCAD":
       - "Part 12: Slicing Introduction": 12-slicing-introduction.md
       - "Part 13: Slicing Settings": 13-slicing-settings.md
       - "Part 14: Regional Settings": 14-regional-settings.md

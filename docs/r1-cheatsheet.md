@@ -107,7 +107,7 @@ Helpers:
 - `component.preview()`
 - `component.render("file.glb")`
 
-## Slicing
+## Print File Generation
 
 Settings objects (key parameters):
 
@@ -142,7 +142,7 @@ Device‑level defaults:
 - `device.add_default_exposure_settings(ExposureSettings(...), label)`
 - `device.set_burn_in_exposure([t1, t2, ...], label)`
 
-Slicer:
+PrintFileGenerator:
 
 - `PrintFileGenerator(filename, author, purpose, description, component, workspaces, printer, resin, special_print_techniques, minimize_file=True, zip_output=False)`
 - `print_file_gen.run()`
