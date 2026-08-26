@@ -25,7 +25,13 @@ index 0000000..1111111 100644
 --- a/example_device.py
 +++ b/example_device.py
 @@ -0 +1 @@
-+from pymfcad import Component, Port, Color, Cylinder, Cube
++from pymfcad import (
++    Color,
++    Component,
++    Cube,
++    Cylinder,
++    Port,
++)
 +
 +
 +class Valve20px(Component):
@@ -33,13 +39,12 @@ index 0000000..1111111 100644
 +
 +        super().__init__(
 +            size=(36, 36, 24),
-+            position=(0, 0, 0),
 +            px_size=0.0076,
 +            layer_size=0.01,
 +            quiet=quiet,
 +        )
 +
-+        self.add_label("device", Color.from_name("cyan", 255))
++        self.add_label("device", Color.from_name("cyan", 127))
 +        self.add_label("pneumatic", Color.from_name("red", 255))
 +        self.add_label("fluidic", Color.from_name("blue", 255))
 +        self.add_label("membrane", Color.from_name("green", 255))
@@ -83,8 +88,20 @@ index 0000000..1111111 100644
 +            "P_OUT",
 +            Port(Port.PortType.INOUT, (14, 36, 12), (8, 8, 6), Port.SurfaceNormal.POS_Y),
 +        )
++
++
++if __name__ == "__main__":
++    Valve20px().preview()
     </script>
 </div>
+
+<img
+    class="theme-aware-image"
+    alt="Valve geometry"
+    src="resources/14/14-1_dark.png"
+    data-light-src="resources/14/14-1_light.png"
+    data-dark-src="resources/14/14-1_dark.png"
+/>
 
 ---
 
@@ -100,8 +117,15 @@ index 0000000..1111111 100644
 --- a/example_device.py
 +++ b/example_device.py
 @@ -1 +1 @@
- from pymfcad import Component, Port, Color, Cylinder, Cube
-+from pymfcad import MembraneSettings
+ from pymfcad import (
+     Color,
+     Component,
+     Cube,
+     Cylinder,
++    ExposureSettings,
++    MembraneSettings,
+     Port,
+ )
  
  
  class Valve20px(Component):
@@ -109,13 +133,12 @@ index 0000000..1111111 100644
  
          super().__init__(
              size=(36, 36, 24),
-             position=(0, 0, 0),
              px_size=0.0076,
              layer_size=0.01,
              quiet=quiet,
          )
  
-         self.add_label("device", Color.from_name("cyan", 255))
+         self.add_label("device", Color.from_name("cyan", 127))
          self.add_label("pneumatic", Color.from_name("red", 255))
          self.add_label("fluidic", Color.from_name("blue", 255))
          self.add_label("membrane", Color.from_name("green", 255))
@@ -160,8 +183,10 @@ index 0000000..1111111 100644
              "P_OUT",
              Port(Port.PortType.INOUT, (14, 36, 12), (8, 8, 6), Port.SurfaceNormal.POS_Y),
          )
-
-+        membrane_region = Cylinder(height=1, radius=10, center_z=False).translate((18, 18, 6))
+ 
++        membrane_region = Cylinder(height=1, radius=10, center_z=False).translate(
++            (18, 18, 6)
++        )
 +        self.add_regional_settings(
 +            name="membrane_layer",
 +            shape=membrane_region,
@@ -175,10 +200,22 @@ index 0000000..1111111 100644
 +            ),
 +            label="region_membrane",
 +        )
+ 
+ 
+ if __name__ == "__main__":
+     Valve20px().preview()
     </script>
 </div>
 
 **What it does:** Forces membrane‑specific exposure on the membrane layer so it stays flexible and prints cleanly.
+
+<img
+    class="theme-aware-image"
+    alt="Membrane region"
+    src="resources/14/14-2_dark.png"
+    data-light-src="resources/14/14-2_light.png"
+    data-dark-src="resources/14/14-2_dark.png"
+/>
 
 ---
 
@@ -194,9 +231,15 @@ index 0000000..1111111 100644
 --- a/example_device.py
 +++ b/example_device.py
 @@ -1 +1 @@
- from pymfcad import Component, Port, Color, Cylinder, Cube
--from pymfcad import MembraneSettings
-+from pymfcad import MembraneSettings, ExposureSettings
+ from pymfcad import (
+     Color,
+     Component,
+     Cube,
+     Cylinder,
+     ExposureSettings,
+     MembraneSettings,
+     Port,
+ )
  
  
  class Valve20px(Component):
@@ -204,13 +247,12 @@ index 0000000..1111111 100644
  
          super().__init__(
              size=(36, 36, 24),
-             position=(0, 0, 0),
              px_size=0.0076,
              layer_size=0.01,
              quiet=quiet,
          )
  
-         self.add_label("device", Color.from_name("cyan", 255))
+         self.add_label("device", Color.from_name("cyan", 127))
          self.add_label("pneumatic", Color.from_name("red", 255))
          self.add_label("fluidic", Color.from_name("blue", 255))
          self.add_label("membrane", Color.from_name("green", 255))
@@ -256,8 +298,10 @@ index 0000000..1111111 100644
              "P_OUT",
              Port(Port.PortType.INOUT, (14, 36, 12), (8, 8, 6), Port.SurfaceNormal.POS_Y),
          )
-
-         membrane_region = Cylinder(height=1, radius=10, center_z=False).translate((18, 18, 6))
+ 
+         membrane_region = Cylinder(height=1, radius=10, center_z=False).translate(
+             (18, 18, 6)
+         )
          self.add_regional_settings(
              name="membrane_layer",
              shape=membrane_region,
@@ -271,7 +315,7 @@ index 0000000..1111111 100644
              ),
              label="region_membrane",
          )
-
+ 
 +        exposure_block = Cube((8, 4, 4), center=False).translate((14, 22, 0))
 +        self.add_regional_settings(
 +            name="fluidic_block",
@@ -279,10 +323,22 @@ index 0000000..1111111 100644
 +            settings=ExposureSettings(bulk_exposure_multiplier=2.0),
 +            label="region_exposure",
 +        )
+ 
+ 
+ if __name__ == "__main__":
+     Valve20px().preview()
     </script>
 </div>
 
 **What it does:** Locally increases exposure to strengthen the thin wall below the chamber.
+
+<img
+    class="theme-aware-image"
+    alt="Extra exposure region"
+    src="resources/14/14-3_dark.png"
+    data-light-src="resources/14/14-3_light.png"
+    data-dark-src="resources/14/14-3_dark.png"
+/>
 
 ---
 
@@ -298,9 +354,16 @@ index 0000000..1111111 100644
 --- a/example_device.py
 +++ b/example_device.py
 @@ -1 +1 @@
- from pymfcad import Component, Port, Color, Cylinder, Cube
--from pymfcad import MembraneSettings, ExposureSettings
-+from pymfcad import MembraneSettings, ExposureSettings, PositionSettings
+ from pymfcad import (
+     Color,
+     Component,
+     Cube,
+     Cylinder,
+     ExposureSettings,
+     MembraneSettings,
+     Port,
++    PositionSettings,
+ )
  
  
  class Valve20px(Component):
@@ -308,13 +371,12 @@ index 0000000..1111111 100644
  
          super().__init__(
              size=(36, 36, 24),
-             position=(0, 0, 0),
              px_size=0.0076,
              layer_size=0.01,
              quiet=quiet,
          )
  
-         self.add_label("device", Color.from_name("cyan", 255))
+         self.add_label("device", Color.from_name("cyan", 127))
          self.add_label("pneumatic", Color.from_name("red", 255))
          self.add_label("fluidic", Color.from_name("blue", 255))
          self.add_label("membrane", Color.from_name("green", 255))
@@ -361,8 +423,10 @@ index 0000000..1111111 100644
              "P_OUT",
              Port(Port.PortType.INOUT, (14, 36, 12), (8, 8, 6), Port.SurfaceNormal.POS_Y),
          )
-
-         membrane_region = Cylinder(height=1, radius=10, center_z=False).translate((18, 18, 6))
+ 
+         membrane_region = Cylinder(height=1, radius=10, center_z=False).translate(
+             (18, 18, 6)
+         )
          self.add_regional_settings(
              name="membrane_layer",
              shape=membrane_region,
@@ -376,7 +440,7 @@ index 0000000..1111111 100644
              ),
              label="region_membrane",
          )
-
+ 
          exposure_block = Cube((8, 4, 4), center=False).translate((14, 22, 0))
          self.add_regional_settings(
              name="fluidic_block",
@@ -384,8 +448,10 @@ index 0000000..1111111 100644
              settings=ExposureSettings(bulk_exposure_multiplier=2.0),
              label="region_exposure",
          )
-
-+        position_region = Cylinder(height=12, radius=12, center_z=False).translate((18, 18, 7))
+ 
++        position_region = Cylinder(height=12, radius=12, center_z=False).translate(
++            (18, 18, 7)
++        )
 +        self.add_regional_settings(
 +            name="slow_above_membrane",
 +            shape=position_region,
@@ -397,11 +463,23 @@ index 0000000..1111111 100644
 +            ),
 +            label="region_position",
 +        )
+ 
+ 
+ if __name__ == "__main__":
+     Valve20px().preview()
     </script>
 </div>
 
 
 **What it does:** Slows movement where the membrane is most fragile.
+
+<img
+    class="theme-aware-image"
+    alt="Slow speed region"
+    src="resources/14/14-4_dark.png"
+    data-light-src="resources/14/14-4_light.png"
+    data-dark-src="resources/14/14-4_dark.png"
+/>
 
 ---
 
@@ -417,9 +495,17 @@ index 0000000..1111111 100644
 --- a/example_device.py
 +++ b/example_device.py
 @@ -1 +1 @@
- from pymfcad import Component, Port, Color, Cylinder, Cube
--from pymfcad import MembraneSettings, ExposureSettings, PositionSettings
-+from pymfcad import MembraneSettings, ExposureSettings, PositionSettings, SecondaryDoseSettings
+from pymfcad import (
+     Color,
+     Component,
+     Cube,
+     Cylinder,
+     ExposureSettings,
+     MembraneSettings,
+     Port,
+     PositionSettings,
++    SecondaryDoseSettings,
+ )
  
  
  class Valve20px(Component):
@@ -427,13 +513,12 @@ index 0000000..1111111 100644
  
          super().__init__(
              size=(36, 36, 24),
-             position=(0, 0, 0),
              px_size=0.0076,
              layer_size=0.01,
              quiet=quiet,
          )
  
-         self.add_label("device", Color.from_name("cyan", 255))
+         self.add_label("device", Color.from_name("cyan", 127))
          self.add_label("pneumatic", Color.from_name("red", 255))
          self.add_label("fluidic", Color.from_name("blue", 255))
          self.add_label("membrane", Color.from_name("green", 255))
@@ -481,8 +566,10 @@ index 0000000..1111111 100644
              "P_OUT",
              Port(Port.PortType.INOUT, (14, 36, 12), (8, 8, 6), Port.SurfaceNormal.POS_Y),
          )
-
-         membrane_region = Cylinder(height=1, radius=10, center_z=False).translate((18, 18, 6))
+ 
+         membrane_region = Cylinder(height=1, radius=10, center_z=False).translate(
+             (18, 18, 6)
+         )
          self.add_regional_settings(
              name="membrane_layer",
              shape=membrane_region,
@@ -496,7 +583,7 @@ index 0000000..1111111 100644
              ),
              label="region_membrane",
          )
-
+ 
          exposure_block = Cube((8, 4, 4), center=False).translate((14, 22, 0))
          self.add_regional_settings(
              name="fluidic_block",
@@ -504,8 +591,10 @@ index 0000000..1111111 100644
              settings=ExposureSettings(bulk_exposure_multiplier=2.0),
              label="region_exposure",
          )
-
-         position_region = Cylinder(height=12, radius=12, center_z=False).translate((18, 18, 7))
+ 
+         position_region = Cylinder(height=12, radius=12, center_z=False).translate(
+             (18, 18, 7)
+         )
          self.add_regional_settings(
              name="slow_above_membrane",
              shape=position_region,
@@ -517,8 +606,8 @@ index 0000000..1111111 100644
              ),
              label="region_position",
          )
-
-+        secondary_region = Cube((6, 6, 8), center=False).translate((15, 15, 0))
+ 
++        secondary_region = Cube((8, 8, 8), center=False).translate((14, 14, 0))
 +        self.add_regional_settings(
 +            name="vertical_channel_edges",
 +            shape=secondary_region,
@@ -529,10 +618,22 @@ index 0000000..1111111 100644
 +            ),
 +            label="region_secondary",
 +        )
+ 
+ 
+ if __name__ == "__main__":
+     Valve20px().preview()
     </script>
 </div>
 
 **What it does:** Reduces edge over‑cure around a vertical channel to keep features crisp.
+
+<img
+    class="theme-aware-image"
+    alt="Reduced dose secondary region"
+    src="resources/14/14-5_dark.png"
+    data-light-src="resources/14/14-5_light.png"
+    data-dark-src="resources/14/14-5_dark.png"
+/>
 
 ---
 

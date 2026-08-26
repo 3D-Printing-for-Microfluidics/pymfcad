@@ -3,7 +3,10 @@ from pymfcad import (
     Component,
     Cube,
     Cylinder,
+    ExposureSettings,
+    MembraneSettings,
     Port,
+    PositionSettings,
 )
 
 
@@ -21,6 +24,9 @@ class Valve20px(Component):
         self.add_label("pneumatic", Color.from_name("red", 255))
         self.add_label("fluidic", Color.from_name("blue", 255))
         self.add_label("membrane", Color.from_name("green", 255))
+        self.add_label("region_membrane", Color.from_name("violet", 127))
+        self.add_label("region_exposure", Color.from_name("gold", 127))
+        self.add_label("region_position", Color.from_name("magenta", 127))
 
         self.add_bulk("BulkShape", Cube((36, 36, 24), center=False), label="device")
 
@@ -60,6 +66,46 @@ class Valve20px(Component):
         self.add_port(
             "P_OUT",
             Port(Port.PortType.INOUT, (14, 36, 12), (8, 8, 6), Port.SurfaceNormal.POS_Y),
+        )
+
+        membrane_region = Cylinder(height=1, radius=10, center_z=False).translate(
+            (18, 18, 6)
+        )
+        self.add_regional_settings(
+            name="membrane_layer",
+            shape=membrane_region,
+            settings=MembraneSettings(
+                ExposureSettings(
+                    bulk_exposure_multiplier=0.5,
+                    relative_focus_position=50,
+                ),
+                max_membrane_thickness_um=20,
+                dilation_px=2,
+            ),
+            label="region_membrane",
+        )
+
+        exposure_block = Cube((8, 4, 4), center=False).translate((14, 22, 0))
+        self.add_regional_settings(
+            name="fluidic_block",
+            shape=exposure_block,
+            settings=ExposureSettings(bulk_exposure_multiplier=2.0),
+            label="region_exposure",
+        )
+
+        position_region = Cylinder(height=12, radius=12, center_z=False).translate(
+            (18, 18, 7)
+        )
+        self.add_regional_settings(
+            name="slow_above_membrane",
+            shape=position_region,
+            settings=PositionSettings(
+                up_speed=10.0,
+                down_speed=10.0,
+                up_acceleration=20.0,
+                down_acceleration=20.0,
+            ),
+            label="region_position",
         )
 
 
