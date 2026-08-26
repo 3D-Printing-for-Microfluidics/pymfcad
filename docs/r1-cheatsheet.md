@@ -136,7 +136,7 @@ Special techniques:
 	- `ZeroMicronLayer(enabled=False, count=0)`
 	- `PrintOnFilm(enabled=False, distance_up_mm=0.3)`
 
-Device‑level defaults:
+Top‑level defaults:
 
 - `device.add_default_position_settings(PositionSettings(...), label)`
 - `device.add_default_exposure_settings(ExposureSettings(...), label)`
@@ -156,7 +156,7 @@ Workspaces:
 Stitching notes:
 
 - light_engine_stitching > (1,1) requires printer `xy_stage_available=True`
-- Device is centered; per‑tile offsets are written in JSON
+- Component is centered by default, can be adjusted if custom workspace(s) is/are used; per‑tile offsets are written in JSON
 - Use light_engine `stitched_px_overlap` to overlap tiles
 
 ## Regional settings
