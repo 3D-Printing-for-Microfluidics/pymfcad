@@ -12,6 +12,35 @@ Goal: understand what `PrintFileGenerator` produces and how to verify the output
 
 Slicing turns 3D geometry into a **stack of 2D layers**. Each layer becomes one or more grayscale images. Metadata is also generated for each image so the printer knows exposure, timing, and positioning.
 
+<div id="gif-container" style="position: relative; display: inline-block; cursor: pointer;">
+  <img id="slices-gif" src="resources/12/static.png" style="display: block; max-width: 100%;" alt="GIF of 2D layer stack">
+  <button id="play-btn" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 60px; height: 60px; border-radius: 50%; background-color: rgba(0, 0, 0, 0.6); border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 0;">
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="white">
+      <polygon points="5 3 19 12 5 21"></polygon>
+    </svg>
+  </button>
+</div>
+
+<script>
+const gifSrc = 'resources/12/slices.gif';
+const img = document.getElementById('slices-gif');
+const btn = document.getElementById('play-btn');
+const estimatedDuration = 6000; // Adjust this to match your GIF duration in milliseconds
+
+btn.addEventListener('click', function(e) {
+  e.stopPropagation();
+  
+  // Load and play the GIF
+  img.src = gifSrc;
+  btn.style.display = 'none';
+  
+  // Show button again after the GIF finishes playing
+  setTimeout(() => {
+    btn.style.display = 'flex';
+  }, estimatedDuration);
+});
+</script>
+
 ---
 
 ## Supported printers
