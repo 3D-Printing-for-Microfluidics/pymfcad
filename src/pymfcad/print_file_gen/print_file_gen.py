@@ -56,6 +56,7 @@ class Workspace:
         Initialize a Workspace.
 
         Parameters:
+
         - printer: The printer object containing printer settings.
         - pixel_size: The pixel size of the components in the workspace.
         - exposure_abs_pos_um: The absolute position of the exposure region in micrometers.
@@ -105,6 +106,7 @@ class Workspace:
         Component is centered in workspace by default with translations modifying that position relative to the workspaces's center.
 
         Parameters:
+
         - component: The component to add.
         - centered: Whether to center the component in the workspace. Default is True.
         """
@@ -183,6 +185,7 @@ class Workspace:
         Adjust the light engine exposure position for a subcomponent which uses a different light engine than the parent component.
 
         Parameters:
+
         - subcomponent_fqn: The fully qualified name of the subcomponent.
         - exposure_rel_pos_um: The relative position of the exposure region in micrometers.
         """
@@ -225,9 +228,11 @@ class Workspace:
         Get the light engine offset for a component based on its relative position and any subcomponent adjustments.
 
         Parameters:
+
         - component: The component for which to get the light engine offset.
 
         Returns:
+
         - A tuple of (x_offset_um, y_offset_um) in micrometers.
         """
         # check if component is in the workspace
