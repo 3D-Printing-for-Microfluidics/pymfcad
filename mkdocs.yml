@@ -14,7 +14,7 @@ nav:
       - "Part 3: Using the Visualizer": 3-visualizer.md
       - "Part 4a: Reading Code Examples": 4a-reading-code-examples.md
       - "Part 4b: Creating Your First Component": 4b-first_component.md
-  - "Modeling with PyMFCAD":
+  - "Component Modeling":
       - "Part 5: Modeling Introduction": 5-modeling-introduction.md
       - "Part 6: Modeling Bulks, Voids, and Shapes": 6-modeling-bulks-voids-shapes.md
       - "Part 7: Modeling Microfluidics": 7-modeling-microfluidics.md
@@ -22,7 +22,7 @@ nav:
       - "Part 9: Routing with Fractional Paths": 9-routing-fractional.md
       - "Part 10: Using Components in a Device": 10-using-components.md
       - "Part 11: Full Device Assembly": 11-full-device.md
-  - "Generating Print Files with PyMFCAD":
+  - "Generating Print Files":
       - "Part 12: Slicing Introduction": 12-slicing-introduction.md
       - "Part 13: Slicing Settings": 13-slicing-settings.md
       - "Part 14: Regional Settings": 14-regional-settings.md
