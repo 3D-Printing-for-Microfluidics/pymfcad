@@ -30,11 +30,12 @@ nav:
   - "Advanced Topics":
       - "Extra 1: Customizing Subcomponent Labels and Colors": e1-recoloring_components.md
       - "Extra 2: Variable Layer Thickness Components": e2-variable_layer_thickness_components.md
-      - "Extra 3: Device Stitching": e3-stitching.md
-      - "Extra 4: Device Embedding": e4-embedding.md
-      - "Extra 5: Advanced TPMS Grid Structures": e5-tpms_grids.md
-      - "Extra 6: Specialized Printing Techniques": e6-special_cases.md
-      - "Extra 7: Advanced Visualizer Topics": e7-visualizer_advanced.md
+      - "Extra 3: Workspaces": e3-workspaces.md
+      - "Extra 4: Device Stitching": e4-stitching.md
+      - "Extra 5: Device Embedding": e5-embedding.md
+      - "Extra 6: Advanced TPMS Grid Structures": e6-tpms_grids.md
+      - "Extra 7: Specialized Printing Techniques": e7-special_cases.md
+      - "Extra 8: Advanced Visualizer Topics": e8-visualizer_advanced.md
   - "Resources":
       - "Cheat Sheet for PyMFCAD": r1-cheatsheet.md
       - "Named Color Lists": r2-color.md

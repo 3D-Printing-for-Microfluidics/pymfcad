@@ -1,5 +1,5 @@
 # Embedding Devices
-Prev: [Extra 3: Stitching Devices](e3-stitching.md)
+Prev: [Extra 4: Stitching Devices](e4-stitching.md)
 
 Embedding lets you place a **complete device** (its own labels, shapes, and layers) **inside another device**. This is useful for printing a high‑resolution section inside a larger low‑resolution device.
 
@@ -143,5 +143,5 @@ Guidelines:
 
 ---
 
-Next: [Extra 5: Advanced TPMS Structures](e5-tpms_grids.md)
+Next: [Extra 6: Advanced TPMS Structures](e6-tpms_grids.md)
 

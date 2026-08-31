@@ -210,17 +210,17 @@ The **Toolbar** is divided into two sections: **Camera Controls** and **Tools**.
 
 ### Tools
 
-- **Measurements** — opens measurment panel (covered later in [Extra 7: Advanced Visualizer Topics](e7-visualizer_advanced.md)).
+- **Measurements** — opens measurment panel (covered later in [Extra 8: Advanced Visualizer Topics](e8-visualizer_advanced.md)).
 - **Documentation** — opens the local version of this site.
 - **Snapshot** — captures an image of the current view.
-- **Animation** — advanced topic (covered later in [Extra 7: Advanced Visualizer Topics](e7-visualizer_advanced.md)).
+- **Animation** — advanced topic (covered later in [Extra 8: Advanced Visualizer Topics](e8-visualizer_advanced.md)).
 - **Settings** — opens the settings panels.
 
 ---
 
 ## Step 6 — Settings panels (advanced topic)
 
-The visualizer includes detailed settings panels for rendering and navigation. These are covered in [Extra 7: Advanced Visualizer Topics](e7-visualizer_advanced.md):
+The visualizer includes detailed settings panels for rendering and navigation. These are covered in [Extra 8: Advanced Visualizer Topics](e8-visualizer_advanced.md):
 
 - **General settings**
 - **Appearance settings**

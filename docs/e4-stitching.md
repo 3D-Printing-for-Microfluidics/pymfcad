@@ -1,5 +1,5 @@
 # Stitching Devices
-Prev: [Extra 2: Variable Layer Thickness Components](e2-variable_layer_thickness_components.md)
+Prev: [Extra 3: Workspaces](e3-workspaces.md)
 
 Stitching is used when a device is **larger than a single light engine field of view**. The idea is to print the device in an $n \times m$ grid of tiles, each with its own **X/Y image offset** in the JSON print file.
 
@@ -77,5 +77,5 @@ Offsets are computed from the tile index and the light engine pixel size. Each t
 
 ---
 
-Next: [Extra 4: Embedding Devices](e4-embedding.md)
+Next: [Extra 5: Embedding Devices](e5-embedding.md)
 

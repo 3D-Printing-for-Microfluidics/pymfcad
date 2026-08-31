@@ -1,5 +1,5 @@
 # Special Printing Techniques
-Prev: [Extra 5: Advanced TPMS Structures](e5-tpms_grids.md)
+Prev: [Extra 6: Advanced TPMS Structures](e6-tpms_grids.md)
 
 This extra explains **special techniques** that modify printing behavior. Each technique attaches to a specific settings object.
 

@@ -52,4 +52,4 @@ Once created, you use the same APIs (`add_label`, `add_void`, `add_bulk`, etc.).
 
 ---
 
-Next: [Extra 3: Stitching Devices](e3-stitching.md)
+Next: [Extra 3: Workspaces](e3-workspaces.md)

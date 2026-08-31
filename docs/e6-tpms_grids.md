@@ -1,5 +1,5 @@
 # Advanced TPMS Structures
-Prev: [Extra 4: Embedding Devices](e4-embedding.md)
+Prev: [Extra 5: Embedding Devices](e5-embedding.md)
 
 TPMS (Triply Periodic Minimal Surface) structures are advanced volumetric patterns used for lattices, porous media, and lightweight bulk regions. They can produce strong, printable microstructures but are computationally heavy.
 
@@ -91,4 +91,4 @@ This skips heavy render previews but still allows slicing.
 
 ---
 
-Next: [Extra 6: Special Printing Techniques](e6-special_cases.md)
+Next: [Extra 7: Special Printing Techniques](e7-special_cases.md)
