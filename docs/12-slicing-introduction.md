@@ -2,27 +2,31 @@
 
 Prev: [Part 11: Full Device Assembly](11-full-device.md)
 
-Slicing converts a finished **bulk‑void component** into printer‑ready layers. It takes your rendered geometry plus print settings and produces a layer‑by‑layer representation the printer can execute.
+The process of converting a component into a print file is often refered to as slicing a model. For the purpose of this documentation, we will use this terminology. Slicing converts a finished **bulk‑void component** into printer‑ready layers. It takes your rendered geometry plus printer, resin, and print settings and produces a layer‑by‑layer representation the printer can execute.
 
-Goal: understand what the slicer produces and how to verify the output.
+Goal: understand what `PrintFileGenerator` produces and how to verify the output.
 
 ---
 
-## What slicing is
+## What is slicing
 
-Slicing turns 3D geometry into a **stack of 2D layers**. Each layer becomes a grayscale image (one per print layer), and metadata is written so the printer knows exposure, timing, and positioning.
+Slicing turns 3D geometry into a **stack of 2D layers**. Each layer becomes one or more grayscale images. Metadata is also generated for each image so the printer knows exposure, timing, and positioning.
 
 ---
 
 ## Supported printers
 
-Slicing is designed for **custom printers** that use our open‑source printing software, including our open‑source **OS1**. The output format is optimized for that ecosystem.
+Our slicing architechture is designed for **custom printers** that use our open‑source printing software, including our open‑source **OS1**. The output format is optimized for that ecosystem. Predefined printer and resin profiles are available in the printer and resin libraries; Part 13 shows how to use them.
+
+To slice devices for other printers, it is recommended you export the 3D model and use their recommended slicer, as such, you do not need to complete this section of the tutorial. 
+
+Advanced coders may choose to contribute by adding additional printer support to the code base; although it is important to note that other printers **will not** support the full PyMFCAD feature set (i.e. multiple images per layer, varying exposure and movement parameters per layer, advanced techniques, etc).
 
 ---
 
 ## What slicing outputs
 
-The slicer writes a print bundle that typically includes:
+`PrintFileGenerator` writes a print bundle that typically includes:
 
 - An **output folder** named after your filename (or a ZIP archive if you choose zipped output).
 - A **JSON print file** that describes the job, settings, and per‑layer metadata.
