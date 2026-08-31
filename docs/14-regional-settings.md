@@ -306,7 +306,7 @@ index 0000000..1111111 100644
              name="membrane_layer",
              shape=membrane_region,
              settings=MembraneSettings(
-                 ExposureSettings(
+                     exposure_settings=ExposureSettings(
                      bulk_exposure_multiplier=0.5,
                      relative_focus_position=50,
                  ),
@@ -431,7 +431,7 @@ index 0000000..1111111 100644
              name="membrane_layer",
              shape=membrane_region,
              settings=MembraneSettings(
-                 ExposureSettings(
+                exposure_settings=ExposureSettings(
                      bulk_exposure_multiplier=0.5,
                      relative_focus_position=50,
                  ),
@@ -574,7 +574,7 @@ from pymfcad import (
              name="membrane_layer",
              shape=membrane_region,
              settings=MembraneSettings(
-                 ExposureSettings(
+                exposure_settings=ExposureSettings(
                      bulk_exposure_multiplier=0.5,
                      relative_focus_position=50,
                  ),
