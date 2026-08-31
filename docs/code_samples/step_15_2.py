@@ -210,4 +210,27 @@ router.finalize_routes()
 device.connect_port(device.ports["ctrl_a_stub"])
 device.connect_port(device.ports["ctrl_b_stub"])
 
+from pymfcad import (
+    ExposureSettings,
+    PositionSettings,
+)
+
+# Use predefined printer and resin (or use your own custom objects as shown above)
+from pymfcad.printer_library import OS1v0
+from pymfcad.resin_library import NPS
+
+printer = OS1v0
+resin = NPS
+
+# Not strictly needed as these are already the defaults
+device.add_default_exposure_settings(
+    ExposureSettings(bulk_exposure_multiplier=1.0, power_setting=100)
+)
+device.add_default_position_settings(
+    PositionSettings(distance_up=1.0, up_speed=25.0, down_speed=20.0)
+)
+
+# Set device burn-in
+device.set_burn_in_exposure([10000.0, 5000.0, 2500.0])
+
 device.preview()

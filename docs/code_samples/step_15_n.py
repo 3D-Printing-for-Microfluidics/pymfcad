@@ -211,3 +211,18 @@ device.connect_port(device.ports["ctrl_a_stub"])
 device.connect_port(device.ports["ctrl_b_stub"])
 
 device.preview()
+
+from pymfcad import PrintFileGenerator
+from pymfcad.printer_library import OS1v0
+from pymfcad.resin_library import NPS
+
+print_file_generator = PrintFileGenerator(
+    component=device,
+    printer=OS1v0,
+    resin=NPS,
+    filename="full_device_print",
+    minimize_file=True,
+    zip_output=True,
+)
+
+print_file_generator.run()
