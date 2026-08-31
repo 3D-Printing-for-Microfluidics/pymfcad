@@ -1,5 +1,4 @@
-### Y JUNCTION
-from pymfcad import Component, Port, Color, Cube, Polychannel, PolychannelShape
+from pymfcad import Color, Component, Cube, Polychannel, PolychannelShape
 
 
 class YJunctionMixer(Component):
@@ -22,7 +21,6 @@ class YJunctionMixer(Component):
                 2 * channel_size[1] + 3 * channel_margin[1],
                 channel_size[2] + 2 * channel_margin[2],
             ),
-            position=(0, 0, 0),
             px_size=px_size,
             layer_size=layer_size,
             quiet=quiet,
@@ -64,38 +62,6 @@ class YJunctionMixer(Component):
             )
         )
         self.add_void("y_channel", y_shape, label="void")
-
-        self.add_port(
-            "inlet1",
-            Port(
-                Port.PortType.IN,
-                (0, channel_margin[1], channel_size[2]),
-                channel_size,
-                Port.SurfaceNormal.NEG_X,
-            ),
-        )
-        self.add_port(
-            "inlet2",
-            Port(
-                Port.PortType.IN,
-                (0, channel_size[1] + 2 * channel_margin[1], channel_size[2]),
-                channel_size,
-                Port.SurfaceNormal.NEG_X,
-            ),
-        )
-        self.add_port(
-            "outlet",
-            Port(
-                Port.PortType.OUT,
-                (
-                    4 * channel_size[0],
-                    channel_size[1] + channel_margin[1],
-                    channel_size[2],
-                ),
-                channel_size,
-                Port.SurfaceNormal.POS_X,
-            ),
-        )
 
 
 if __name__ == "__main__":

@@ -1,42 +1,15 @@
 from pymfcad import (
-    Device,
-    Settings,
-    Printer,
-    LightEngine,
-    ResinType,
-    PositionSettings,
-    ExposureSettings,
     Color,
+    Component,
     Cube,
-    Slicer,
-)
-
-# Printer with XY stage (recommended when using offsets)
-settings = Settings(
-    printer=Printer(
-        name="HR3v3",
-        light_engines=[
-            LightEngine(
-                "visitech", px_size=0.0152, px_count=(2560, 1600), wavelengths=[405]
-            ),
-            LightEngine(
-                "wintech", px_size=0.00075, px_count=(1920, 1080), wavelengths=[365]
-            ),
-        ],
-        xy_stage_available=True,
-    ),
-    resin=ResinType(bulk_exposure=300.0),
-    default_position_settings=PositionSettings(),
-    default_exposure_settings=ExposureSettings(),
+    ExposureSettings,
+    PrintFileGenerator,
 )
 
 # Outer device (lower resolution, larger pixel size)
-outer = Device(
-    name="OuterDevice",
-    position=(0, 0, 0),
-    layers=120,
+outer = Component(
+    size=(2560, 1600, 120),
     layer_size=0.015,
-    px_count=(2560, 1600),
     px_size=0.0152,
 )
 
@@ -50,12 +23,9 @@ outer_bulk = Cube(outer._size, center=False).translate(outer._position)
 outer.add_bulk("outer_bulk", outer_bulk, label="bulk_outer")
 
 # Inner device (higher resolution, smaller pixel/layer size)
-inner = Device(
-    name="InnerDevice",
-    position=(0, 0, 0),  # translation in inner device pixels/layers
-    layers=160,
+inner = Component(
+    size=(1920, 1080, 160),
     layer_size=0.0015,
-    px_count=(1920, 1080),
     px_size=0.00075,
 )
 
@@ -73,20 +43,39 @@ inner.add_void("channel", channel, label="void")
 
 # Embed the inner device into the outer device
 # calculate translation (center inner device within outer device)
-translation_x = (outer._size[0]*outer._px_size - inner._size[0]*inner._px_size) / 2
-translation_y = (outer._size[1]*outer._px_size - inner._size[1]*inner._px_size) / 2
-print(outer._size, inner._size, translation_x, translation_y, translation_x / outer._px_size, translation_y / outer._px_size)
-inner.translate((translation_x / outer._px_size, translation_y / outer._px_size, 0))  # translation in outer device pixels/layers
+translation_x = (outer._size[0] * outer._px_size - inner._size[0] * inner._px_size) / 2
+translation_y = (outer._size[1] * outer._px_size - inner._size[1] * inner._px_size) / 2
+inner.translate(
+    (translation_x / outer._px_size, translation_y / outer._px_size, 0)
+)  # translation in outer device pixels/layers
 outer.add_subcomponent("inner", inner)
 
 outer.preview()
 
-slicer = Slicer(
-    device=outer,
-    settings=settings,
+
+from pymfcad import Workspace
+from pymfcad.printer_library import MR1v1
+from pymfcad.resin_library import NPS
+
+workspaces = [
+    Workspace(
+        MR1v1, outer._px_size, exposure_abs_pos_um=(0, 0), light_engine_stitching=(0, 0)
+    )
+]
+workspaces[0].add_component("OuterDevice", outer, centered=True)
+workspaces[0].adjust_subcomponent_light_engine_position("OuterDevice.inner", (0, 0))
+
+print_file_gen = PrintFileGenerator(
     filename="embedded_device_demo",
+    author="Test User",
+    purpose="Test Design",
+    description="This is a test design for the PyMFCAD library.",
+    # component=outer,
+    workspaces=workspaces,
+    printer=MR1v1,
+    resin=NPS,
     minimize_file=True,
     zip_output=False,
 )
 
-slicer.make_print_file()
+print_file_gen.run(overwrite=True, save_temp_files=False)

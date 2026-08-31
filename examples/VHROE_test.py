@@ -1,5 +1,4 @@
 from pymfcad import *
-from pymfcad.component_library import Pinhole
 
 set_fn(50)
 
@@ -10,12 +9,8 @@ wdev = Device.with_wintech("wdev", position=(0, 0, 0), layers=100, layer_size=0.
 vdev.add_label("device", Color.from_name("aqua", 100))
 wdev.add_label("device", Color.from_name("blue", 100))
 
-vdev.add_bulk(
-    "v_bulk", Cube(vdev._size, center=False), label="device"
-)
-wdev.add_bulk(
-    "w_bulk", Cube(wdev._size, center=False), label="device"
-)
+vdev.add_bulk("v_bulk", Cube(vdev._size, center=False), label="device")
+wdev.add_bulk("w_bulk", Cube(wdev._size, center=False), label="device")
 wdev.add_void(
     "test_void",
     Cube((100, 100, 100), center=False).translate((0, 0, 0)),

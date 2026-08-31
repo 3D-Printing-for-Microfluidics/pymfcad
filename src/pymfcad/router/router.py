@@ -1,16 +1,17 @@
 from __future__ import annotations
 
-import os
-import time
 import heapq
+import os
 import pickle
+import time
+from copy import deepcopy
+
 import numpy as np
 from rtree import index
-from typing import Union
-from copy import deepcopy
+
 from pymfcad import __version__ as PYMFCAD_VERSION
 
-from .. import Polychannel, PolychannelShape, BezierCurveShape
+from .. import BezierCurveShape, Polychannel, PolychannelShape
 from ..backend.manifold3d import _is_integer
 
 
@@ -77,7 +78,7 @@ class Router:
 
     def __init__(
         self,
-        component: "Component",
+        component: Component,
         channel_size: tuple[int, int, int] = (0, 0, 0),
         channel_margin: tuple[int, int, int] = (0, 0, 0),
         quiet: bool = False,
@@ -183,11 +184,11 @@ class Router:
 
         - A new bounding box with the margin applied (tuple of 6 floats).
         """
-        (x0, y0, z0, x1, y1, z1) = bbox
+        x0, y0, z0, x1, y1, z1 = bbox
         mx, my, mz = margin
         return (x0 - mx, y0 - my, z0 - mz, x1 + mx, y1 + my, z1 + mz)
-    
-    def _port_from_fqn(self, fqn: str) -> "Port":
+
+    def _port_from_fqn(self, fqn: str) -> Port:
         """
         Retrieves a Port instance from its fully qualified name (FQN).
 
@@ -218,8 +219,8 @@ class Router:
 
     def autoroute_channel(
         self,
-        input_port: "Port" | str,
-        output_port: "Port" | str,
+        input_port: Port | str,
+        output_port: Port | str,
         label: str,
         timeout: int = 120,
         heuristic_weight: int = 10,
@@ -267,9 +268,9 @@ class Router:
 
     def route_with_polychannel(
         self,
-        input_port: "Port" | str,
-        output_port: "Port" | str,
-        polychannel_shapes: list[Union[PolychannelShape, BezierCurveShape]],
+        input_port: Port | str,
+        output_port: Port | str,
+        polychannel_shapes: list[PolychannelShape | BezierCurveShape],
         label: str,
     ):
         """
@@ -295,12 +296,12 @@ class Router:
             raise ValueError("Port must be added to component before routing! (input)")
         if output_port._parent is None:
             raise ValueError("Port must be added to component before routing! (output)")
-        
+
         name = f"{input_port.get_name()}__to__{output_port.get_name()}"
 
-        input_size = list(input_port.get_size(
-            self._component._px_size, self._component._layer_size
-        ))
+        input_size = list(
+            input_port.get_size(self._component._px_size, self._component._layer_size)
+        )
         input_pos = (
             np.array(
                 input_port.get_origin(
@@ -314,7 +315,7 @@ class Router:
         vect = input_port.to_vector()
         for i in range(3):
             if vect[i] != 0:
-                input_pos[i] -= vect[i] * input_size[i]/2
+                input_pos[i] -= vect[i] * input_size[i] / 2
                 input_size[i] = 0
 
         polychannel_shapes.insert(
@@ -326,9 +327,9 @@ class Router:
                 absolute_position=True,
             ),
         )
-        output_size = list(output_port.get_size(
-            self._component._px_size, self._component._layer_size
-        ))
+        output_size = list(
+            output_port.get_size(self._component._px_size, self._component._layer_size)
+        )
         output_pos = (
             np.array(
                 output_port.get_origin(
@@ -342,9 +343,9 @@ class Router:
         vect = output_port.to_vector()
         for i in range(3):
             if vect[i] != 0:
-                output_pos[i] -= vect[i] * output_size[i]/2
+                output_pos[i] -= vect[i] * output_size[i] / 2
                 output_size[i] = 0
-                
+
         polychannel_shapes.append(
             PolychannelShape(
                 "cube",
@@ -365,8 +366,8 @@ class Router:
 
     def route_with_fractional_path(
         self,
-        input_port: "Port" | str,
-        output_port: "Port" | str,
+        input_port: Port | str,
+        output_port: Port | str,
         route: list[tuple[float, float, float]],
         label: str,
         corner_radius: float = None,
@@ -410,7 +411,7 @@ class Router:
         )
         start_loc = [round(x) for x in start_loc]
         end_loc = [round(x) for x in end_loc]
-        
+
         diff = tuple(a - b for a, b in zip(end_loc, start_loc))
 
         # relative positions to absolute path
@@ -438,7 +439,11 @@ class Router:
 
         # path to constant cross-section polychannel shapes
         polychannel_shapes = self._path_to_polychannel_shapes(
-            input_port, output_port, path[1:-1], corner_radius=corner_radius, corner_segments=corner_segments
+            input_port,
+            output_port,
+            path[1:-1],
+            corner_radius=corner_radius,
+            corner_segments=corner_segments,
         )
 
         self._routes[name] = {
@@ -451,7 +456,9 @@ class Router:
             "corner_segments": corner_segments,
         }
 
-    def _path_to_polychannel_shapes(self, input_port, output_port, path, corner_radius=None, corner_segments=None):
+    def _path_to_polychannel_shapes(
+        self, input_port, output_port, path, corner_radius=None, corner_segments=None
+    ):
         """
         Converts a path defined by a list of points into a list of PolychannelShape instances.
 
@@ -494,7 +501,7 @@ class Router:
                 size=input_size,
                 absolute_position=True,
                 corner_radius=0,
-                corner_segments=0
+                corner_segments=0,
             )
         )
 
@@ -508,7 +515,7 @@ class Router:
                     size=self._channel_size,
                     absolute_position=True,
                     corner_radius=corner_radius,
-                    corner_segments=corner_segments
+                    corner_segments=corner_segments,
                 )
             )
 
@@ -537,7 +544,7 @@ class Router:
                 size=output_size,
                 absolute_position=True,
                 corner_radius=0,
-                corner_segments=0
+                corner_segments=0,
             )
         )
         return polychannel_shapes
@@ -594,7 +601,7 @@ class Router:
             self._add_keepouts_from_polychannel(name, self._component.shapes[name])
 
         if not self._quiet:
-            print(f"\r\n\t\tManual Routing...", end="", flush=True)
+            print("\r\n\t\tManual Routing...", end="", flush=True)
         for i, (name, route_info) in enumerate(new_routes):
             input_port = route_info["input"]
             output_port = route_info["output"]
@@ -610,7 +617,7 @@ class Router:
                 self._add_port_keepouts(removed_keepouts)
 
         if not self._quiet:
-            print(f"\r\n\t\tAutorouting...", end="", flush=True)
+            print("\r\n\t\tAutorouting...", end="", flush=True)
         for i, (name, route_info) in enumerate(new_routes):  # Autoroute paths
             input_port = route_info["input"]
             output_port = route_info["output"]
@@ -650,26 +657,28 @@ class Router:
         """
         instantiation_dir = self._component.instantiation_dir
         file_stem = self._component.instantiating_file_stem
-        from .. import Component, Device, VariableLayerThicknessComponent, StitchedDevice
-        if type(self._component) in (Component, Device, VariableLayerThicknessComponent, StitchedDevice):
+        from .. import Component, VariableLayerThicknessComponent
+
+        if type(self._component) in (Component, VariableLayerThicknessComponent):
             if self._component._name is not None:
                 file_name = self._component._name
             else:
                 file_name = type(self._component).__name__
         else:
             file_name = type(self._component).__name__
-        cache_file = (
-            instantiation_dir
-            / f"{file_stem}_cache"
-            / f"{file_name}.pkl"
-        )
+        cache_file = instantiation_dir / f"{file_stem}_cache" / f"{file_name}.pkl"
 
         if os.path.exists(cache_file):
             if not self._quiet:
                 print(f"\t\t📦 Loading cached route from {cache_file}...")
             with open(cache_file, "rb") as f:
                 pickle_data = pickle.load(f)
-                if isinstance(pickle_data, dict) and "package_version" in pickle_data and pickle_data["package_version"] == PYMFCAD_VERSION and "data" in pickle_data:
+                if (
+                    isinstance(pickle_data, dict)
+                    and "package_version" in pickle_data
+                    and pickle_data["package_version"] == PYMFCAD_VERSION
+                    and "data" in pickle_data
+                ):
                     return pickle_data["data"]
         return None, None
 
@@ -697,7 +706,9 @@ class Router:
         # validate autoroute parameters
         if route_info["route_type"] == "autoroute":
             cached_direction = cached_info.get("direction_preference", ())
-            if tuple(cached_direction) != tuple(route_info.get("direction_preference", ())):
+            if tuple(cached_direction) != tuple(
+                route_info.get("direction_preference", ())
+            ):
                 return False
 
         # validate input and output locations
@@ -709,7 +720,7 @@ class Router:
             return False
 
         # validate path (for non-autorouted channels)
-        if "_path" in route_info.keys():
+        if "_path" in route_info:
             if len(route_info["_path"]) != len(cached_info["_path"]):
                 return False
             for a, b in zip(route_info["_path"], cached_info["_path"]):
@@ -721,7 +732,7 @@ class Router:
         self._route(name, route_info, loaded=True)
         return True
 
-    def _validate_keepouts(self, polychannel: "Shape"):
+    def _validate_keepouts(self, polychannel: Shape):
         """
         Checks if the polychannel does not violate any keepouts.
 
@@ -761,20 +772,20 @@ class Router:
     def _route(self, name: str, route_info: dict, loaded: bool = False):
         """
         Routes a channel based on the provided route information.
-        
+
         Parameters:
 
         - name: The name of the route to be created.
         - route_info: A dictionary containing the route information, including input and output ports, path, and other parameters.
         - loaded: A boolean indicating whether the route is being loaded from cache (default is False).
-        
+
         Returns:
 
         - True if the route was successfully created, otherwise False.
         """
         # create polychannel
         polychannel_shapes = deepcopy(route_info["_path"])
-        
+
         # check if size is odd and translation is on 0.5 (+-eps). If so, decrease translation by 0.5
         prev_size = None
         prev_position = None
@@ -783,10 +794,12 @@ class Router:
             position = shape._position if shape._position is not None else prev_position
             for i in range(3):
                 if size[i] % 2 == 1:
-                    if _is_integer(position[i]*2):
+                    if _is_integer(position[i] * 2):
                         shape._no_validation = True
             prev_size = shape._size if shape._size is not None else prev_size
-            prev_position = shape._position if shape._position is not None else prev_position
+            prev_position = (
+                shape._position if shape._position is not None else prev_position
+            )
 
         polychannel = Polychannel(polychannel_shapes)
 
@@ -815,12 +828,12 @@ class Router:
     def _add_keepouts_from_polychannel(self, name: str, polychannel: Polychannel):
         """
         Adds keepouts from a Polychannel instance to the router's keepout index.
-        
+
         Parameters:
 
         - name: The name of the polychannel to be added.
         - polychannel: The Polychannel instance from which to extract keepouts.
-        
+
         Returns:
 
         - None
@@ -844,7 +857,7 @@ class Router:
     def _cache_routes(self):
         """
         Caches the route information to a file.
-        
+
         Parameters:
 
         - name: The name of the route to be cached.
@@ -856,19 +869,16 @@ class Router:
         """
         instantiation_dir = self._component.instantiation_dir
         file_stem = self._component.instantiating_file_stem
-        from .. import Component, Device, VariableLayerThicknessComponent, StitchedDevice
-        if type(self._component) in (Component, Device, VariableLayerThicknessComponent, StitchedDevice):
+        from .. import Component, VariableLayerThicknessComponent
+
+        if type(self._component) in (Component, VariableLayerThicknessComponent):
             if self._component._name is not None:
                 file_name = self._component._name
             else:
                 file_name = type(self._component).__name__
         else:
             file_name = type(self._component).__name__
-        cache_file = (
-            instantiation_dir
-            / f"{file_stem}_cache"
-            / f"{file_name}.pkl"
-        )
+        cache_file = instantiation_dir / f"{file_stem}_cache" / f"{file_name}.pkl"
 
         save_routes = {}
         for name, route_info in self._routes.items():
@@ -896,19 +906,22 @@ class Router:
         if len(save_routes) > 0:
             os.makedirs(os.path.dirname(cache_file), exist_ok=True)
             with open(cache_file, "wb") as f:
-                pickle.dump({"package_version": PYMFCAD_VERSION, "data": (keepouts, save_routes)}, f)
+                pickle.dump(
+                    {"package_version": PYMFCAD_VERSION, "data": (keepouts, save_routes)},
+                    f,
+                )
             return True
         return False
 
-    def _remove_port_keepouts(self, input_port: "Port", output_port: "Port"):
+    def _remove_port_keepouts(self, input_port: Port, output_port: Port):
         """
         Removes the keepouts associated with the input and output ports.
-        
+
         Parameters:
 
         - input_port: The Port instance where the channel starts.
         - output_port: The Port instance where the channel ends.
-        
+
         Returns:
 
         - None
@@ -931,11 +944,11 @@ class Router:
     def _add_port_keepouts(self, removed_keepouts: dict):
         """
         Adds back the keepouts that were removed for the input and output ports.
-        
+
         Parameters:
 
         - removed_keepouts: A dictionary containing the keepouts that were removed.
-        
+
         Returns:
 
         - None
@@ -947,12 +960,12 @@ class Router:
     def _autoroute(self, name: str, route_info: dict):
         """
         Automatically routes a channel using the A* algorithm.
-        
+
         Parameters:
 
         - name: The name of the route to be created.
         - route_info: A dictionary containing the route information, including input and output ports, timeout, heuristic weight, and turn weight.
-        
+
         Returns:
 
         - None
@@ -970,9 +983,7 @@ class Router:
             turn_weight=route_info["turn_weight"],
             direction_preference=route_info["direction_preference"],
         )
-        if path is None:
-            violation = True
-        elif len(path) < 2:
+        if path is None or len(path) < 2:
             violation = True
 
         if violation:
@@ -1000,7 +1011,7 @@ class Router:
     ):
         """
         Implements the A* algorithm for 3D routing between two ports.
-        
+
         Parameters:
 
         - input_port: The Port instance where the channel starts.
@@ -1008,7 +1019,7 @@ class Router:
         - timeout: The maximum time allowed for the routing operation (in seconds).
         - heuristic_weight: Weighting factor for the heuristic in the A* algorithm.
         - turn_weight: Weighting factor for the number of turns in the A* algorithm.
-        
+
         Returns:
 
         - A list of tuples representing the path from the input port to the output port if a valid path is found, otherwise None.
@@ -1165,14 +1176,14 @@ class Router:
 
         return None  # No path found
 
-    def _move_outside_port(self, port: "Port"):
+    def _move_outside_port(self, port: Port):
         """
         Moves the port position outside its bounding box in the direction of its vector.
-        
+
         Parameters:
 
         - port: The Port instance to be moved outside its bounding box.
-        
+
         Returns:
 
         - A tuple representing the new position of the port outside its bounding box.
@@ -1214,12 +1225,12 @@ class Router:
     def _get_box_from_pos_and_size(self, pos, size):
         """
         Creates a bounding box from a position and size.
-        
+
         Parameters:
 
         - pos: A tuple representing the position in 3D space (x, y, z).
         - size: A tuple representing the size of the bounding box (width, height, depth).
-        
+
         Returns:
 
         - A tuple representing the bounding box in 3D space (x0, y0, z0, x1, y1, z1).
@@ -1236,12 +1247,12 @@ class Router:
     def _intersects_with_bbox(self, box1, box2):
         """
         Checks if two bounding boxes intersect.
-        
+
         Parameters:
 
         - box1: The first bounding box (tuple of 6 floats).
         - box2: The second bounding box (tuple of 6 floats).
-        
+
         Returns:
 
         - True if the bounding boxes intersect, otherwise False.
@@ -1260,12 +1271,12 @@ class Router:
     def _heuristic(self, a, b):
         """
         Heuristic function for A* algorithm.
-        
+
         Parameters:
 
         - a: The first point in 3D space (tuple of 3 floats).
         - b: The second point in 3D space (tuple of 3 floats).
-        
+
         Returns:
 
         - The heuristic cost between the two points.
@@ -1275,11 +1286,11 @@ class Router:
     def _reconstruct_path(self, node):
         """
         Reconstructs the path from the end node to the start node.
-        
+
         Parameters:
 
         - node: The end node in the A* search tree.
-        
+
         Returns:
 
         - A list of tuples representing the path from the start node to the end node.
@@ -1293,11 +1304,11 @@ class Router:
     def _simplify_cardinal_path(self, points):
         """
         Simplifies a path by removing unnecessary points while keeping cardinal directions.
-        
+
         Parameters:
 
         - points: A list of tuples representing the path segments (each tuple contains three floats).
-        
+
         Returns:
 
         - A simplified list of tuples representing the path segments.
@@ -1333,11 +1344,11 @@ class Router:
     def _is_valid_points(self, points, alt_margins=None):
         """
         Checks if a point is valid for routing.
-        
+
         Parameters:
 
         - point: A tuple representing the point in 3D space (x, y, z).
-        
+
         Returns:
 
         - True if the point is valid for routing, otherwise False.
@@ -1383,12 +1394,12 @@ class Router:
     def _is_bbox_inside(self, bbox_inner, bbox_outer, exclude_axis=None):
         """
         Checks if one bounding box is completely inside another.
-        
+
         Parameters:
-        
+
         - bbox_inner: The inner bounding box (tuple of 6 floats).
         - bbox_outer: The outer bounding box (tuple of 6 floats).
-        
+
         Returns:
 
         - True if the inner bounding box is completely inside the outer bounding box, otherwise False.

@@ -1,16 +1,15 @@
 from __future__ import annotations
 
 import os
-import trimesh
-import freetype
-import numpy as np
-import importlib.util
-from numba import njit
+from collections.abc import Callable
 from pathlib import Path
 
+import freetype
+import numpy as np
+import trimesh
+from manifold3d import CrossSection, Manifold, Mesh, OpType, set_circular_segments
+from numba import njit
 
-from collections.abc import Callable
-from manifold3d import set_circular_segments, Manifold, Mesh, CrossSection, OpType
 
 def _resolve_font_path(font: str) -> Path:
     """
@@ -90,7 +89,7 @@ class Shape:
         self._keepouts = []
 
     @classmethod
-    def union(cls, others: list["Shape"]) -> "Shape":
+    def union(cls, others: list[Shape]) -> Shape:
         """
         Return the boolean union of multiple shapes.
 
@@ -124,7 +123,7 @@ class Shape:
         c._label = others[0]._label
 
         return c
-    
+
     @classmethod
     def difference(cls, shape: Shape, others: list[Shape]) -> Shape:
         """
@@ -168,9 +167,11 @@ class Shape:
         c._label = shape._label
 
         return c
-    
+
     @classmethod
-    def _batch_boolean_union_and_difference(cls, additions: list["Shape"], subtractions: list["Shape"]) -> "Shape":
+    def _batch_boolean_union_and_difference(
+        cls, additions: list[Shape], subtractions: list[Shape]
+    ) -> Shape:
         """
         Add a list of shapes together, then subtract another list of shapes from the result.
 
@@ -312,7 +313,7 @@ class Shape:
             new_keepouts.append([nx0, ny0, nz0, nx1, ny1, nz1])
         self._keepouts = new_keepouts
 
-    def translate(self, translation: tuple[int, int, int]) -> "Shape":
+    def translate(self, translation: tuple[int, int, int]) -> Shape:
         """
         Translate the shape by a given translation vector.
 
@@ -334,7 +335,7 @@ class Shape:
         )
         return self
 
-    def rotate(self, rotation: tuple[float, float, float]) -> "Shape":
+    def rotate(self, rotation: tuple[float, float, float]) -> Shape:
         """
         Rotate the shape by a given rotation vector (in degrees).
 
@@ -350,7 +351,64 @@ class Shape:
         self._object = self._object.rotate(rotation)
         return self
 
-    def resize(self, size: tuple[int, int, int]) -> "Shape":
+    def scale(self, scale: tuple[float, float, float]) -> Shape:
+        """
+        Scale the shape by independent factors along each axis.
+
+        Parameters:
+
+        - scale (tuple[float, float, float]): Scale factors for the x, y, and z axes.
+
+        Returns:
+
+        - self (Shape): The scaled shape.
+
+        Raises:
+
+        - ValueError: If the scale does not contain three positive factors.
+        """
+        if len(scale) != 3 or any(factor <= 0 for factor in scale):
+            raise ValueError("scale must contain three positive factors.")
+
+        self._scale_keepouts(scale)
+        self._object = self._object.scale(scale)
+        return self
+
+    def resize_locked(self, dimension: float, axis: int) -> Shape:
+        """
+        Resize the shape uniformly using one dimension as the reference.
+
+        Parameters:
+
+        - dimension (float): The desired size along the selected axis.
+        - axis (int): The reference axis: 0 for x, 1 for y, or 2 for z.
+
+        Returns:
+
+        - self (Shape): The resized shape.
+
+        Raises:
+
+        - ValueError: If the axis or dimension is invalid.
+        """
+        if axis not in (0, 1, 2):
+            raise ValueError("axis must be 0, 1, or 2.")
+        if dimension <= 0:
+            raise ValueError("dimension must be positive.")
+
+        bounds = self._object.bounding_box()
+        extents = (
+            bounds[3] - bounds[0],
+            bounds[4] - bounds[1],
+            bounds[5] - bounds[2],
+        )
+        if extents[axis] <= 0:
+            raise ValueError("Cannot resize a shape with a zero-sized dimension.")
+
+        factor = dimension / extents[axis]
+        return self.scale((factor, factor, factor))
+
+    def resize(self, size: tuple[int, int, int]) -> Shape:
         """
         Resize the shape to a given size in px/layer space.
 
@@ -384,11 +442,9 @@ class Shape:
         sy = size[1] / (bounds[4] - bounds[1])
         sz = size[2] / (bounds[5] - bounds[2])
 
-        self._scale_keepouts((sx, sy, sz))
-        self._object = self._object.scale((sx, sy, sz))
-        return self
+        return self.scale((sx, sy, sz))
 
-    def mirror(self, axis: tuple[bool, bool, bool]) -> "Shape":
+    def mirror(self, axis: tuple[bool, bool, bool]) -> Shape:
         """
         Mirror the shape along the specified axes.
 
@@ -404,7 +460,7 @@ class Shape:
         self._object = self._object.mirror(axis)
         return self
 
-    def __add__(self, other: "Shape") -> "Shape":
+    def __add__(self, other: Shape) -> Shape:
         """
         Combine two shapes using union operation.
 
@@ -420,7 +476,7 @@ class Shape:
         self._object = self._object + other._object
         return self
 
-    def __sub__(self, other: "Shape") -> "Shape":
+    def __sub__(self, other: Shape) -> Shape:
         """
         Subtract another shape from this shape.
 
@@ -486,7 +542,7 @@ class Shape:
                     intersections.append(inter)
         return intersections
 
-    def __and__(self, other: "Shape") -> "Shape":
+    def __and__(self, other: Shape) -> Shape:
         """
         Intersect this shape with another shape.
 
@@ -505,7 +561,7 @@ class Shape:
         )
         return self
 
-    def hull(self, other: "Shape") -> "Shape":
+    def hull(self, other: Shape) -> Shape:
         """
         Create a convex hull of this shape and another shape.
         This method combines the keepouts of both shapes and creates a bridge between their bounding boxes.
@@ -574,7 +630,7 @@ class Shape:
         self._object = Manifold.batch_hull([self._object, other._object])
         return self
 
-    def copy(self, _internal: bool = False) -> "Shape":
+    def copy(self, _internal: bool = False) -> Shape:
         """
         Create a copy of the shape.
 
@@ -597,7 +653,9 @@ class Shape:
         new_shape._keepouts = self._keepouts.copy()
         return new_shape
 
-    def _add_bbox_to_keepout(self, bbox: tuple[float, float, float, float, float, float]) -> None:
+    def _add_bbox_to_keepout(
+        self, bbox: tuple[float, float, float, float, float, float]
+    ) -> None:
         """
         Add a bounding box to keepouts.
 
@@ -648,19 +706,19 @@ class Cube(Shape):
             if size[0] % 2 != 0:
                 if not quiet:
                     print(
-                        f"\t⚠️ Centered cube x dimension is odd. Shifting 0.5 px to align with px grid"
+                        "\t⚠️ Centered cube x dimension is odd. Shifting 0.5 px to align with px grid"
                     )
                 x = 0.5
             if size[1] % 2 != 0:
                 if not quiet:
                     print(
-                        f"\t⚠️ Centered cube y dimension is odd. Shifting 0.5 px to align with px grid"
+                        "\t⚠️ Centered cube y dimension is odd. Shifting 0.5 px to align with px grid"
                     )
                 y = 0.5
             if size[2] % 2 != 0:
                 if not quiet:
                     print(
-                        f"\t⚠️ Centered cube z dimension is odd. Shifting 0.5 px to align with px grid"
+                        "\t⚠️ Centered cube z dimension is odd. Shifting 0.5 px to align with px grid"
                     )
                 z = 0.5
 
@@ -744,7 +802,7 @@ class Cylinder(Shape):
         if center_z and height % 2 != 0:
             if not quiet:
                 print(
-                    f"\t⚠️ Centered cylinder z dimension is odd. Shifting 0.5 px to align with px grid"
+                    "\t⚠️ Centered cylinder z dimension is odd. Shifting 0.5 px to align with px grid"
                 )
             z = 0.5
         if height == 0:
@@ -753,7 +811,7 @@ class Cylinder(Shape):
             if top * 2 % 2 != 0:  # can check either to or bottom
                 if not quiet:
                     print(
-                        f"\t⚠️ Centered cylinder radius is odd. Shifting 0.5 px to align with px grid"
+                        "\t⚠️ Centered cylinder radius is odd. Shifting 0.5 px to align with px grid"
                     )
                 xy = 0.5
             self._object = Manifold.cylinder(
@@ -786,7 +844,7 @@ class Sphere(Shape):
         center: bool = True,
         fn: int = 0,
         quiet: bool = False,
-        _no_validation: bool = False, 
+        _no_validation: bool = False,
     ) -> None:
         """
         Create a sphere.
@@ -808,19 +866,19 @@ class Sphere(Shape):
                 if size[0] % 2 != 0:
                     if not quiet:
                         print(
-                            f"\t⚠️ Centered sphere x dimension is odd. Shifting 0.5 px to align with px grid"
+                            "\t⚠️ Centered sphere x dimension is odd. Shifting 0.5 px to align with px grid"
                         )
                     x = 0.5
                 if size[1] % 2 != 0:
                     if not quiet:
                         print(
-                            f"\t⚠️ Centered sphere y dimension is odd. Shifting 0.5 px to align with px grid"
+                            "\t⚠️ Centered sphere y dimension is odd. Shifting 0.5 px to align with px grid"
                         )
                     y = 0.5
                 if size[2] % 2 != 0:
                     if not quiet:
                         print(
-                            f"\t⚠️ Centered sphere z dimension is odd. Shifting 0.5 px to align with px grid"
+                            "\t⚠️ Centered sphere z dimension is odd. Shifting 0.5 px to align with px grid"
                         )
                     z = 0.5
 
@@ -886,19 +944,19 @@ class RoundedCube(Shape):
             if size[0] % 2 != 0:
                 if not quiet:
                     print(
-                        f"\t⚠️ Centered rounded cube x dimension is odd. Shifting 0.5 px to align with px grid"
+                        "\t⚠️ Centered rounded cube x dimension is odd. Shifting 0.5 px to align with px grid"
                     )
                 x = 0.5
             if size[1] % 2 != 0:
                 if not quiet:
                     print(
-                        f"\t⚠️ Centered rounded cube y dimension is odd. Shifting 0.5 px to align with px grid"
+                        "\t⚠️ Centered rounded cube y dimension is odd. Shifting 0.5 px to align with px grid"
                     )
                 y = 0.5
             if size[2] % 2 != 0:
                 if not quiet:
                     print(
-                        f"\t⚠️ Centered rounded cube z dimension is odd. Shifting 0.5 px to align with px grid"
+                        "\t⚠️ Centered rounded cube z dimension is odd. Shifting 0.5 px to align with px grid"
                     )
                 z = 0.5
 
@@ -1167,10 +1225,7 @@ class ImportModel(Shape):
         if hasattr(self._object, "bounding_box"):
             self._add_bbox_to_keepout(self._object.bounding_box())
 
-
-    def _load_to_manifold(
-        self, filename: str, quiet: bool = False
-    ) -> Manifold:
+    def _load_to_manifold(self, filename: str, quiet: bool = False) -> Manifold:
         """
         Load a 3D file and convert it to a Manifold3D object.
 
@@ -1197,13 +1252,15 @@ class ImportModel(Shape):
         if isinstance(mesh, trimesh.Scene):
             if not quiet:
                 print("\t🔁 Flattening scene...")
-            mesh = mesh.dump(concatenate=True) if hasattr(mesh, 'dump') else mesh.to_mesh()
+            mesh = (
+                mesh.dump(concatenate=True) if hasattr(mesh, "dump") else mesh.to_mesh()
+            )
 
         try:
             return self._mesh_to_manifold(mesh)
         except Exception as e:
             raise ValueError(f"❌ Failed to convert {filename} to Manifold: {e}")
-    
+
     def _mesh_to_manifold(self, mesh: trimesh.Trimesh, _internal=False) -> Manifold:
         """
         Convert a Trimesh object to a Manifold3D object.
@@ -1232,6 +1289,7 @@ class ImportModel(Shape):
                 )
             self._mesh_to_manifold(mesh, _internal=True)  # Retry conversion after repair
         return manifold
+
 
 class TPMS(Shape):
     """
@@ -1262,7 +1320,7 @@ class TPMS(Shape):
             + np.cos(a * x) * np.sin(a * y) * np.cos(a * z)
             + np.cos(a * x) * np.cos(a * y) * np.sin(a * z)
         )
-    
+
     @njit
     def gyroid(x: float, y: float, z: float) -> float:
         """
@@ -1284,7 +1342,7 @@ class TPMS(Shape):
             + np.cos(a * y) * np.sin(a * z)
             + np.cos(a * z) * np.sin(a * x)
         )
-    
+
     @njit
     def schwarz_p(x: float, y: float, z: float) -> float:
         """
@@ -1301,10 +1359,8 @@ class TPMS(Shape):
         - float: Level set value.
         """
         a = np.radians(360)
-        return (
-            np.cos(a*x) + np.cos(a*y) + np.cos(a*z)
-        )
-    
+        return np.cos(a * x) + np.cos(a * y) + np.cos(a * z)
+
     @njit
     def fischer_koch_s(x: float, y: float, z: float) -> float:
         """
@@ -1322,11 +1378,11 @@ class TPMS(Shape):
         """
         a = np.radians(360)
         return (
-            np.cos(a*2*x) * np.sin(a*y) * np.cos(a*x)
-            + np.cos(a*2*y) * np.sin(a*z) * np.cos(a*x)
-            + np.cos(a*2*z) * np.sin(a*x) * np.cos(a*y)
+            np.cos(a * 2 * x) * np.sin(a * y) * np.cos(a * x)
+            + np.cos(a * 2 * y) * np.sin(a * z) * np.cos(a * x)
+            + np.cos(a * 2 * z) * np.sin(a * x) * np.cos(a * y)
         )
-    
+
     @njit
     def double_diamond(x: float, y: float, z: float) -> float:
         """
@@ -1344,15 +1400,11 @@ class TPMS(Shape):
         """
         a = np.radians(360)
         return (
-            (
-                np.sin(2*a*x) * np.sin(2*a*y) 
-                + np.sin(2*a*y) * np.sin(2*a*z) 
-                + np.sin(2*a*x) * np.sin(2*a*z)
-            ) + (
-                np.cos(2*a*y) * np.cos(2*a*z) * np.cos(2*a*x)
-            )
-        )
-    
+            np.sin(2 * a * x) * np.sin(2 * a * y)
+            + np.sin(2 * a * y) * np.sin(2 * a * z)
+            + np.sin(2 * a * x) * np.sin(2 * a * z)
+        ) + (np.cos(2 * a * y) * np.cos(2 * a * z) * np.cos(2 * a * x))
+
     @njit
     def double_gyroid(x: float, y: float, z: float) -> float:
         """
@@ -1369,16 +1421,14 @@ class TPMS(Shape):
         - float: Level set value.
         """
         a = np.radians(360)
-        return (
-            2.75*(
-                np.sin(2*a*x) * np.sin(a*z) * np.cos(a*y) 
-                + np.sin(2*a*y) * np.sin(a*x) * np.cos(a*z) 
-                + np.sin(2*a*z) * np.sin(a*y) * np.cos(a*x)
-            ) - 1*(
-                np.cos(2*a*x) * np.cos(2*a*y) 
-                + np.cos(2*a*y) * np.cos(2*a*z) 
-                + np.cos(2*a*z) * np.cos(2*a*x)
-            )
+        return 2.75 * (
+            np.sin(2 * a * x) * np.sin(a * z) * np.cos(a * y)
+            + np.sin(2 * a * y) * np.sin(a * x) * np.cos(a * z)
+            + np.sin(2 * a * z) * np.sin(a * y) * np.cos(a * x)
+        ) - 1 * (
+            np.cos(2 * a * x) * np.cos(2 * a * y)
+            + np.cos(2 * a * y) * np.cos(2 * a * z)
+            + np.cos(2 * a * z) * np.cos(2 * a * x)
         )
 
     def __init__(
@@ -1416,7 +1466,6 @@ class TPMS(Shape):
         edge_length = 1 / refinement
         # self._object = Manifold.level_set(func, bounds, edge_length, level=fill)
 
-
         # eps = 1e-6
         # cell = Manifold.level_set(func, [0,0,0,1-eps,1-eps,1-eps], edge_length, level=fill)
         # copies = []
@@ -1429,7 +1478,9 @@ class TPMS(Shape):
         # self._object = Manifold.batch_boolean(copies, OpType.Add)
 
         eps = 1e-6
-        cell = Manifold.level_set(func, [0,0,0,1-eps,1-eps,1-eps], edge_length, level=fill)
+        cell = Manifold.level_set(
+            func, [0, 0, 0, 1 - eps, 1 - eps, 1 - eps], edge_length, level=fill
+        )
         mesh = cell.to_mesh()
         verts = np.array(mesh.vert_properties, dtype=np.float32)
         tris = np.array(mesh.tri_verts, dtype=np.uint32)
@@ -1457,9 +1508,6 @@ class TPMS(Shape):
         )
 
         self._object = Manifold(tiled_mesh)
-
-
-
 
         size = (
             size[0] * cells[0],
@@ -1535,7 +1583,7 @@ class TPMSGrid(Shape):
             validated.append(int(round(value)))
         return tuple(validated)
 
-    def rotate(self, rotation: tuple[float, float, float]) -> "Shape":
+    def rotate(self, rotation: tuple[float, float, float]) -> Shape:
         """Rotate grid and update unit cell axes for 90-degree Z rotations."""
         rx, ry, rz = rotation
         if rx == 0 and ry == 0:

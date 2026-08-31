@@ -1,29 +1,28 @@
 from __future__ import annotations
 
-import sys
-import inspect
-import importlib
 import functools
-from math import gcd
+import inspect
+import sys
+from collections.abc import Callable
 from enum import Enum
-from pathlib import Path
-from typing import Union, Callable
-from functools import reduce
 from fractions import Fraction
+from functools import reduce
+from math import gcd
+from pathlib import Path
 
 from .backend import (
-    Shape,
     Color,
     Cube,
+    Shape,
     render_component,
 )
-
-from .slicer import (
+from .print_file_gen import (
     ExposureSettings,
-    PositionSettings,
     MembraneSettings,
+    PositionSettings,
     SecondaryDoseSettings,
 )
+
 
 class _InstantiationTrackerMixin:
     """Mixin to determine cache location based on instantiation or class definition."""
@@ -64,9 +63,9 @@ class _InstantiationTrackerMixin:
 
     @property
     def instantiation_dir(self) -> Path:
-        from . import Component, Device, VariableLayerThicknessComponent, StitchedDevice, TPMSComponent
+        from . import Component, TPMSComponent, VariableLayerThicknessComponent
 
-        if type(self) in (Component, Device, VariableLayerThicknessComponent, StitchedDevice, TPMSComponent):
+        if type(self) in (Component, VariableLayerThicknessComponent, TPMSComponent):
             return self._instantiation_path.parent
 
         return self._class_definition_path().parent
@@ -75,12 +74,13 @@ class _InstantiationTrackerMixin:
 
     @property
     def instantiating_file_stem(self) -> str:
-        from . import Component, Device, VariableLayerThicknessComponent, StitchedDevice, TPMSComponent
+        from . import Component, TPMSComponent, VariableLayerThicknessComponent
 
-        if type(self) in (Component, Device, VariableLayerThicknessComponent, StitchedDevice, TPMSComponent):
+        if type(self) in (Component, VariableLayerThicknessComponent, TPMSComponent):
             return self._instantiation_path.stem
 
         return self._class_definition_path().stem
+
 
 class Port(_InstantiationTrackerMixin):
     """
@@ -96,7 +96,7 @@ class Port(_InstantiationTrackerMixin):
     class PortType(Enum):
         """
         Enumeration for port types.
-        
+
         - IN: Port for input.
         - OUT: Port for output.
         - INOUT: Port for input and/or output.
@@ -160,7 +160,7 @@ class Port(_InstantiationTrackerMixin):
         self._size = size
         self._surface_normal = surface_normal
 
-    def copy(self) -> "Port":
+    def copy(self) -> Port:
         """Create a copy of the port."""
         p = Port(
             self._type,
@@ -175,14 +175,14 @@ class Port(_InstantiationTrackerMixin):
     def get_name(self) -> str:
         # """Get the name of the port, including parent name."""
         if self._name is None:
-            raise ValueError(f"Port has not been named")
+            raise ValueError("Port has not been named")
         else:
             return f"{self._parent._name}_{self._name}"
 
     def get_fully_qualified_name(self) -> str:
         # """Get the fully qualified name of the port, including all parent components names."""
         if self._name is None:
-            raise ValueError(f"Port has not been named")
+            raise ValueError("Port has not been named")
         name = self._name
         parent = self._parent
         while parent is not None:
@@ -394,7 +394,6 @@ class Port(_InstantiationTrackerMixin):
             self._size = (self._size[1], self._size[0], self._size[2])
 
 
-
 class Component(_InstantiationTrackerMixin):
     """
     Base class for components in a microfluidic device.
@@ -407,7 +406,6 @@ class Component(_InstantiationTrackerMixin):
     def __init__(
         self,
         size: tuple[int, int, int],
-        position: tuple[int, int, int],
         px_size: float = 0.0076,
         layer_size: float = 0.01,
         hide_in_render: bool = False,
@@ -417,7 +415,6 @@ class Component(_InstantiationTrackerMixin):
         Parameters:
 
         - size (tuple[int, int, int]): The size of the component in pixels (width, height, depth).
-        - position (tuple[int, int, int]): The position of the component in 3D space (x, y, z).
         - px_size (float): The size of a pixel in mm. Default is 0.0076 m.
         - layer_size (float): The size of a layer in mm. Default is 0.01 m.
         - hide_in_render (bool): Whether to hide the component in renders (nessiary for complex components like TPMS). Default is False.
@@ -428,7 +425,7 @@ class Component(_InstantiationTrackerMixin):
             print(f"Creating {type(self).__name__} component...")
         self._parent = None
         self._name = None
-        self._position = position
+        self._position = (0, 0, 0)
         self._size = size
         self._px_size = px_size
         self._layer_size = layer_size
@@ -456,7 +453,6 @@ class Component(_InstantiationTrackerMixin):
             self.init_args = [values[arg] for arg in args if arg != "self"]
             self.init_kwargs = {arg: values[arg] for arg in args if arg != "self"}
 
-
     def __init_subclass__(cls):
         super().__init_subclass__()
 
@@ -470,16 +466,8 @@ class Component(_InstantiationTrackerMixin):
 
             values = bound.arguments
 
-            self.init_args = [
-                values[name]
-                for name in values
-                if name != "self"
-            ]
-            self.init_kwargs = {
-                name: values[name]
-                for name in values
-                if name != "self"
-            }
+            self.init_args = [values[name] for name in values if name != "self"]
+            self.init_kwargs = {name: values[name] for name in values if name != "self"}
 
             return init(self, *args, **kwargs)
 
@@ -541,8 +529,8 @@ class Component(_InstantiationTrackerMixin):
         if name in self.ports:
             return self.ports[name]
         raise AttributeError(f"'{type(self).__name__}' object has no attribute '{name}'")
-    
-    def copy(self) -> "Component":
+
+    def copy(self) -> Component:
         """
         Create a copy of the component.
 
@@ -550,21 +538,25 @@ class Component(_InstantiationTrackerMixin):
         - Component: A new instance of the component with the same attributes.
         """
         if self._parent is not None:
-            raise ValueError("Cannot copy component that has already been added to a parent component.")
+            raise ValueError(
+                "Cannot copy component that has already been added to a parent component."
+            )
         self._ensure_unlocked("copy component")
-        
+
         # create new instance of the same class
-        kwargs = self.init_kwargs if hasattr(self, 'init_kwargs') else {}
+        kwargs = self.init_kwargs if hasattr(self, "init_kwargs") else {}
 
         # if is Component class, it won't have init_kwargs, so we can just pass the attributes directly
-        kwargs.update({
-            "size": self._size,
-            "position": self._position,
-            "px_size": self._px_size,
-            "layer_size": self._layer_size,
-            "hide_in_render": self.hide_in_render,
-            "quiet": self.quiet,
-        })
+        kwargs.update(
+            {
+                "size": self._size,
+                "position": self._position,
+                "px_size": self._px_size,
+                "layer_size": self._layer_size,
+                "hide_in_render": self.hide_in_render,
+                "quiet": self.quiet,
+            }
+        )
 
         try:
             init_sig = inspect.signature(type(self).__init__)
@@ -573,7 +565,10 @@ class Component(_InstantiationTrackerMixin):
                 for name, param in init_sig.parameters.items()
                 if name != "self"
                 and param.kind
-                in (inspect.Parameter.POSITIONAL_OR_KEYWORD, inspect.Parameter.KEYWORD_ONLY)
+                in (
+                    inspect.Parameter.POSITIONAL_OR_KEYWORD,
+                    inspect.Parameter.KEYWORD_ONLY,
+                )
             }
             filtered_kwargs = {k: v for k, v in kwargs.items() if k in allowed_params}
         except (ValueError, TypeError):
@@ -585,7 +580,7 @@ class Component(_InstantiationTrackerMixin):
         comp_copy._parent = None
         comp_copy._name = None
         comp_copy._subtract_bounding_box = None
-        
+
         comp_copy._translations = self._translations.copy()
         comp_copy._rotation = self._rotation
         comp_copy._mirroring = self._mirroring.copy()
@@ -611,22 +606,29 @@ class Component(_InstantiationTrackerMixin):
         comp_copy.subcomponents = {}
         for key, subcomp in self.subcomponents.items():
             comp_copy.subcomponents[key] = subcomp.copy()
-        comp_copy.default_exposure_settings = None if self.default_exposure_settings is None else self.default_exposure_settings.copy()
-        comp_copy.default_position_settings = None if self.default_position_settings is None else self.default_position_settings.copy()
+        comp_copy.default_exposure_settings = (
+            None
+            if self.default_exposure_settings is None
+            else self.default_exposure_settings.copy()
+        )
+        comp_copy.default_position_settings = (
+            None
+            if self.default_position_settings is None
+            else self.default_position_settings.copy()
+        )
         comp_copy.regional_settings = {}
         for key, (shape, settings) in self.regional_settings.items():
             new_shape = shape.copy()
-            new_shape._color = comp_copy.labels.get(key, shape._color) 
+            new_shape._color = comp_copy.labels.get(key, shape._color)
             comp_copy.regional_settings[key] = (new_shape, settings.copy())
         comp_copy.labels = {}
-        
 
         return comp_copy
 
     def get_fully_qualified_name(self):
         # """Get the fully qualified name of the component, including all parent components names."""
         if self._name is None:
-            raise ValueError(f"Component has not been named")
+            raise ValueError("Component has not been named")
         name = self._name
         parent = self._parent
         while parent is not None:
@@ -659,13 +661,9 @@ class Component(_InstantiationTrackerMixin):
         _layer_size = self._layer_size if layer_size is None else layer_size
 
         min_x = round(self._position[0] * self._px_size / _px_size, 3)
-        max_x = round(
-            (self._position[0] + self._size[0]) * self._px_size / _px_size, 3
-        )
+        max_x = round((self._position[0] + self._size[0]) * self._px_size / _px_size, 3)
         min_y = round(self._position[1] * self._px_size / _px_size, 3)
-        max_y = round(
-            (self._position[1] + self._size[1]) * self._px_size / _px_size, 3
-        )
+        max_y = round((self._position[1] + self._size[1]) * self._px_size / _px_size, 3)
         min_z = round(self._position[2] * self._layer_size / _layer_size, 3)
         max_z = round(
             (self._position[2] + self._size[2]) * self._layer_size / _layer_size, 3
@@ -726,16 +724,16 @@ class Component(_InstantiationTrackerMixin):
         - dict[str, Port]: A dictionary mapping port names to Port objects.
         """
         return self.ports
-    
+
     def get_labels(self) -> dict[str, Color]:
         """
         Get a dictionary of labels in the component.
-        
+
         Returns:
         - dict[str, Color]: A dictionary mapping label names to Color objects.
         """
         return self.labels
-    
+
     # return dictionary of lists with a dictionary for each type of shape
     def get_shapes(self) -> dict[str, dict[str, Shape]]:
         """
@@ -749,11 +747,11 @@ class Component(_InstantiationTrackerMixin):
             "bulks": self.bulk_shapes,
             "regional_settings": {k: v[0] for k, v in self.regional_settings.items()},
         }
-    
+
     def get_subcomponents(self) -> dict[str, Component]:
         """
         Get a dictionary of subcomponents in the component.
-        
+
         Returns:
         - dict[str, Component]: A dictionary mapping subcomponent names to Component objects.
         """
@@ -797,7 +795,7 @@ class Component(_InstantiationTrackerMixin):
                 raise ValueError(
                     f"Label with name '{name}' already exists in component {self._name}"
                 )
-        
+
         if not name.isidentifier():
             raise ValueError(
                 f"Name '{name}' is not a valid Python identifier (e.g. no spaces, starts with letter, etc.)"
@@ -897,7 +895,11 @@ class Component(_InstantiationTrackerMixin):
         self.ports[name] = port
 
     def add_subcomponent(
-        self, name: str, component: Component, subtract_bounding_box: bool = True, hide_in_render: bool = False
+        self,
+        name: str,
+        component: Component,
+        subtract_bounding_box: bool = True,
+        hide_in_render: bool = False,
     ):
         """
         Add a subcomponent to the component.
@@ -916,23 +918,6 @@ class Component(_InstantiationTrackerMixin):
                 f"Component '{component._name}' has already been added to component '{component._parent._name}' and cannot be added again."
             )
 
-        is_device = isinstance(component, Device)
-        if not is_device and component._px_size != self._px_size:
-            raise ValueError(
-                "Non-device subcomponent px_size must match parent component px_size. "
-                f"Parent px_size={self._px_size}, subcomponent px_size={component._px_size}."
-            )
-        if (
-            not is_device
-            and not isinstance(self, VariableLayerThicknessComponent)
-            and not isinstance(component, VariableLayerThicknessComponent)
-            and component._layer_size != self._layer_size
-        ):
-            raise ValueError(
-                "Non-device subcomponent layer_size must match parent component layer_size. "
-                f"Parent layer_size={self._layer_size}, subcomponent layer_size={component._layer_size}."
-            )
-
         component._name = name
         component._parent = self
         component._subtract_bounding_box = subtract_bounding_box
@@ -942,11 +927,14 @@ class Component(_InstantiationTrackerMixin):
         parent_bbox = self.get_bounding_box()
         subcomp_bbox = component.get_bounding_box(self._px_size, self._layer_size)
         if (
-            subcomp_bbox[0] < parent_bbox[0] or subcomp_bbox[3] > parent_bbox[3] or
-            subcomp_bbox[1] < parent_bbox[1] or subcomp_bbox[4] > parent_bbox[4] or
-            subcomp_bbox[2] < parent_bbox[2] or subcomp_bbox[5] > parent_bbox[5]
+            subcomp_bbox[0] < parent_bbox[0]
+            or subcomp_bbox[3] > parent_bbox[3]
+            or subcomp_bbox[1] < parent_bbox[1]
+            or subcomp_bbox[4] > parent_bbox[4]
+            or subcomp_bbox[2] < parent_bbox[2]
+            or subcomp_bbox[5] > parent_bbox[5]
         ):
-            err = f""
+            err = ""
             err += f"\nParent component '{self._name}' bounding box: {parent_bbox}. "
             err += f"\nSubcomponent '{component._name}' bounding box: {subcomp_bbox}. "
             if subcomp_bbox[0] < parent_bbox[0]:
@@ -964,16 +952,27 @@ class Component(_InstantiationTrackerMixin):
             raise ValueError(
                 f"Subcomponent '{component._name}' is not fully contained within the parent component '{self._name}'. {err}"
             )
-        
+
         # validate that subcomponents do not overlap with each other
         for existing_name, existing_subcomp in self.subcomponents.items():
-            existing_bbox = existing_subcomp.get_bounding_box(self._px_size, self._layer_size)
+            existing_bbox = existing_subcomp.get_bounding_box(
+                self._px_size, self._layer_size
+            )
             if (
-                (subcomp_bbox[0] < existing_bbox[3] and subcomp_bbox[3] > existing_bbox[0]) and
-                (subcomp_bbox[1] < existing_bbox[4] and subcomp_bbox[4] > existing_bbox[1]) and
-                (subcomp_bbox[2] < existing_bbox[5] and subcomp_bbox[5] > existing_bbox[2])
+                (
+                    subcomp_bbox[0] < existing_bbox[3]
+                    and subcomp_bbox[3] > existing_bbox[0]
+                )
+                and (
+                    subcomp_bbox[1] < existing_bbox[4]
+                    and subcomp_bbox[4] > existing_bbox[1]
+                )
+                and (
+                    subcomp_bbox[2] < existing_bbox[5]
+                    and subcomp_bbox[5] > existing_bbox[2]
+                )
             ):
-                err = f""
+                err = ""
                 err += f"\nExisting subcomponent '{existing_name}' bounding box: {existing_bbox}. "
                 err += f"\nNew subcomponent '{component._name}' bounding box: {subcomp_bbox}. "
                 if subcomp_bbox[0] < existing_bbox[3]:
@@ -991,10 +990,11 @@ class Component(_InstantiationTrackerMixin):
                 raise ValueError(
                     f"Subcomponent '{component._name}' overlaps with existing subcomponent '{existing_name}'. "
                     f"'{component._name}' bounding box: {subcomp_bbox}, '{existing_name}' bounding box: {existing_bbox}."
-            )
-            
+                )
 
-        def update_labels(comp: Component, prefix: str = None, parent_labels: dict = None):
+        def update_labels(
+            comp: Component, prefix: str = None, parent_labels: dict = None
+        ):
             """
             Update labels in the component and its subcomponents to include the prefix.
             If label matches a label in the parent component, it is not changed.
@@ -1010,6 +1010,7 @@ class Component(_InstantiationTrackerMixin):
                 shape._label = f"{prefix}.{shape._label}"
             for subcomp in comp.subcomponents.values():
                 update_labels(subcomp, prefix, comp.labels)
+
         update_labels(component, name, self.labels)
 
         self.subcomponents[name] = component
@@ -1042,9 +1043,7 @@ class Component(_InstantiationTrackerMixin):
         # shape need to be taller for variablelayerthicknesscomponent (uses greatest common factor of layer sizes)
         self.add_regional_settings(
             name="default_exposure_settings_region",
-            shape=Cube(
-                size=self.get_size()
-            ),
+            shape=Cube(size=self.get_size()),
             settings=None,
             label=label,
         )
@@ -1071,9 +1070,7 @@ class Component(_InstantiationTrackerMixin):
             )
         self.add_regional_settings(
             name="default_position_settings_region",
-            shape=Cube(
-                size=self.get_size()
-            ),
+            shape=Cube(size=self.get_size()),
             settings=None,
             label=label,
         )
@@ -1082,12 +1079,9 @@ class Component(_InstantiationTrackerMixin):
         self,
         name: str,
         shape: Shape,
-        settings: Union[
-            PositionSettings,
-            ExposureSettings,
-            MembraneSettings,
-            SecondaryDoseSettings,
-        ],
+        settings: (
+            PositionSettings | ExposureSettings | MembraneSettings | SecondaryDoseSettings
+        ),
         label: str,
     ):
         """
@@ -1154,7 +1148,12 @@ class Component(_InstantiationTrackerMixin):
             label=label,
         )
 
-    def relabel(self, mapping: dict[Union[Component, Shape, str], str], recursive = False, _color_mapping: dict[str, Color] = None):
+    def relabel(
+        self,
+        mapping: dict[Component | Shape | str, str],
+        recursive=False,
+        _color_mapping: dict[str, Color] = None,
+    ):
         """
         Relabel listed shapes and labels with new labels.
 
@@ -1163,11 +1162,11 @@ class Component(_InstantiationTrackerMixin):
         - mapping (dict[Union[Component, Shape, str], str]): A dictionary mapping shapes or labels (or their fully qualified names) to new label names.
         - recursive (bool): If True, relabel subcomponents recursively. Default is False.
         - _color_mapping (dict[str, Color], optional): Internal use only. A dictionary mapping new label names to their colors.
-        
+
         Raises:
         - ValueError: If a shape or label is not found in the component.
         """
-        
+
         if _color_mapping is None:
             _color_mapping = {}
             for _, new_label in mapping.items():
@@ -1196,8 +1195,17 @@ class Component(_InstantiationTrackerMixin):
                 key_ending = parts[-1]
 
                 for subcomponent in component.subcomponents.values():
-                    subcomponent.relabel({key_ending: new_label}, recursive=recursive, _color_mapping=_color_mapping)
-                if key_ending in component.labels or (recursive and any(key.endswith(f".{key_ending}") for key in component.labels.keys())):
+                    subcomponent.relabel(
+                        {key_ending: new_label},
+                        recursive=recursive,
+                        _color_mapping=_color_mapping,
+                    )
+                if key_ending in component.labels or (
+                    recursive
+                    and any(
+                        key.endswith(f".{key_ending}") for key in component.labels.keys()
+                    )
+                ):
                     if key_ending in component.labels:
                         label_key = key_ending
                     else:
@@ -1214,13 +1222,18 @@ class Component(_InstantiationTrackerMixin):
                         *component.bulk_shapes.values(),
                         *[s for s, _ in component.regional_settings.values()],
                     ]:
-                        if shape._label == label_key or (recursive and shape._label.endswith(
-                            f".{key_ending}"
-                        )):
+                        if shape._label == label_key or (
+                            recursive and shape._label.endswith(f".{key_ending}")
+                        ):
                             shape._label = new_label
                             shape._color = _color_mapping[new_label]
                     continue
-                elif key_ending in component.shapes or (recursive and any(key.endswith(f".{key_ending}") for key in component.shapes.keys())):
+                elif key_ending in component.shapes or (
+                    recursive
+                    and any(
+                        key.endswith(f".{key_ending}") for key in component.shapes.keys()
+                    )
+                ):
                     if key_ending in component.shapes:
                         shape = component.shapes[key_ending]
                     else:
@@ -1230,9 +1243,13 @@ class Component(_InstantiationTrackerMixin):
                             if key.endswith(f".{key_ending}")
                         ]
                         shape = component.shapes[shape_matches[0]]
-                elif key_ending in component.bulk_shapes or (recursive and any(
-                    key.endswith(f".{key_ending}") for key in component.bulk_shapes.keys()
-                )):
+                elif key_ending in component.bulk_shapes or (
+                    recursive
+                    and any(
+                        key.endswith(f".{key_ending}")
+                        for key in component.bulk_shapes.keys()
+                    )
+                ):
                     if key_ending in component.bulk_shapes:
                         shape = component.bulk_shapes[key_ending]
                     else:
@@ -1242,9 +1259,13 @@ class Component(_InstantiationTrackerMixin):
                             if key.endswith(f".{key_ending}")
                         ]
                         shape = component.bulk_shapes[shape_matches[0]]
-                elif key_ending in component.regional_settings or (recursive and any(
-                    key.endswith(f".{key_ending}") for key in component.regional_settings.keys()
-                )):
+                elif key_ending in component.regional_settings or (
+                    recursive
+                    and any(
+                        key.endswith(f".{key_ending}")
+                        for key in component.regional_settings.keys()
+                    )
+                ):
                     if key_ending in component.regional_settings:
                         shape = component.regional_settings[key_ending][0]
                     else:
@@ -1293,7 +1314,7 @@ class Component(_InstantiationTrackerMixin):
         - translation (tuple[int, int, int]): The translation vector in parent pixels/layers (dx, dy, dz) to apply to the component.
         - _internal (bool): If True, the translation uses the component's pixels/layers for internal calculations and opperates immediatly. Default is False.
         - _bypass_lock (bool): If True, bypasses lock checks for parent-driven transformations. Default is False.
-        
+
         Returns:
 
         - self: The translated component.
@@ -1374,13 +1395,13 @@ class Component(_InstantiationTrackerMixin):
     ) -> Component:
         """
         Rotate the component around the Z axis by a given angle.
-        
+
         Parameters:
 
         - rotation (int): The angle in degrees to rotate the component. Must be a multiple of 90.
         - in_place (bool): If True, the component is rotated in place. Default is False.
         - _bypass_lock (bool): If True, bypasses lock checks for parent-driven transformations. Default is False.
-        
+
         Returns:
 
         - self: The rotated component.
@@ -1431,7 +1452,7 @@ class Component(_InstantiationTrackerMixin):
                         original_position[2],
                     ),
                     _internal=True,
-                    _bypass_lock=True
+                    _bypass_lock=True,
                 )
             elif rot == 180:
                 self.translate(
@@ -1441,7 +1462,7 @@ class Component(_InstantiationTrackerMixin):
                         original_position[2],
                     ),
                     _internal=True,
-                    _bypass_lock=True
+                    _bypass_lock=True,
                 )
             elif rot == 270:
                 self.translate(
@@ -1451,7 +1472,7 @@ class Component(_InstantiationTrackerMixin):
                         original_position[2],
                     ),
                     _internal=True,
-                    _bypass_lock=True
+                    _bypass_lock=True,
                 )
             self._position = original_position
         else:
@@ -1485,14 +1506,14 @@ class Component(_InstantiationTrackerMixin):
     ) -> Component:
         """
         Mirror the component along the X and/or Y axes.
-        
+
         Parameters:
 
         - mirror_x (bool): If True, mirrors the component along the X axis. Default is False.
         - mirror_y (bool): If True, mirrors the component along the Y axis. Default is False.
         - in_place (bool): If True, performs the mirroring in place. Default is False.
         - _bypass_lock (bool): If True, bypasses lock checks for parent-driven transformations. Default is False.
-        
+
         Returns:
 
         - self: The mirrored component.
@@ -1513,7 +1534,7 @@ class Component(_InstantiationTrackerMixin):
             self.translate(
                 (-self._position[0], -self._position[1], -self._position[2]),
                 _internal=True,
-                _bypass_lock=True
+                _bypass_lock=True,
             )
 
         for component in self.subcomponents.values():
@@ -1547,9 +1568,10 @@ class Component(_InstantiationTrackerMixin):
             if mirror_x:
                 x = -x - sx
                 # If pointing in +X or -X, correct for sticking out
-                if port._surface_normal == Port.SurfaceNormal.POS_X:
-                    x += sx
-                elif port._surface_normal == Port.SurfaceNormal.NEG_X:
+                if (
+                    port._surface_normal == Port.SurfaceNormal.POS_X
+                    or port._surface_normal == Port.SurfaceNormal.NEG_X
+                ):
                     x += sx
                 port._surface_normal = mirror_vector_map["x"].get(
                     port._surface_normal, port._surface_normal
@@ -1558,9 +1580,10 @@ class Component(_InstantiationTrackerMixin):
             if mirror_y:
                 y = -y - sy
                 # If pointing in +Y or -Y, correct for sticking out
-                if port._surface_normal == Port.SurfaceNormal.POS_Y:
-                    y += sy
-                elif port._surface_normal == Port.SurfaceNormal.NEG_Y:
+                if (
+                    port._surface_normal == Port.SurfaceNormal.POS_Y
+                    or port._surface_normal == Port.SurfaceNormal.NEG_Y
+                ):
                     y += sy
                 port._surface_normal = mirror_vector_map["y"].get(
                     port._surface_normal, port._surface_normal
@@ -1578,7 +1601,7 @@ class Component(_InstantiationTrackerMixin):
                         original_position[2],
                     ),
                     _internal=True,
-                    _bypass_lock=True
+                    _bypass_lock=True,
                 )
             elif not mirror_x and mirror_y:
                 self.translate(
@@ -1588,7 +1611,7 @@ class Component(_InstantiationTrackerMixin):
                         original_position[2],
                     ),
                     _internal=True,
-                    _bypass_lock=True
+                    _bypass_lock=True,
                 )
             self._position = original_position
         else:
@@ -1611,12 +1634,12 @@ class Component(_InstantiationTrackerMixin):
     def render(self, filename: str = "component.glb", do_bulk_difference: bool = True):
         """
         Render the component to a file.
-        
+
         Parameters:
 
         - filename (str): The name of the output file. Default is "component.glb".
         - do_bulk_difference (bool): If True, applies a difference operation for bulk shapes. Default is True.
-        
+
         Returns:
 
         - None: The rendered scene is exported to the specified file.
@@ -1634,7 +1657,7 @@ class Component(_InstantiationTrackerMixin):
     @classmethod
     def preview_components(
         cls,
-        components: "Component | list[Component]",
+        components: Component | list[Component],
         preview_dir: str = "_visualization",
     ):
         """
@@ -1676,7 +1699,7 @@ class Component(_InstantiationTrackerMixin):
                 path=preview_dir,
                 preview=True,
                 version_suffix=f"__v{index}",
-                empty_directory=clear_directory
+                empty_directory=clear_directory,
             )
 
         return None
@@ -1733,7 +1756,6 @@ class VariableLayerThicknessComponent(Component):
     def __init__(
         self,
         size: tuple[int, int, int],
-        position: tuple[int, int, int],
         px_size: float = 0.0076,
         layer_sizes: list[tuple[int, float]] = [(1, 0.01)],
         quiet: bool = False,
@@ -1744,7 +1766,6 @@ class VariableLayerThicknessComponent(Component):
         Parameters:
 
         - size (tuple[int, int, int]): The size of the component in pixels/layers (width, height, depth).
-        - position (tuple[int, int, int]): The position of the component in parent pixels/layers (x, y, z).
         - px_size (float): The pixel size in mm. Default is 0.0076.
         - layer_sizes (list[tuple[int, float]]): A list of layer sizes (as tuples) where each tuple contains the number of duplicates and its size in mm.
         - quiet (bool): If True, suppresses informational output. Default is False.
@@ -1765,14 +1786,14 @@ class VariableLayerThicknessComponent(Component):
             print(
                 "\t\tFor best results, component height should be an integer multiple of parent component layers."
             )
-        
+
         # compute new size z
         self.expanded_sizes = []
         for i, s in self._layer_sizes:
             self.expanded_sizes.extend([s] * i)
         sum_layer_size = sum(self.expanded_sizes)
         z_height = sum_layer_size / layer_size
-        super().__init__((size[0], size[1], z_height), position, px_size, layer_size, quiet=quiet)
+        super().__init__((size[0], size[1], z_height), px_size, layer_size, quiet=quiet)
 
     def _expand_layer_sizes(self) -> list[float]:
         """Expand the layer sizes into a list of heights for each layer."""
@@ -1844,353 +1865,21 @@ class TPMSComponent(Component):
 
     def add_bulk(self, *args, **kwargs):
         raise ValueError("TPMSComponent does not support bulk shapes.")
-    
+
     def add_shape(self, *args, **kwargs):
         raise ValueError("TPMSComponent does not support void shapes.")
-    
+
     def add_label(self, *args, **kwargs):
         raise ValueError("TPMSComponent does not support labels.")
-    
+
     def add_labels(self, mapping):
         raise ValueError("TPMSComponent does not support labels.")
 
     def add_port(self, name, port):
         raise ValueError("TPMSComponent does not support ports.")
-    
+
     def add_regional_settings(self, name, shape, settings, label):
         raise ValueError("TPMSComponent does not support regional settings.")
 
     def add_subcomponent(self, *args, **kwargs):
         raise ValueError("TPMSComponent does not support subcomponents.")
-
-
-class Device(Component):
-    def __init__(
-        self,
-        name: str,
-        position: tuple[int, int, int],
-        layers: int = 0,
-        layer_size: float = 0.01,
-        px_count: tuple[int, int] = (2560, 1600),
-        px_size: float = 0.0076,
-        quiet: bool = False,
-    ):
-        """
-        Initialize a generic Device.
-
-        Parameters:
-
-        - name (str): The name of the device.
-        - position (tuple[int, int, int]): The position of the device in parent pixels/layers (x, y, z).
-        - layers (int): The number of layers in the device.
-        - layer_size (float): The layer size in mm.
-        - px_count (tuple[int, int]): The pixel count of the device (width, height). Default is (2560, 1600).
-        - px_size (float): The pixel size in mm. Default is 0.0076.
-        - quiet (bool): If True, suppresses informational output. Default is False.
-        """
-
-        super().__init__(
-            (px_count[0], px_count[1], layers),
-            position,
-            px_size,
-            layer_size,
-            quiet=quiet,
-        )
-        self._name = name
-
-    @classmethod
-    def with_visitech_1x(
-        cls,
-        name: str,
-        position: tuple[int, int, int],
-        layers: int = 0,
-        layer_size: float = 0.01,
-        quiet: bool = False,
-    ) -> Device:
-        """
-        Create a Device with specifications for a Visitech light engine with LRS10 Lens.
-
-        Parameters:
-
-        - name (str): The name of the device.
-        - position (tuple[int, int, int]): The position of the device in parent pixels/layers (x, y, z).
-        - layers (int): The number of layers in the device.
-        - layer_size (float): The layer size in mm.
-        - quiet (bool): If True, suppresses informational output. Default is False.
-
-        Returns:
-
-        - Device: A Device instance with specifications for a Visitech light engine with LRS10 Lens.
-        """
-
-        return cls(
-            name,
-            position,
-            layers,
-            layer_size,
-            px_count=(2560, 1600),
-            px_size=0.0076,
-            quiet=quiet,
-        )
-
-    @classmethod
-    def with_visitech_2x(
-        cls,
-        name: str,
-        position: tuple[int, int, int],
-        layers: int = 0,
-        layer_size: float = 0.015,
-        quiet: bool = False,
-    ) -> Device:
-        """
-        Create a Device with specifications for a Visitech light engine with LRS20 Lens.
-
-        Parameters:
-
-        - name (str): The name of the device.
-        - position (tuple[int, int, int]): The position of the device in parent pixels/layers (x, y, z).
-        - layers (int): The number of layers in the device.
-        - layer_size (float): The layer size in mm.
-        - quiet (bool): If True, suppresses informational output. Default is False.
-
-        Returns:
-
-        - Device: A Device instance with specifications for a Visitech light engine with LRS20 Lens.
-        """
-
-        return cls(
-            name,
-            position,
-            layers,
-            layer_size,
-            px_count=(2560, 1600),
-            px_size=0.0152,
-            quiet=quiet,
-        )
-
-    @classmethod
-    def with_wintech(
-        cls,
-        name: str,
-        position: tuple[int, int, int],
-        layers: int = 0,
-        layer_size: float = 0.0015,
-        quiet: bool = False,
-    ) -> Device:
-        """
-        Create a Device with specifications for a Wintech light engine.
-
-        Parameters:
-
-        - name (str): The name of the device.
-        - position (tuple[int, int, int]): The position of the device in parent pixels/layers (x, y, z).
-        - layers (int): The number of layers in the device.
-        - layer_size (float): The layer size in mm.
-        - quiet (bool): If True, suppresses informational output. Default is False.
-
-        Returns:
-
-        - Device: A Device instance with specifications for a Wintech light engine.
-        """
-
-        return cls(
-            name,
-            position,
-            layers,
-            layer_size,
-            px_count=(1920, 1080),
-            px_size=0.00075,
-            quiet=quiet,
-        )
-
-
-
-class StitchedDevice(Device):
-    def __init__(
-        self,
-        name: str,
-        position: tuple[int, int, int],
-        layers: int,
-        layer_size: float,
-        tiles_x: int,
-        tiles_y: int,
-        base_px_count: tuple[int, int] = (2560, 1600),
-        overlap_px: int = 0,
-        px_size: float = 0.0076,
-        quiet: bool = False,
-    ):
-        """
-        Initialize a StitchedDevice.
-
-        Parameters:
-
-        - name (str): The name of the device.
-        - position (tuple[int, int, int]): The position of the device in parent pixels/layers (x, y, z).
-        - layers (int): The number of layers in the device.
-        - layer_size (float): The layer size in mm.
-        - tiles_x (int): The number of tiles in the X direction.
-        - tiles_y (int): The number of tiles in the Y direction.
-        - base_px_count (tuple[int, int]): The pixel count of a single tile (width, height). Default is (2560, 1600).
-        - overlap_px (int): The number of overlapping pixels between tiles. Default is 0.
-        - px_size (float): The pixel size in mm. Default is 0.0076.
-        - quiet (bool): If True, suppresses informational output. Default is False.
-        """
-
-        if tiles_x < 1 or tiles_y < 1:
-            raise ValueError("tiles_x and tiles_y must be >= 1")
-        if overlap_px < 0:
-            raise ValueError("overlap_px must be >= 0")
-        if overlap_px >= base_px_count[0] or overlap_px >= base_px_count[1]:
-            raise ValueError(
-                "overlap_px must be smaller than base_px_count in both dimensions"
-            )
-
-        stitched_px_count = (
-            base_px_count[0] * tiles_x - overlap_px * (tiles_x - 1),
-            base_px_count[1] * tiles_y - overlap_px * (tiles_y - 1),
-        )
-        super().__init__(
-            name,
-            position,
-            layers,
-            layer_size,
-            px_count=stitched_px_count,
-            px_size=px_size,
-            quiet=quiet,
-        )
-        self.tiles_x = tiles_x
-        self.tiles_y = tiles_y
-        self.base_px_count = base_px_count
-        self.overlap_px = overlap_px
-
-    @classmethod
-    def with_visitech_1x(
-        cls,
-        name: str,
-        position: tuple[int, int, int],
-        layers: int = 0,
-        layer_size: float = 0.01,
-        tiles_x: int = 1,
-        tiles_y: int = 1,
-        overlap_px: int = 0,
-        quiet: bool = False,
-    ) -> StitchedDevice:
-        """
-        Create a StitchedDevice with specifications for a Visitech light engine with LRS10 Lens.
-
-        Parameters:
-
-        - name (str): The name of the device.
-        - position (tuple[int, int, int]): The position of the device in parent pixels/layers (x, y, z).
-        - layers (int): The number of layers in the device.
-        - layer_size (float): The layer size in mm.
-        - tiles_x (int): The number of tiles in the X direction.
-        - tiles_y (int): The number of tiles in the Y direction.
-        - overlap_px (int): The number of overlapping pixels between tiles. Default is 0.
-        - quiet (bool): If True, suppresses informational output. Default is False.
-
-        Returns:
-
-        - StitchedDevice: A StitchedDevice instance with specifications for a Visitech light engine with LRS10 Lens.
-        """
-
-        return cls(
-            name,
-            position,
-            layers,
-            layer_size,
-            tiles_x,
-            tiles_y,
-            base_px_count=(2560, 1600),
-            overlap_px=overlap_px,
-            px_size=0.0076,
-            quiet=quiet,
-        )
-    
-    @classmethod
-    def with_visitech_2x(
-        cls,
-        name: str,
-        position: tuple[int, int, int],
-        layers: int = 0,
-        layer_size: float = 0.015,
-        tiles_x: int = 1,
-        tiles_y: int = 1,
-        overlap_px: int = 0,
-        quiet: bool = False,
-    ) -> StitchedDevice:
-        """
-        Create a StitchedDevice with specifications for a Visitech light engine with LRS20 Lens.
-
-        Parameters:
-
-        - name (str): The name of the device.
-        - position (tuple[int, int, int]): The position of the device in parent pixels/layers (x, y, z).
-        - layers (int): The number of layers in the device.
-        - layer_size (float): The layer size in mm.
-        - tiles_x (int): The number of tiles in the X direction.
-        - tiles_y (int): The number of tiles in the Y direction.
-        - overlap_px (int): The number of overlapping pixels between tiles. Default is 0.
-        - quiet (bool): If True, suppresses informational output. Default is False.
-
-        Returns:
-
-        - StitchedDevice: A StitchedDevice instance with specifications for a Visitech light engine with LRS20 Lens.
-        """
-
-        return cls(
-            name,
-            position,
-            layers,
-            layer_size,
-            tiles_x,
-            tiles_y,
-            base_px_count=(2560, 1600),
-            overlap_px=overlap_px,
-            px_size=0.0152,
-            quiet=quiet,
-        )
-    
-    @classmethod
-    def with_wintech(
-        cls,
-        name: str,
-        position: tuple[int, int, int],
-        layers: int = 0,
-        layer_size: float = 0.0015,
-        tiles_x: int = 1,
-        tiles_y: int = 1,
-        overlap_px: int = 0,
-        quiet: bool = False,
-    ) -> StitchedDevice:
-        """
-        Create a StitchedDevice with specifications for a Wintech light engine.
-
-        Parameters:
-
-        - name (str): The name of the device.
-        - position (tuple[int, int, int]): The position of the device in parent pixels/layers (x, y, z).
-        - layers (int): The number of layers in the device.
-        - layer_size (float): The layer size in mm.
-        - tiles_x (int): The number of tiles in the X direction.
-        - tiles_y (int): The number of tiles in the Y direction.
-        - overlap_px (int): The number of overlapping pixels between tiles. Default is 0.
-        - quiet (bool): If True, suppresses informational output. Default is False.
-
-        Returns:
-
-        - StitchedDevice: A StitchedDevice instance with specifications for a Wintech light engine.
-        """
-
-        return cls(
-            name,
-            position,
-            layers,
-            layer_size,
-            tiles_x,
-            tiles_y,
-            base_px_count=(1920, 1080),
-            overlap_px=overlap_px,
-            px_size=0.00075,
-            quiet=quiet,
-        )

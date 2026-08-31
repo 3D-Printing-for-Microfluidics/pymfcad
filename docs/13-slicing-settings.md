@@ -2,7 +2,7 @@
 
 Prev: [Part 12: Slicing Introduction](12-slicing-introduction.md)
 
-This step focuses on the **Settings** object and related defaults used by the slicer. You’ll define printer, resin, exposure, and motion behavior, then optionally attach device‑level defaults like burn‑in layers.
+This step focuses on the printer, resin, exposure, and motion settings used by `PrintFileGenerator`. You’ll define a printer and resin profile, then optionally attach component-level defaults like burn-in layers.
 
 Goal: build a minimal, reusable settings profile that matches your printer.
 
@@ -10,23 +10,39 @@ Goal: build a minimal, reusable settings profile that matches your printer.
 
 ## Why settings matter
 
-PyMFCAD distinguishes between **components** (reusable building blocks) and **devices** (printer‑aware assemblies). Slicing uses the **device** geometry **and** the settings to validate printer compatibility and generate correct exposure/motion metadata.
+PyMFCAD components contain reusable geometry and can also represent complete assemblies. `PrintFileGenerator` uses the component geometry and settings together with the printer and resin profiles to validate component compatibility and generate exposure/motion metadata for a print file.
 
 ---
 
-## Printer‑specific device helpers
+## Printer and light-engine matching
 
-Printer‑aware device helpers are available, such as `Device.with_visitech_1x(...)`, that match a selection of light‑engine geometries (image size, pixel size). If your geometry does not exist, either create your own helper or use a generic `Device` with your pixel size and resolution.
+The printer provides one or more light engines that define the available pixel sizes and projection areas. Your printer must have a light engine matching the pixel size used by your component.
 
 ---
 
-## Step 1 — Define slicer settings
+## Printer and resin libraries
 
-Settings describe the printer, resin, and default exposure/motion behavior. Start with an explicit, minimal configuration and save it to JSON for reuse.
+PyMFCAD includes printer and resin libraries with predefined profiles for commonly used hardware and materials. Use a library profile when it matches your setup:
 
-In the code below, you are creating a settings profile that matches your printer’s pixel grid and resin exposure baseline.
+```python
+from pymfcad.printer_library import OS1v0
+from pymfcad.resin_library import NPS
 
-You can export/import `Settings`, `ResinType`, and `Printer` objects to JSON using their `save()` and `from_file()` methods.
+printer = OS1v0
+resin = NPS
+```
+
+The printer library includes `HR3v3`, `HR5`, `MR1v1`, and `OS1v0`. The resin library includes `NPS`, `AVO`, `AVO_TPO`, and formulations with 1% or 10% crosslinker. Library objects are regular `Printer` and `ResinType` objects, so they can be passed directly to `PrintFileGenerator` or saved and customized like manually created profiles. Define your own profiles when your printer or resin differs from the available library entries.
+
+---
+
+## Step 1 — Define printer and resin inputs
+
+The printer and resin describe the hardware and material used for the print. Below are examples from the resin and printer library (OS1v0 printer and 2% NPS resin). Optionally, you can modify and save each profile to JSON files for reuse.
+
+
+
+You can export/import `ResinType` and `Printer` objects to JSON using their `save()` and `from_file()` methods.
 
 <div class="diff2html-wrapper">
     <div class="diff2html"></div>
@@ -37,7 +53,6 @@ index 0000000..1111111 100644
 +++ b/example_device.py
 @@ -0 +1 @@
 +from pymfcad import (
-+    Settings,
 +    ResinType,
 +    Printer,
 +    LightEngine,
@@ -45,26 +60,48 @@ index 0000000..1111111 100644
 +    ExposureSettings,
 +)
 +
-+settings = Settings(
-+    printer=Printer(
-+        name="OS1",
-+        light_engines=[
-+            LightEngine(px_size=0.0076, px_count=(2560, 1600), wavelengths=[365])
-+        ],
-+    ),
-+    resin=ResinType(
-+        bulk_exposure=450.0,
-+        monomer=[("PEG", 100)],
-+        uv_absorbers=[("NPS", 2.0)],
-+        initiators=[("IRG", 1.0)],
-+    ),
++printer = Printer(
++    name="OS1v0",
++    light_engines=[
++        LightEngine(
++            name="visitech",
++            px_size=0.0076,
++            px_count=(2560, 1600),
++            wavelengths=[365],
++            default_exposure_settings=[
++                ExposureSettings(
++                    grayscale_correction=True,
++                    bulk_exposure_multiplier=1.0,
++                    power_setting=100,
++                    wavelength=365,
++                )
++            ],
++            grayscale_available=[True],
++            settle_time_ms=0.0,
++            stitched_px_overlap=(0, 0),
++            x_offset_limits=(-9728, 9728),
++            y_offset_limits=(-6080, 6080),
++        )
++    ],
++    xy_stage_available=True,
++    vacuum_available=False,
 +    default_position_settings=PositionSettings(),
-+    default_exposure_settings=ExposureSettings(),
++)
++
++resin = ResinType(
++    bulk_exposure=450,
++    exposure_offset=0.0,
++    monomer=[("PEG", 100)],
++    uv_absorbers=[("NPS", 2.0)],
++    initiators=[("IRG", 1.0)],
++    additives=[],
 +)
 +
 +# Optionally save/import settings
-+# settings.save("settings.json")
-+# settings = Settings.from_file("settings.json")
++# printer.save("OS1v0_printer.json")
++# printer = Printer.from_file("OS1v0_printer.json")
++# resin.save("NPS_resin.json")
++# resin = ResinType.from_file("NPS_resin.json")
     </script>
 </div>
 
@@ -72,19 +109,11 @@ index 0000000..1111111 100644
 
 ## Settings objects (what they are and when to change them)
 
-Think of `Settings` as the **print recipe** for the entire device. It contains printer hardware details, resin metadata, and default motion/exposure values applied to every layer unless overridden later. In practice you only need a small set of profiles; most changes are resin‑specific. Device‑level defaults can override these values when needed.
-
-### `Settings`
-
-Container that bundles everything needed by the slicer.
-
-- **Set once per print** (or per device family).
-- Stores **printer**, **resin**, and **default layer behavior**.
-- Can be saved/loaded from JSON for repeatability.
+The following objects divide the print recipe into hardware, material, exposure, and motion information. In practice you only need a small set of profiles; most changes are resin-specific. Component-level defaults can override the general values when needed.
 
 ### `Printer`
 
-Describes the hardware platform (name + available light engines).
+Describes the hardware platform.
 
 - Describes the printer’s physical hardware capabilities.
 - If your printer has multiple light engines, list them all here.
@@ -97,8 +126,11 @@ Describes the optics that define pixel resolution.
 - `name` links the light engine to the hardware configuration.
 - `px_size` and `px_count` set the **physical resolution**.
 - `wavelengths` lists the available wavelengths in the projector.
+- `default_exposure_settings` lists default settings for each light engine.
+- `grayscale_available` lists the availability of grayscale for each light engine
 - `settle_time_ms` adds an extra wait before the **first exposure** after switching to this light engine.
-- If device size doesn’t match the light engine resolution, slicing will fail.
+- `stitched_px_overlay` and the `offset_limits` configure stitching for each light engine.
+- If the component size does not fit the selected light-engine projection area, slicing will use projection or stitching as appropriate.
 - If exposure settings use an unlisted light engine or an unavailable wavelength, slicing will fail.
 
 ### `ResinType`
@@ -108,17 +140,17 @@ Metadata used for **traceability** and consistent settings across experiments.
 - Tracks monomers, absorbers, initiators, and additives as percentages.
 - `bulk_exposure` sets base exposure time (ms) for bulk polymerization.
 - `exposure_offset` is an optional offset (ms) before polymerization begins.
-- Values are saved into the settings JSON and exported with the print file.
+- Values are saved into the resin JSON and exported with the print file.
 - Any changes to exposure time are made in multiples of the exposure information contained in the Resin.
 
-### `PositionSettings`
+### `PositionSettings` (in printer definition)
 
 Controls **motion behavior** between layers (lift, speeds, waits, squeeze).
 
 - Think of this as the mechanical side of the print.
 - Use defaults unless you have a known motion profile to apply.
 
-### `ExposureSettings`
+### `ExposureSettings` (in light engine definition)
 
 Controls **light exposure behavior** per layer (multiplier, power, wavelength).
 
@@ -127,11 +159,11 @@ Controls **light exposure behavior** per layer (multiplier, power, wavelength).
 
 ---
 
-## Step 2 — Device‑level defaults (optional)
+## Step 2 — Component‑level defaults (optional)
 
-You can also attach exposure/position defaults to a device or component. These override the base `Settings` values for that scope (device‑wide when set on the top‑level device, or local when set on a component). Custom components can use this to enforce specific settings on their own layers.
+You can attach exposure/position defaults to any component. These override general values for that component (defaults inherited from parent components and printer definition) and can enforce specific settings on its own layers.
 
-Use this when a specific device or component needs different motion or exposure than your global defaults.
+Use this when a specific component or assembly needs different motion or exposure than your general defaults.
 
 <div class="diff2html-wrapper">
     <div class="diff2html"></div>
@@ -142,8 +174,10 @@ index 0000000..1111111 100644
 +++ b/example_device.py
 @@ -27 +27 @@
  # Optionally save/import settings
- # settings.save("settings.json")
- # settings = Settings.from_file("settings.json")
+ # printer.save("OS1v0_printer.json")
+ # printer = Printer.from_file("OS1v0_printer.json")
+ # resin.save("NPS_resin.json")
+ # resin = ResinType.from_file("NPS_resin.json")
 +
 +# Not strictly needed as these are already the defaults
 +device.add_default_exposure_settings(
@@ -197,48 +231,42 @@ diff --git a/example_device.py b/example_device.py
 index 0000000..1111111 100644
 --- a/example_device.py
 +++ b/example_device.py
-@@ -1 +1 @@
- from pymfcad import (
-     Settings,
-     ResinType,
-     Printer,
-     LightEngine,
-     PositionSettings,
-     ExposureSettings,
- )
+@@ -208 +208 @@
+# Mark them as connected so they don’t show as unconnected ports
+ device.connect_port(device.ports["ctrl_a_stub"])
+ device.connect_port(device.ports["ctrl_b_stub"])
  
- # Create settings object
- settings = Settings(
-     printer=Printer(
-         name="OS1",
-         light_engines=[
-             LightEngine(px_size=0.0076, px_count=(2560, 1600), wavelengths=[365])
-         ],
-     ),
-     resin=ResinType(
-         bulk_exposure=450.0,
-         monomer=[("PEG", 100)],
-         uv_absorbers=[("NPS", 2.0)],
-         initiators=[("IRG", 1.0)],
-     ),
-     default_position_settings=PositionSettings(),
-     default_exposure_settings=ExposureSettings(),
- )
-
- # Optionally save/import settings
- # settings.save("settings.json")
- # settings = Settings.from_file("settings.json")
+ device.preview()
  
- # Not strictly needed as these are already the defaults
- device.add_default_exposure_settings(
-     ExposureSettings(bulk_exposure_multiplier=1.0, power_setting=100)
- )
- device.add_default_position_settings(
-     PositionSettings(distance_up=1.0, up_speed=25.0, down_speed=20.0)
- )
- 
- # Set device burn-in
- device.set_burn_in_exposure([10000.0, 5000.0, 2500.0])
+ # Render to a file for sharing or slicing
+-device.render("full_device.stl")
+-device.render("full_device.glb")
+-device.render("full_device.3mf")
++#device.render("full_device.stl")
++#device.render("full_device.glb")
++#device.render("full_device.3mf")
++
++from pymfcad import (
++    ExposureSettings
++    PositionSettings,
++)
++
++# Use predefined printer and resin (or use your own custom objects as shown above)
++from pymfcad.printer_library import OS1v0
++from pymfcad.resin_library import NPS
++printer = OS1v0
++resin = NPS
++
++# Not strictly needed as these are already the defaults
++device.add_default_exposure_settings(
++    ExposureSettings(bulk_exposure_multiplier=1.0, power_setting=100)
++)
++device.add_default_position_settings(
++    PositionSettings(distance_up=1.0, up_speed=25.0, down_speed=20.0)
++)
++
++# Set device burn-in
++device.set_burn_in_exposure([10000.0, 5000.0, 2500.0])
     </script>
 </div>
 

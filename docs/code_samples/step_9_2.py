@@ -1,6 +1,4 @@
-### SERPINTINE CHANNEL COMPONENT
-
-from pymfcad import Component, Port, Router, Color, Cube
+from pymfcad import Color, Component, Cube, Port, Router
 
 
 class SerpentineChannel(Component):
@@ -14,27 +12,34 @@ class SerpentineChannel(Component):
         channel_margin=(16, 16, 6),
         width=800,
         loops=11,
-        layers=5,
+        levels=5,
         px_size=0.0076,
         layer_size=0.01,
         quiet=False,
     ):
 
+        # Overall component size (bulk)
         length = channel_size[0] * loops + channel_margin[0] * (loops + 1)
 
         super().__init__(
-            size=(length, width, channel_size[2]*layers + channel_margin[2]*(layers + 1)),
-            position=(0, 0, 0),
+            size=(
+                length,
+                width,
+                channel_size[2] * levels + channel_margin[2] * (levels + 1),
+            ),
             px_size=px_size,
             layer_size=layer_size,
             quiet=quiet,
         )
 
+        # Labels define which geometry is solid vs. empty
         self.add_label("bulk", Color.from_name("aqua", 127))
         self.add_label("void", Color.from_name("red", 255))
 
+        # The component starts as a solid block
         self.add_bulk("bulk_shape", Cube(self._size, center=False), label="bulk")
 
+        # Ports define where routing starts/ends
         self.add_port(
             "inlet",
             Port(
@@ -48,7 +53,11 @@ class SerpentineChannel(Component):
             "outlet",
             Port(
                 Port.PortType.OUT,
-                (length, width - 2 * channel_margin[1], layers*(channel_margin[2] + channel_size[2]) - channel_margin[2]),
+                (
+                    length,
+                    width - 2 * channel_margin[1],
+                    levels * (channel_margin[2] + channel_size[2]) - channel_margin[2],
+                ),
                 channel_size,
                 Port.SurfaceNormal.POS_X,
             ),
@@ -76,8 +85,11 @@ class SerpentineChannel(Component):
         # Final X step to land exactly on the outlet
         serpentine.append((x_step, 0.0, 1.0))
 
-        router.route_with_fractional_path(self.inlet, self.outlet, serpentine, label="void")
+        router.route_with_fractional_path(
+            self.inlet, self.outlet, serpentine, label="void"
+        )
         router.finalize_routes()
+
 
 if __name__ == "__main__":
     SerpentineChannel().preview()

@@ -1,4 +1,4 @@
-from pymfcad import Component, Port, Color, Cube, Router
+from pymfcad import Color, Component, Cube, Port, Router
 
 
 class TJunction(Component):
@@ -6,7 +6,7 @@ class TJunction(Component):
     Simple T Junction with configurable channel size and margin.
 
     Ports:
-    
+
     - F_IN1:
         - Type: IN
         - Size: channel_size
@@ -20,7 +20,10 @@ class TJunction(Component):
         - Size: channel_size
         - Normal: POS_Y
     """
-    def __init__(self, channel_size=(8, 8, 6), channel_margin=(8, 8, 6), quiet: bool = False):
+
+    def __init__(
+        self, channel_size=(8, 8, 6), channel_margin=(8, 8, 6), quiet: bool = False
+    ):
         """Initialize a T Junction component."""
 
         super().__init__(
@@ -29,7 +32,6 @@ class TJunction(Component):
                 channel_size[1] + channel_margin[1] * 2,
                 channel_size[2] + channel_margin[2] * 2,
             ),
-            position=(0, 0, 0),
             px_size=0.0076,
             layer_size=0.01,
             quiet=quiet,

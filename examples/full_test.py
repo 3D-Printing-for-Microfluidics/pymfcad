@@ -8,7 +8,6 @@ class Valve20px(VariableLayerThicknessComponent):
     def __init__(self, cross_section: bool = False, active: bool = False, quiet: bool = False):
         super().__init__(
             size=(36, 36, 24),
-            position=(0, 0, 0),
             px_size=0.0076,
             layer_sizes=[(6, 0.01), (2, 0.005), (16, 0.01)],
             quiet=quiet,
@@ -67,9 +66,11 @@ class Valve20px(VariableLayerThicknessComponent):
             "MembraneExposure",
             Cylinder(height=2, radius=10, center_z=False).translate((18, 18, 12)),
             MembraneSettings(
+                exposure_settings=ExposureSettings(
+                    bulk_exposure_multiplier=500 / 300.0,
+                    relative_focus_position=50,
+                ),
                 max_membrane_thickness_um=20,
-                bulk_exposure_multiplier=500 / 300.0,
-                defocus_um=50,
                 dilation_px=2,
             ),
             label="membrane",
@@ -113,7 +114,6 @@ class DC(VariableLayerThicknessComponent):
     def __init__(self, cross_section: bool = False, active: bool = False, quiet: bool = False):
         super().__init__(
             size=(36, 36, 24),
-            position=(0, 0, 0),
             px_size=0.0076,
             layer_sizes=[(6, 0.01), (2, 0.005), (16, 0.01)],
             quiet=quiet,
@@ -171,9 +171,11 @@ class DC(VariableLayerThicknessComponent):
             "MembraneExposure",
             Cylinder(height=2, radius=10, center_z=False).translate((18, 18, 12)),
             MembraneSettings(
+                exposure_settings=ExposureSettings(
+                    bulk_exposure_multiplier=500 / 300.0,
+                    relative_focus_position=50,
+                ),
                 max_membrane_thickness_um=20,
-                bulk_exposure_multiplier=500 / 300.0,
-                defocus_um=50,
                 dilation_px=2,
             ),
             label="membrane",
@@ -207,7 +209,6 @@ class Pump(Component):
     def __init__(self, render_state: str = "render", quiet: bool = False):
         super().__init__(
             size=(125, 36, 36),
-            position=(0, 0, 0),
             px_size=0.0076,
             layer_size=0.01,
             quiet=quiet,
@@ -344,7 +345,7 @@ class TJunction(Component):
     def __init__(self, quiet: bool = False):
 
         super().__init__(
-            size=(24, 24, 18), position=(0, 0, 0), px_size=0.0076, layer_size=0.01, quiet=quiet
+            size=(24, 24, 18), px_size=0.0076, layer_size=0.01, quiet=quiet
         )
 
         # Setup labels
@@ -386,7 +387,7 @@ class ViewingRegion(Component):
     def __init__(self, quiet: bool = False):
 
         super().__init__(
-            size=(48, 48, 18), position=(0, 0, 0), px_size=0.0076, layer_size=0.01, quiet=quiet
+            size=(48, 48, 18), px_size=0.0076, layer_size=0.01, quiet=quiet
         )
 
         # Setup labels
@@ -427,7 +428,7 @@ class HARChannel(Component):
     def __init__(self, quiet: bool = False):
 
         super().__init__(
-            size=(72, 24, 36), position=(0, 0, 0), px_size=0.0076, layer_size=0.01, quiet=quiet
+            size=(72, 24, 36), px_size=0.0076, layer_size=0.01, quiet=quiet
         )
 
         # Setup labels
@@ -480,7 +481,6 @@ class SerpentineChannel(Component):
                 width,
                 (2 * layers + 1) * channel_size[2],
             ),
-            position=(0, 0, 0),
             px_size=0.0076,
             layer_size=0.01,
             quiet=quiet,
@@ -588,9 +588,8 @@ for preview in [
     "preview_5",
 ] if render_animation else ["render"]:
 
-    dev = Device.with_visitech_1x(
-        "FullTestDevice", position=(0, 0, 0), layers=250, layer_size=0.01
-    )
+    dev = Component(size=(2560, 1600, 250), px_size=0.0076, layer_size=0.01)
+    dev._name = f"FullTestDevice_{preview}"
 
     dev.add_label("device", Color.from_name("aqua", 100))
     dev.add_label("edge", Color.from_name("red", 100))
@@ -792,10 +791,12 @@ for preview in [
 
 Component.preview_components(devices)
 
-settings = Settings(
-    # user="Test User",
-    # purpose="Test Design",
-    # description="This is a test design for the PyMFCAD library.",
+print_file_gen = PrintFileGenerator(
+    filename="full_test_demo",
+    author="Test User",
+    purpose="Test Design",
+    description="This is a test design for the PyMFCAD library.",
+    component=dev,
     printer=Printer(
         name="HR3v3",
         light_engines=[
@@ -804,36 +805,14 @@ settings = Settings(
                 px_count=(2560, 1600),
                 wavelengths=[365],
                 grayscale_available=[True],
+                default_exposure_settings=[ExposureSettings(grayscale_correction=True)]
             )
         ],
         vacuum_available=False,
+        default_position_settings = PositionSettings()
     ),
     resin=ResinType(bulk_exposure=300.0),
-    default_position_settings=PositionSettings(
-        # distance_up=1.0,
-        # initial_wait=0.0,
-        # up_speed=25.0,
-        # up_acceleration=50.0,
-        # up_wait=0.0,
-        # down_speed=20.0,
-        # down_acceleration=50.0,
-        # final_wait=0.0,
-    ),
-    default_exposure_settings=ExposureSettings(
-        grayscale_correction=True,
-        # bulk_exposure_multiplier=300.0 / 300.0,
-        # power_setting=100,
-        # relative_focus_position=0.0,
-        # wait_before_exposure=0.0,
-        # wait_after_exposure=0.0,
-    ),
-)
-
-slicer = Slicer(
-    device=dev,
-    settings=settings,
-    filename="full_test_demo",
     minimize_file=True,
     zip_output=False,
 )
-slicer.make_print_file()
+print_file_gen.run(overwrite=True)

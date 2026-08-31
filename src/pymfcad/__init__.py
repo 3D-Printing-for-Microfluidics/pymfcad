@@ -5,7 +5,7 @@ It adopts a component-based design approach, enabling easy reuse and composition
 includes a variety of tools for routing connections between components, including fully automatic routing.
 
 To make the most of high-resolution 3D printers, the design operates using pixels and layers as the
-base units. The package supports the creation of a wide range of shapes, components, and devices, as well
+base units. The package supports the creation of a wide range of shapes and components, as well
 as tools for rendering and slicing—slicing support is currently limited to our custom 3D printers.
 
 Advanced structures such as polychannels (complex hulled shapes) and Bézier curves are also supported, making it suitable for
@@ -19,44 +19,37 @@ try:
 except importlib.metadata.PackageNotFoundError:
     __version__ = "0.0.0-development"  # Fallback for editable/uninstalled local runs
 
-from .pymfcad import (
-    Port,
-    Component,
-    VariableLayerThicknessComponent,
-    TPMSComponent,
-    Device,
-    StitchedDevice,
-)
-
 from .backend import (
-    set_fn,
-    Shape,
+    TPMS,
+    BezierCurveShape,
+    Color,
     Cube,
     Cylinder,
-    Sphere,
-    RoundedCube,
-    TextExtrusion,
     ImportModel,
-    TPMS,
-    TPMSGrid,
-    Color,
     Polychannel,
     PolychannelShape,
-    BezierCurveShape,
+    RoundedCube,
+    Shape,
+    Sphere,
+    TextExtrusion,
+    TPMSGrid,
+    set_fn,
 )
-from .router import Router
-from .slicer import (
-    Settings,
-    ResinType,
-    Printer,
-    LightEngine,
-    PositionSettings,
+from .print_file_gen import (
     ExposureSettings,
+    LightEngine,
     MembraneSettings,
-    SecondaryDoseSettings,
-    PrintUnderVacuum,
-    SqueezeOutResin,
-    ZeroMicronLayer,
+    PositionSettings,
+    Printer,
+    PrintFileGenerator,
     PrintOnFilm,
-    Slicer,
+    PrintUnderVacuum,
+    ResinType,
+    SecondaryDoseSettings,
+    SpecialPrintTechniques,
+    SqueezeOutResin,
+    Workspace,
+    ZeroMicronLayer,
 )
+from .pymfcad import Component, Port, TPMSComponent, VariableLayerThicknessComponent
+from .router import Router

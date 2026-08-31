@@ -1,7 +1,13 @@
-import * as THREE from 'three';
-import { OrbitControls } from '../../../static/js/controls/OrbitControls.js';
+import * as THREE from "three";
+import { OrbitControls } from "../../../static/js/controls/OrbitControls.js";
 
-export function createPreviewSystem({ scene, world, controls: initialControls, cameraSystem, buildVisibleGroup }) {
+export function createPreviewSystem({
+  scene,
+  world,
+  controls: initialControls,
+  cameraSystem,
+  buildVisibleGroup,
+}) {
   let controls = initialControls;
   let buildVisibleGroupRef = buildVisibleGroup || null;
   let worldRef = world || null;
@@ -18,8 +24,8 @@ export function createPreviewSystem({ scene, world, controls: initialControls, c
 
   function updateHelperVisibility() {
     const activeTab = getActiveTabRef ? getActiveTabRef() : null;
-    const showCameraHelpers = isOpen && activeTab === 'camera';
-    const showLightHelpers = isOpen && activeTab === 'lights';
+    const showCameraHelpers = isOpen && activeTab === "camera";
+    const showLightHelpers = isOpen && activeTab === "lights";
     if (cameraSystem?.setCameraHelperVisible) {
       cameraSystem.setCameraHelperVisible(showCameraHelpers);
     }
@@ -34,11 +40,14 @@ export function createPreviewSystem({ scene, world, controls: initialControls, c
       previewRenderer = new THREE.WebGLRenderer({ antialias: true });
       previewRenderer.setPixelRatio(window.devicePixelRatio || 1);
       dialogViewer.appendChild(previewRenderer.domElement);
-      previewRenderer.domElement.style.display = 'block';
-      previewRenderer.domElement.style.width = '100%';
-      previewRenderer.domElement.style.height = '100%';
+      previewRenderer.domElement.style.display = "block";
+      previewRenderer.domElement.style.width = "100%";
+      previewRenderer.domElement.style.height = "100%";
       previewCamera = new THREE.PerspectiveCamera(40, 1, 0.1, 5000);
-      previewControls = new OrbitControls(previewCamera, previewRenderer.domElement);
+      previewControls = new OrbitControls(
+        previewCamera,
+        previewRenderer.domElement,
+      );
       previewControls.enableDamping = true;
       previewControls.dampingFactor = 0.08;
       bindRaycastEvents();
@@ -49,10 +58,10 @@ export function createPreviewSystem({ scene, world, controls: initialControls, c
 
   function bindRaycastEvents() {
     if (isRaycastBound || !previewRenderer) return;
-    previewRenderer.domElement.addEventListener('dblclick', (event) => {
+    previewRenderer.domElement.addEventListener("dblclick", (event) => {
       if (!previewCamera || !buildVisibleGroupRef || !worldRef) return;
       const activeTab = getActiveTabRef ? getActiveTabRef() : null;
-      if (activeTab !== 'camera' && activeTab !== 'lights') return;
+      if (activeTab !== "camera" && activeTab !== "lights") return;
 
       const rect = previewRenderer.domElement.getBoundingClientRect();
       pointer.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
@@ -68,13 +77,17 @@ export function createPreviewSystem({ scene, world, controls: initialControls, c
       const hit = hits.find((entry) => entry.object?.isMesh);
       if (!hit) return;
 
-      if (activeTab === 'camera') {
+      if (activeTab === "camera") {
         const camera = cameraSystem.getCamera();
         if (!camera) return;
         const roll = cameraSystem.getCameraState().roll || 0;
-        cameraSystem.setCameraPose(camera.position.clone(), hit.point.clone(), roll);
+        cameraSystem.setCameraPose(
+          camera.position.clone(),
+          hit.point.clone(),
+          roll,
+        );
         syncFromMain();
-      } else if (activeTab === 'lights') {
+      } else if (activeTab === "lights") {
         lightSystemRef?.setActiveLightTarget?.(hit.point.clone());
       }
     });
@@ -125,7 +138,8 @@ export function createPreviewSystem({ scene, world, controls: initialControls, c
   }
 
   function render() {
-    if (!isOpen || !previewRenderer || !previewCamera || !previewControls) return;
+    if (!isOpen || !previewRenderer || !previewCamera || !previewControls)
+      return;
     previewControls.update();
     cameraSystem.updateCameraHelper();
     previewRenderer.render(scene, previewCamera);
@@ -137,9 +151,14 @@ export function createPreviewSystem({ scene, world, controls: initialControls, c
     syncFromMain,
     setOpen,
     render,
-    setInteractionDependencies: ({ lightSystem, getActiveTab, buildVisibleGroup: buildGroup, world: worldInput }) => {
+    setInteractionDependencies: ({
+      lightSystem,
+      getActiveTab,
+      buildVisibleGroup: buildGroup,
+      world: worldInput,
+    }) => {
       if (lightSystem) lightSystemRef = lightSystem;
-      if (typeof getActiveTab === 'function') getActiveTabRef = getActiveTab;
+      if (typeof getActiveTab === "function") getActiveTabRef = getActiveTab;
       if (buildGroup) buildVisibleGroupRef = buildGroup;
       if (worldInput) worldRef = worldInput;
       updateHelperVisibility();

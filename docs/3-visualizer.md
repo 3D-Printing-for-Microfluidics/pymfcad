@@ -3,7 +3,7 @@
 
 Prev: [Part 2: Installation](2-installation.md)
 
-PyMFCAD includes a browser‑based visualizer for inspecting and validating devices. You will use it throughout the tutorial to confirm geometry, labeling, ports, and routing.
+PyMFCAD includes a browser‑based visualizer for inspecting and validating components. You will use it throughout the tutorial to confirm geometry, labeling, ports, and routing.
 
 Goal: get comfortable navigating the preview so you can validate every step later.
 
@@ -34,7 +34,13 @@ The visualizer layout is organized around four main regions:
 - **Model selector** (top right) — visibility and category controls for models and overlays
 - **Auto Reload button** (bottom right) — enables or disables auto‑reloading of models
 
-![Layout overview](resources/3/overview.png)
+<img
+    class="theme-aware-image"
+    alt="Layout overview"
+    src="resources/3/3-1_dark.png"
+    data-light-src="resources/3/3-1_light.png"
+    data-dark-src="resources/3/3-1_dark.png"
+/>
 
 ---
 
@@ -71,64 +77,98 @@ The visualizer supports two control styles: **Orbit** and **Trackball** (selecta
 
 ## Step 4 — Model selector (overview)
 
-The **Model Selector** controls visibility for the main geometry and overlays. Each group has a master toggle (Device) and may include sub‑toggles for specific content.
+The **Model Selector** controls visibility for the main geometry and overlays. Each group has a master toggle (Component) and may include sub‑toggles for specific content.
 
-![Model selector](resources/3/model_selector.png)
+<img
+    class="theme-aware-image"
+    alt="Model selector"
+    src="resources/3/3-2_dark.png"
+    data-light-src="resources/3/3-2_light.png"
+    data-dark-src="resources/3/3-2_dark.png"
+/>
 
-### Device
+### Component
 
-- **Device** — final bulk‑minus‑void geometry, used for export and slicing
+- **Component** — final bulk‑minus‑void geometry, used for export and slicing
 
-![Device toggle](resources/3/device_ms.png)
-
-![Device only](resources/3/device.png)
+<img
+    class="theme-aware-image"
+    alt="Component only"
+    src="resources/3/3-3_dark.png"
+    data-light-src="resources/3/3-3_light.png"
+    data-dark-src="resources/3/3-3_dark.png"
+/>
 
 ### Bounding box
 
-- **Bounding Box** — black outline of the device bounds
+- **Bounding Box** — black outline of the component bounds
 
-![Bounding box toggle](resources/3/bbox_ms.png)
-
-![Bounding box only](resources/3/bbox.png)
+<img
+    class="theme-aware-image"
+    alt="Bounding box only"
+    src="resources/3/3-4_dark.png"
+    data-light-src="resources/3/3-4_light.png"
+    data-dark-src="resources/3/3-4_dark.png"
+/>
 
 ### Unconnected ports
 
 - **Unconnected Ports** — helper overlay showing unconnected port size, position, and type (green: IN, red: OUT, blue: IN/OUT)
 
-![Ports toggle](resources/3/ports_ms.png)
-
-![Ports only](resources/3/ports.png)
+<img
+    class="theme-aware-image"
+    alt="Ports only"
+    src="resources/3/3-5_dark.png"
+    data-light-src="resources/3/3-5_light.png"
+    data-dark-src="resources/3/3-5_dark.png"
+/>
 
 ### Bulk
 
 - **Bulk** — all bulk shapes before void subtraction
 
-![Bulk toggle](resources/3/bulk_ms.png)
-
-![Bulk only](resources/3/bulk.png)
+<img
+    class="theme-aware-image"
+    alt="Bulk only"
+    src="resources/3/3-6_dark.png"
+    data-light-src="resources/3/3-6_light.png"
+    data-dark-src="resources/3/3-6_dark.png"
+/>
 
 ### Voids
 
 - **Voids** — all void shapes
 
-![Voids toggle](resources/3/voids_ms.png)
-
-![Voids only](resources/3/voids.png)
+<img
+    class="theme-aware-image"
+    alt="Voids only"
+    src="resources/3/3-7_dark.png"
+    data-light-src="resources/3/3-7_light.png"
+    data-dark-src="resources/3/3-7_dark.png"
+/>
 
 - **Fluidic Subcategory** — only voids labeled with fluidic for focused inspection
 
 
-![Fluidic toggle](resources/3/fluidic_ms.png)
-
-![Fluidic only](resources/3/fluidic.png)
+<img
+    class="theme-aware-image"
+    alt="Fluidic only"
+    src="resources/3/3-8_dark.png"
+    data-light-src="resources/3/3-8_light.png"
+    data-dark-src="resources/3/3-8_dark.png"
+/>
 
 ### Regional settings overlays
 
 - **Regional** — visual overlays for regional settings (not part of final geometry)
 
-![Regional toggle](resources/3/regional_ms.png)
-
-![Regional only](resources/3/regional.png)
+<img
+    class="theme-aware-image"
+    alt="Regional only"
+    src="resources/3/3-9_dark.png"
+    data-light-src="resources/3/3-9_light.png"
+    data-dark-src="resources/3/3-9_dark.png"
+/>
 
 ---
 
@@ -136,7 +176,13 @@ The **Model Selector** controls visibility for the main geometry and overlays. E
 
 The **Toolbar** is divided into two sections: **Camera Controls** and **Tools**.
 
-![Toolbar](resources/3/toolbar.png)
+<img
+    class="theme-aware-image"
+    alt="Toolbar"
+    src="resources/3/3-10_dark.png"
+    data-light-src="resources/3/3-10_light.png"
+    data-dark-src="resources/3/3-10_dark.png"
+/>
 
 ### Camera controls
 
@@ -144,24 +190,37 @@ The **Toolbar** is divided into two sections: **Camera Controls** and **Tools**.
 - **Add saved camera position** — adds a new saved position.
 	When a saved position is clicked, the camera moves to that viewpoint.
 
-![Saved camera positions](resources/3/saved_camera_pos.png)
+<img
+    class="theme-aware-image"
+    alt="Saved Camera Positions"
+    src="resources/3/3-11_dark.png"
+    data-light-src="resources/3/3-11_light.png"
+    data-dark-src="resources/3/3-11_dark.png"
+/>
 
 - The active saved position can be updated with the current camera view by clicking the Update Camera button.
 
-![Update camera position](resources/3/update_camera_pos.png)
+<img
+    class="theme-aware-image"
+    alt="Update Camera Positions"
+    src="resources/3/3-12_dark.png"
+    data-light-src="resources/3/3-12_light.png"
+    data-dark-src="resources/3/3-12_dark.png"
+/>
 
 ### Tools
 
+- **Measurements** — opens measurment panel (covered later in [Extra 8: Advanced Visualizer Topics](e8-visualizer_advanced.md)).
 - **Documentation** — opens the local version of this site.
 - **Snapshot** — captures an image of the current view.
-- **Animation** — advanced topic (covered later in [Extra 7: Advanced Visualizer Topics](e7-visualizer_advanced.md)).
+- **Animation** — advanced topic (covered later in [Extra 8: Advanced Visualizer Topics](e8-visualizer_advanced.md)).
 - **Settings** — opens the settings panels.
 
 ---
 
 ## Step 6 — Settings panels (advanced topic)
 
-The visualizer includes detailed settings panels for rendering and navigation. These are covered in [Extra 7: Advanced Visualizer Topics](e7-visualizer_advanced.md):
+The visualizer includes detailed settings panels for rendering and navigation. These are covered in [Extra 8: Advanced Visualizer Topics](e8-visualizer_advanced.md):
 
 - **General settings**
 - **Appearance settings**
@@ -176,6 +235,6 @@ The visualizer includes detailed settings panels for rendering and navigation. T
 - You can identify the overview, toolbar, view cube, model selector, and reload controls.
 - You understand the purpose of each model selector group.
 
-With this overview, you should be ready to begin designing your own devices.
+With this overview, you should be ready to begin designing your own components.
 
 Next: [Part 4a: Reading Code Examples](4a-reading-code-examples.md)

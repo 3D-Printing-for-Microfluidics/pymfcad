@@ -1,5 +1,5 @@
-import * as THREE from 'three';
-import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
+import * as THREE from "three";
+import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 
 export function createModelManager({ scene, world }) {
   const loader = new GLTFLoader();
@@ -9,11 +9,11 @@ export function createModelManager({ scene, world }) {
   let modelVersionScenes = [];
   let models = [];
   let lastModifieds = [];
-  let listSignature = '';
+  let listSignature = "";
   let isLoadingModels = false;
   let visibilityResolver = null;
   const visibilityOverrides = new Map();
-  let defaultVersionStrategy = 'largest';
+  let defaultVersionStrategy = "largest";
 
   function setVisibilityResolver(resolver) {
     visibilityResolver = resolver;
@@ -55,7 +55,7 @@ export function createModelManager({ scene, world }) {
 
   async function fetchModelList() {
     try {
-      const resp = await fetch('/glb_list.json', { cache: 'no-store' });
+      const resp = await fetch("/glb_list.json", { cache: "no-store" });
       const list = await resp.json();
       return list;
     } catch (e) {
@@ -81,13 +81,17 @@ export function createModelManager({ scene, world }) {
   function setModelList(list) {
     glbFiles = Array.isArray(list) ? list : [];
     listSignature = computeSignature(glbFiles);
-    lastModifieds = glbFiles.map((item) => (item && item.mtime != null ? item.mtime : null));
+    lastModifieds = glbFiles.map((item) =>
+      item && item.mtime != null ? item.mtime : null,
+    );
     modelEntries = buildModelEntries(glbFiles);
   }
 
   function updateModelListMtimes(list) {
     glbFiles = Array.isArray(list) ? list : [];
-    lastModifieds = glbFiles.map((item) => (item && item.mtime != null ? item.mtime : null));
+    lastModifieds = glbFiles.map((item) =>
+      item && item.mtime != null ? item.mtime : null,
+    );
     const mtimeByFile = new Map();
     glbFiles.forEach((item) => {
       if (!item || !item.file) return;
@@ -115,13 +119,13 @@ export function createModelManager({ scene, world }) {
   }
 
   function setDefaultVersionStrategy(strategy) {
-    defaultVersionStrategy = strategy === 'smallest' ? 'smallest' : 'largest';
+    defaultVersionStrategy = strategy === "smallest" ? "smallest" : "largest";
   }
 
   function applyDefaultVersionStrategy() {
     modelEntries.forEach((entry) => {
       if (!entry.versions.length) return;
-      if (defaultVersionStrategy === 'smallest') {
+      if (defaultVersionStrategy === "smallest") {
         entry.versionId = entry.versions[0].id;
       } else {
         entry.versionId = entry.versions[entry.versions.length - 1].id;
@@ -137,7 +141,7 @@ export function createModelManager({ scene, world }) {
     return map;
   }
 
-  function parseVersionedName(rawName = '') {
+  function parseVersionedName(rawName = "") {
     const match = /^(.*)__v(\d+)$/i.exec(rawName);
     if (!match) return { base: rawName, version: null };
     return { base: match[1], version: `v${match[2]}` };
@@ -146,12 +150,13 @@ export function createModelManager({ scene, world }) {
   function buildModelEntries(list) {
     const entriesByKey = new Map();
     (list || []).forEach((glb) => {
-      const rawBase = glb.base_name || glb.baseName || glb.base || glb.name || '';
-      const parsed = parseVersionedName(rawBase || glb.name || '');
-      const baseKey = parsed.base || rawBase || glb.name || glb.file || '';
-      const versionId = glb.version || parsed.version || 'v0';
+      const rawBase =
+        glb.base_name || glb.baseName || glb.base || glb.name || "";
+      const parsed = parseVersionedName(rawBase || glb.name || "");
+      const baseKey = parsed.base || rawBase || glb.name || glb.file || "";
+      const versionId = glb.version || parsed.version || "v0";
       const displayName = glb.name || parsed.base || baseKey;
-      const type = (glb.type || 'unknown').toLowerCase();
+      const type = (glb.type || "unknown").toLowerCase();
 
       if (!entriesByKey.has(baseKey)) {
         entriesByKey.set(baseKey, {
@@ -166,7 +171,7 @@ export function createModelManager({ scene, world }) {
       const entry = entriesByKey.get(baseKey);
       entry.versions.push({
         id: versionId,
-        label: versionId === 'v0' ? 'V0' : versionId.toUpperCase(),
+        label: versionId === "v0" ? "V0" : versionId.toUpperCase(),
         file: glb.file,
         mtime: glb.mtime != null ? glb.mtime : null,
       });
@@ -175,17 +180,21 @@ export function createModelManager({ scene, world }) {
     const entries = Array.from(entriesByKey.values());
     entries.forEach((entry) => {
       entry.versions.sort((a, b) => {
-        if (a.id === 'v0') return -1;
-        if (b.id === 'v0') return 1;
+        if (a.id === "v0") return -1;
+        if (b.id === "v0") return 1;
         const aMatch = /^v(\d+)$/i.exec(a.id);
         const bMatch = /^v(\d+)$/i.exec(b.id);
-        const aNum = aMatch ? Number.parseInt(aMatch[1], 10) : Number.POSITIVE_INFINITY;
-        const bNum = bMatch ? Number.parseInt(bMatch[1], 10) : Number.POSITIVE_INFINITY;
+        const aNum = aMatch
+          ? Number.parseInt(aMatch[1], 10)
+          : Number.POSITIVE_INFINITY;
+        const bNum = bMatch
+          ? Number.parseInt(bMatch[1], 10)
+          : Number.POSITIVE_INFINITY;
         if (aNum !== bNum) return aNum - bNum;
         return a.id.localeCompare(b.id);
       });
       if (!entry.versionId) {
-        entry.versionId = entry.versions[entry.versions.length - 1]?.id || 'v0';
+        entry.versionId = entry.versions[entry.versions.length - 1]?.id || "v0";
       }
     });
     modelEntries = entries;
@@ -209,11 +218,11 @@ export function createModelManager({ scene, world }) {
   }
 
   function getRenderOrderBase(idx) {
-    const type = (modelEntries[idx]?.type || '').toLowerCase();
-    if (type === 'void' || type === 'voids') return 10;
-    if (type.startsWith('regional')) return 20;
-    if (type === 'bulk') return 30;
-    if (type === 'device' || type === 'diff') return 30;
+    const type = (modelEntries[idx]?.type || "").toLowerCase();
+    if (type === "void" || type === "voids") return 10;
+    if (type.startsWith("regional")) return 20;
+    if (type === "bulk") return 30;
+    if (type === "component" || type === "diff") return 30;
     return 0;
   }
 
@@ -232,8 +241,8 @@ export function createModelManager({ scene, world }) {
 
   function ensureDeviceBackfaces(scene, idx) {
     if (!scene) return;
-    const type = (modelEntries[idx]?.type || '').toLowerCase();
-    if (type !== 'device' && type !== 'diff') return;
+    const type = (modelEntries[idx]?.type || "").toLowerCase();
+    if (type !== "component" && type !== "diff") return;
     scene.traverse((child) => {
       if (!child.isMesh) return;
       if (child.userData && child.userData.isBackface) return;
@@ -263,24 +272,25 @@ export function createModelManager({ scene, world }) {
     });
   }
 
-
   async function loadModelEntry(entry, idx) {
     const versionScenes = new Map();
-    const versionLoads = entry.versions.map((ver) =>
-      new Promise((resolve) => {
-        const separator = ver.file && ver.file.includes('?') ? '&' : '?';
-        const cacheBuster = ver.mtime != null ? `${separator}cb=${ver.mtime}` : '';
-        if (!ver.file) {
-          resolve({ id: ver.id, scene: null });
-          return;
-        }
-        loader.load(
-          ver.file + cacheBuster,
-          (gltf) => resolve({ id: ver.id, scene: gltf.scene }),
-          undefined,
-          () => resolve({ id: ver.id, scene: null })
-        );
-      })
+    const versionLoads = entry.versions.map(
+      (ver) =>
+        new Promise((resolve) => {
+          const separator = ver.file && ver.file.includes("?") ? "&" : "?";
+          const cacheBuster =
+            ver.mtime != null ? `${separator}cb=${ver.mtime}` : "";
+          if (!ver.file) {
+            resolve({ id: ver.id, scene: null });
+            return;
+          }
+          loader.load(
+            ver.file + cacheBuster,
+            (gltf) => resolve({ id: ver.id, scene: gltf.scene }),
+            undefined,
+            () => resolve({ id: ver.id, scene: null }),
+          );
+        }),
     );
     const results = await Promise.all(versionLoads);
     results.forEach(({ id, scene }) => {
@@ -294,11 +304,19 @@ export function createModelManager({ scene, world }) {
           if (Array.isArray(mat)) {
             mat.forEach((m) => {
               if (m && m.userData && m.userData.baseOpacity === undefined) {
-                m.userData.baseOpacity = Number.isFinite(m.opacity) ? m.opacity : 1;
+                m.userData.baseOpacity = Number.isFinite(m.opacity)
+                  ? m.opacity
+                  : 1;
               }
             });
-          } else if (mat && mat.userData && mat.userData.baseOpacity === undefined) {
-            mat.userData.baseOpacity = Number.isFinite(mat.opacity) ? mat.opacity : 1;
+          } else if (
+            mat &&
+            mat.userData &&
+            mat.userData.baseOpacity === undefined
+          ) {
+            mat.userData.baseOpacity = Number.isFinite(mat.opacity)
+              ? mat.opacity
+              : 1;
           }
         }
       });
@@ -316,7 +334,10 @@ export function createModelManager({ scene, world }) {
     wrapper.visible = getVisibility(idx);
     modelGroups[idx] = wrapper;
     modelVersionScenes[idx] = versionScenes;
-    const activeScene = versionScenes.get(activeId) || versionScenes.values().next().value || null;
+    const activeScene =
+      versionScenes.get(activeId) ||
+      versionScenes.values().next().value ||
+      null;
     models[idx] = activeScene || null;
     world.add(wrapper);
     return wrapper;
@@ -332,7 +353,7 @@ export function createModelManager({ scene, world }) {
 
     try {
       const loadedScenes = await Promise.all(
-        modelEntries.map((entry, idx) => loadModelEntry(entry, idx))
+        modelEntries.map((entry, idx) => loadModelEntry(entry, idx)),
       );
       return loadedScenes;
     } finally {
@@ -341,8 +362,9 @@ export function createModelManager({ scene, world }) {
   }
 
   async function reloadModels(indices = []) {
-    const unique = Array.from(new Set(indices))
-      .filter((idx) => Number.isInteger(idx) && idx >= 0 && idx < modelEntries.length);
+    const unique = Array.from(new Set(indices)).filter(
+      (idx) => Number.isInteger(idx) && idx >= 0 && idx < modelEntries.length,
+    );
     if (!unique.length) return [];
     isLoadingModels = true;
     try {
@@ -355,7 +377,7 @@ export function createModelManager({ scene, world }) {
           const entry = modelEntries[idx];
           if (!entry) return null;
           return loadModelEntry(entry, idx);
-        })
+        }),
       );
       return loaded;
     } finally {
@@ -363,7 +385,11 @@ export function createModelManager({ scene, world }) {
     }
   }
 
-  function setModelVersion(idx, versionId, { reload = true, force = false } = {}) {
+  function setModelVersion(
+    idx,
+    versionId,
+    { reload = true, force = false } = {},
+  ) {
     if (!Number.isInteger(idx) || idx < 0 || idx >= modelEntries.length) return;
     const entry = modelEntries[idx];
     if (!entry) return;
@@ -376,7 +402,10 @@ export function createModelManager({ scene, world }) {
     versionMap.forEach((scene, id) => {
       scene.visible = id === entry.versionId;
     });
-    const active = versionMap.get(entry.versionId) || versionMap.values().next().value || null;
+    const active =
+      versionMap.get(entry.versionId) ||
+      versionMap.values().next().value ||
+      null;
     if (active) {
       applyOpacityToScene(active, 1, idx);
     }
@@ -493,10 +522,12 @@ export function createModelManager({ scene, world }) {
     return modelEntries[idx]?.versionId || null;
   }
 
-
   function getBoundingBoxScene() {
-    const bboxIdx = modelEntries.findIndex((entry) => entry.type === 'bounding box'
-      || (entry.name || '').toLowerCase().includes('bounding box'));
+    const bboxIdx = modelEntries.findIndex(
+      (entry) =>
+        entry.type === "bounding box" ||
+        (entry.name || "").toLowerCase().includes("bounding box"),
+    );
     if (bboxIdx === -1) return null;
     const entry = modelEntries[bboxIdx];
     const versionMap = modelVersionScenes[bboxIdx];
@@ -510,7 +541,8 @@ export function createModelManager({ scene, world }) {
       if (modelGroups[i] && modelGroups[i].visible) {
         const entry = modelEntries[i];
         const versionMap = modelVersionScenes[i];
-        const active = entry && versionMap ? versionMap.get(entry.versionId) : null;
+        const active =
+          entry && versionMap ? versionMap.get(entry.versionId) : null;
         if (active) group.add(active.clone());
       }
     }
@@ -537,7 +569,7 @@ export function createModelManager({ scene, world }) {
   function getFrameBox(mode) {
     const bboxScene = getBoundingBoxScene();
     let target = null;
-    if (mode === 'orthographic') {
+    if (mode === "orthographic") {
       if (bboxScene) target = bboxScene;
     } else {
       if (bboxScene && bboxScene.visible) target = bboxScene;
@@ -556,7 +588,7 @@ export function createModelManager({ scene, world }) {
     }
     const newList = await fetchModelList();
     if (!newList) {
-      return { listChanged: false, filesChanged: false, error: 'offline' };
+      return { listChanged: false, filesChanged: false, error: "offline" };
     }
     const newSignature = computeSignature(newList);
 
@@ -565,7 +597,11 @@ export function createModelManager({ scene, world }) {
     }
 
     const changedEntries = updateModelListMtimes(newList);
-    return { listChanged: false, filesChanged: changedEntries.length > 0, changedEntries };
+    return {
+      listChanged: false,
+      filesChanged: changedEntries.length > 0,
+      changedEntries,
+    };
   }
 
   return {

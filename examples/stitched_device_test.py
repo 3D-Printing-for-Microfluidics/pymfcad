@@ -1,40 +1,16 @@
 from pymfcad import (
-    StitchedDevice,
-    Settings,
-    Printer,
-    LightEngine,
-    ResinType,
-    PositionSettings,
-    ExposureSettings,
     Color,
+    Component,
     Cube,
-    Slicer,
+    PrintFileGenerator,
 )
-
-# Printer with XY stage required for stitched devices
-settings = Settings(
-    printer=Printer(
-        name="HR3v3",
-        light_engines=[
-            LightEngine(px_size=0.0076, px_count=(2560, 1600), wavelengths=[365])
-        ],
-        xy_stage_available=True,
-    ),
-    resin=ResinType(bulk_exposure=300.0),
-    default_position_settings=PositionSettings(),
-    default_exposure_settings=ExposureSettings(),
-)
+from pymfcad.printer_library import OS1v0
+from pymfcad.resin_library import NPS
 
 # 2x2 stitched device (overall resolution = 5120 x 3200)
-device = StitchedDevice(
-    name="StitchedDemo",
-    position=(0, 0, 0),
-    layers=50,
+device = Component(
+    size=(5116, 3196, 50),
     layer_size=0.01,
-    tiles_x=2,
-    tiles_y=2,
-    base_px_count=(2560, 1600),
-    overlap_px=4,
     px_size=0.0076,
 )
 
@@ -60,13 +36,18 @@ device.add_bulk("bulk_shape", bulk, label="bulk")
 
 device.preview()
 
+# Printer with XY stage required for stitched devices
+
+OS1v0.light_engines[0].stitched_px_overlap = (4, 4)  # set overlap for the light engine
+
 # Slice
-slicer = Slicer(
-    device=device,
-    settings=settings,
+slicer = PrintFileGenerator(
     filename="stitched_demo",
+    component=device,
+    printer=OS1v0,
+    resin=NPS,
     minimize_file=True,
     zip_output=False,
 )
 
-slicer.make_print_file()
+slicer.run(overwrite=True)

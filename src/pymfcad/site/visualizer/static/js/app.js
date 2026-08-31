@@ -1,26 +1,26 @@
-import '@fortawesome/fontawesome-free/css/all.css';
-import '../css/visualizer.css';
+import "@fortawesome/fontawesome-free/css/all.css";
+import "../css/visualizer.css";
 
-import { createScene } from './scene.js';
-import { createModelManager } from './models.js';
-import { createModelSelector } from './modelSelector.js';
-import { createCameraSystem } from './camera.js';
-import { createLightSystem } from './lights.js';
-import { createPreviewSystem } from './preview.js';
-import { createKeyframeSystem } from './keyframes.js';
-import { createThemeManager } from './themes.js';
-import { createSettingsSystem } from './settings.js';
+import { createScene } from "./scene.js";
+import { createModelManager } from "./models.js";
+import { createModelSelector } from "./modelSelector.js";
+import { createCameraSystem } from "./camera.js";
+import { createLightSystem } from "./lights.js";
+import { createPreviewSystem } from "./preview.js";
+import { createKeyframeSystem } from "./keyframes.js";
+import { createThemeManager } from "./themes.js";
+import { createSettingsSystem } from "./settings.js";
 
-const AUTO_RELOAD_STORAGE_KEY = 'pymfcad_auto_reload';
-const AUTO_RELOAD_INTERVAL_KEY = 'pymfcad_auto_reload_interval_ms';
-const AXES_STORAGE_KEY = 'pymfcad_axes_visible';
-const MEASUREMENT_VISIBILITY_STORAGE_KEY = 'pymfcad_measurement_visibility_v1';
-const RULER_VISIBILITY_STORAGE_KEY = 'pymfcad_ruler_visibility_v1';
-const RULER_UNITS_STORAGE_KEY = 'pymfcad_ruler_units_v1';
-const DEFAULT_CONTROLS_TYPE_STORAGE_KEY = 'pymfcad_default_controls_type';
-const MODEL_DEFAULT_VERSION_KEY = 'pymfcad_model_default_version';
-const LIGHTS_STORAGE_KEY = 'pymfcad_lights_v1';
-const MEASUREMENT_UNITS_KEY = 'pymfcad_measurement_units_v1';
+const AUTO_RELOAD_STORAGE_KEY = "pymfcad_auto_reload";
+const AUTO_RELOAD_INTERVAL_KEY = "pymfcad_auto_reload_interval_ms";
+const AXES_STORAGE_KEY = "pymfcad_axes_visible";
+const MEASUREMENT_VISIBILITY_STORAGE_KEY = "pymfcad_measurement_visibility_v1";
+const RULER_VISIBILITY_STORAGE_KEY = "pymfcad_ruler_visibility_v1";
+const RULER_UNITS_STORAGE_KEY = "pymfcad_ruler_units_v1";
+const DEFAULT_CONTROLS_TYPE_STORAGE_KEY = "pymfcad_default_controls_type";
+const MODEL_DEFAULT_VERSION_KEY = "pymfcad_model_default_version";
+const LIGHTS_STORAGE_KEY = "pymfcad_lights_v1";
+const MEASUREMENT_UNITS_KEY = "pymfcad_measurement_units_v1";
 
 const sceneState = createScene();
 const {
@@ -92,7 +92,10 @@ const measurementMaterial = new THREE.LineBasicMaterial({
   depthTest: false,
   depthWrite: false,
 });
-const measurementLine = new THREE.Line(measurementGeometry, measurementMaterial);
+const measurementLine = new THREE.Line(
+  measurementGeometry,
+  measurementMaterial,
+);
 measurementLine.visible = false;
 measurementLine.renderOrder = 1000;
 measurementScene.add(measurementLine);
@@ -105,7 +108,7 @@ const measurementBeam = new THREE.Mesh(
     opacity: 0.95,
     depthTest: false,
     depthWrite: false,
-  })
+  }),
 );
 measurementBeam.visible = false;
 measurementBeam.renderOrder = 1000;
@@ -117,11 +120,19 @@ const measurementBeamAxis = new THREE.Vector3(0, 1, 0);
 const measurementPointGeometry = new THREE.SphereGeometry(0.003, 100, 100);
 const measurementStartMarker = new THREE.Mesh(
   measurementPointGeometry,
-  new THREE.MeshBasicMaterial({ color: 0x4fd1c5, depthTest: false, depthWrite: false })
+  new THREE.MeshBasicMaterial({
+    color: 0x4fd1c5,
+    depthTest: false,
+    depthWrite: false,
+  }),
 );
 const measurementEndMarker = new THREE.Mesh(
   measurementPointGeometry,
-  new THREE.MeshBasicMaterial({ color: 0xffffff, depthTest: false, depthWrite: false })
+  new THREE.MeshBasicMaterial({
+    color: 0xffffff,
+    depthTest: false,
+    depthWrite: false,
+  }),
 );
 measurementStartMarker.visible = false;
 measurementEndMarker.visible = false;
@@ -136,22 +147,26 @@ const measurementState = {
   endPoint: null,
 };
 
-const measurementPanel = document.getElementById('measurementPanel');
-const measurementPanelToggleBtn = document.getElementById('measurementPanelToggleBtn');
-const measurementToggleBtn = document.getElementById('measurementToggleBtn');
-const measurementClearBtn = document.getElementById('measurementClearBtn');
-const measurementReadout = document.getElementById('measurementReadout');
-const measurementUnitsHost = document.getElementById('measurementUnitsHost');
-const measurementCustomUnitsHost = document.getElementById('measurementCustomUnitsHost');
-const measurementCustomXYInput = document.getElementById('measurementCustomXY');
-const measurementCustomZInput = document.getElementById('measurementCustomZ');
+const measurementPanel = document.getElementById("measurementPanel");
+const measurementPanelToggleBtn = document.getElementById(
+  "measurementPanelToggleBtn",
+);
+const measurementToggleBtn = document.getElementById("measurementToggleBtn");
+const measurementClearBtn = document.getElementById("measurementClearBtn");
+const measurementReadout = document.getElementById("measurementReadout");
+const measurementUnitsHost = document.getElementById("measurementUnitsHost");
+const measurementCustomUnitsHost = document.getElementById(
+  "measurementCustomUnitsHost",
+);
+const measurementCustomXYInput = document.getElementById("measurementCustomXY");
+const measurementCustomZInput = document.getElementById("measurementCustomZ");
 let measurementUnitButtons = [];
 
 const UNIT_FACTORS = {
   m: 0.001,
   cm: 0.1,
   mm: 1,
-  'μm': 1000,
+  μm: 1000,
 };
 
 const CUSTOM_UNIT_DEFAULTS = { xy: 0.0076, z: 0.01 };
@@ -179,43 +194,46 @@ function saveCustomUnits(storageKey, value) {
   localStorage.setItem(storageKey, JSON.stringify(normalizeCustomUnits(value)));
 }
 
-function getUnitScale(mode, customUnits, axis = 'xy') {
-  if (mode === 'custom') {
-    const mmPerUnit = axis === 'z' ? customUnits?.z : customUnits?.xy;
+function getUnitScale(mode, customUnits, axis = "xy") {
+  if (mode === "custom") {
+    const mmPerUnit = axis === "z" ? customUnits?.z : customUnits?.xy;
     return 1 / (Number.isFinite(mmPerUnit) && mmPerUnit > 0 ? mmPerUnit : 1);
   }
   return UNIT_FACTORS[mode] || 1;
 }
 
 function getUnitLabel(mode) {
-  return mode === 'custom' ? 'custom' : mode;
+  return mode === "custom" ? "custom" : mode;
 }
 
-let measurementUnits = localStorage.getItem(MEASUREMENT_UNITS_KEY) || 'μm';
-let rulerUnits = localStorage.getItem(RULER_UNITS_STORAGE_KEY) || 'mm';
-let measurementCustomUnits = loadCustomUnits('pymfcad_measurement_custom_units_v1');
-let rulerCustomUnits = loadCustomUnits('pymfcad_ruler_custom_units_v1');
+let measurementUnits = localStorage.getItem(MEASUREMENT_UNITS_KEY) || "μm";
+let rulerUnits = localStorage.getItem(RULER_UNITS_STORAGE_KEY) || "mm";
+let measurementCustomUnits = loadCustomUnits(
+  "pymfcad_measurement_custom_units_v1",
+);
+let rulerCustomUnits = loadCustomUnits("pymfcad_ruler_custom_units_v1");
 
 axes.setUnitsProvider?.(() => rulerUnits);
 axes.setCustomUnits?.(rulerCustomUnits);
 
 const RULER_VISIBILITY_MODES = [
-  { value: 'hidden', label: 'Ruler: Hidden' },
-  { value: 'axis', label: 'Ruler: Axis' },
-  { value: 'ticks', label: 'Ruler: Ticks' },
-  { value: 'all', label: 'Ruler: All' },
+  { value: "hidden", label: "Ruler: Hidden" },
+  { value: "axis", label: "Ruler: Axis" },
+  { value: "ticks", label: "Ruler: Ticks" },
+  { value: "all", label: "Ruler: All" },
 ];
 
 let rulerUnitButtons = [];
-let rulerVisibilityMode = localStorage.getItem(RULER_VISIBILITY_STORAGE_KEY) || 'all';
-const rulerUnitsHost = document.getElementById('rulerUnitsHost');
-const rulerCustomUnitsHost = document.getElementById('rulerCustomUnitsHost');
-const rulerCustomXYInput = document.getElementById('rulerCustomXY');
-const rulerCustomZInput = document.getElementById('rulerCustomZ');
+let rulerVisibilityMode =
+  localStorage.getItem(RULER_VISIBILITY_STORAGE_KEY) || "all";
+const rulerUnitsHost = document.getElementById("rulerUnitsHost");
+const rulerCustomUnitsHost = document.getElementById("rulerCustomUnitsHost");
+const rulerCustomXYInput = document.getElementById("rulerCustomXY");
+const rulerCustomZInput = document.getElementById("rulerCustomZ");
 
 function syncCustomUnitControls(host, inputXY, inputZ, units, visible) {
   if (host) {
-    host.classList.toggle('is-hidden', !visible);
+    host.classList.toggle("is-hidden", !visible);
   }
   if (inputXY) {
     inputXY.value = String(units.xy);
@@ -229,9 +247,9 @@ function syncCustomUnitControls(host, inputXY, inputZ, units, visible) {
 
 function bindCustomUnitInput(input, commit) {
   if (!input) return;
-  input.addEventListener('change', commit);
-  input.addEventListener('keydown', (event) => {
-    if (event.key === 'Enter') {
+  input.addEventListener("change", commit);
+  input.addEventListener("keydown", (event) => {
+    if (event.key === "Enter") {
       event.preventDefault();
       input.blur();
     }
@@ -240,15 +258,26 @@ function bindCustomUnitInput(input, commit) {
 
 function syncRulerVisibilityButton() {
   if (!rulerVisibilityBtn) return;
-  const current = RULER_VISIBILITY_MODES.find((entry) => entry.value === rulerVisibilityMode) || RULER_VISIBILITY_MODES[3];
-  rulerVisibilityBtn.classList.toggle('is-active', rulerVisibilityMode !== 'hidden');
+  const current =
+    RULER_VISIBILITY_MODES.find(
+      (entry) => entry.value === rulerVisibilityMode,
+    ) || RULER_VISIBILITY_MODES[3];
+  rulerVisibilityBtn.classList.toggle(
+    "is-active",
+    rulerVisibilityMode !== "hidden",
+  );
   rulerVisibilityBtn.textContent = current.label;
-  rulerVisibilityBtn.setAttribute('aria-pressed', String(rulerVisibilityMode !== 'hidden'));
-  rulerVisibilityBtn.title = 'Cycle ruler visibility';
+  rulerVisibilityBtn.setAttribute(
+    "aria-pressed",
+    String(rulerVisibilityMode !== "hidden"),
+  );
+  rulerVisibilityBtn.title = "Cycle ruler visibility";
 }
 
 function setRulerVisibilityMode(mode, { persist = true } = {}) {
-  const nextMode = RULER_VISIBILITY_MODES.some((entry) => entry.value === mode) ? mode : 'all';
+  const nextMode = RULER_VISIBILITY_MODES.some((entry) => entry.value === mode)
+    ? mode
+    : "all";
   rulerVisibilityMode = nextMode;
   if (persist) {
     localStorage.setItem(RULER_VISIBILITY_STORAGE_KEY, nextMode);
@@ -258,8 +287,11 @@ function setRulerVisibilityMode(mode, { persist = true } = {}) {
 }
 
 function cycleRulerVisibilityMode() {
-  const currentIndex = RULER_VISIBILITY_MODES.findIndex((entry) => entry.value === rulerVisibilityMode);
-  const nextIndex = currentIndex >= 0 ? (currentIndex + 1) % RULER_VISIBILITY_MODES.length : 0;
+  const currentIndex = RULER_VISIBILITY_MODES.findIndex(
+    (entry) => entry.value === rulerVisibilityMode,
+  );
+  const nextIndex =
+    currentIndex >= 0 ? (currentIndex + 1) % RULER_VISIBILITY_MODES.length : 0;
   setRulerVisibilityMode(RULER_VISIBILITY_MODES[nextIndex].value);
 }
 
@@ -269,8 +301,8 @@ function setRulerUnits(units, { persist = true } = {}) {
   if (rulerUnitButtons && rulerUnitButtons.length) {
     rulerUnitButtons.forEach((btn) => {
       const isActive = btn.dataset.unit === units;
-      btn.classList.toggle('is-active', isActive);
-      btn.setAttribute('aria-pressed', String(isActive));
+      btn.classList.toggle("is-active", isActive);
+      btn.setAttribute("aria-pressed", String(isActive));
     });
   }
   if (persist) localStorage.setItem(RULER_UNITS_STORAGE_KEY, units);
@@ -279,7 +311,7 @@ function setRulerUnits(units, { persist = true } = {}) {
     rulerCustomXYInput,
     rulerCustomZInput,
     rulerCustomUnits,
-    rulerUnits === 'custom'
+    rulerUnits === "custom",
   );
   axes.setCustomUnits?.(rulerCustomUnits);
   axes.update?.();
@@ -287,23 +319,26 @@ function setRulerUnits(units, { persist = true } = {}) {
 
 function setRulerCustomUnits(nextUnits, { persist = true } = {}) {
   rulerCustomUnits = normalizeCustomUnits(nextUnits);
-  if (persist) saveCustomUnits('pymfcad_ruler_custom_units_v1', rulerCustomUnits);
+  if (persist)
+    saveCustomUnits("pymfcad_ruler_custom_units_v1", rulerCustomUnits);
   syncCustomUnitControls(
     rulerCustomUnitsHost,
     rulerCustomXYInput,
     rulerCustomZInput,
     rulerCustomUnits,
-    rulerUnits === 'custom'
+    rulerUnits === "custom",
   );
   axes.setCustomUnits?.(rulerCustomUnits);
 }
 
 function initRulerUnitButtons() {
   if (!rulerUnitsHost) return;
-  rulerUnitButtons = Array.from(rulerUnitsHost.querySelectorAll('.ruler-units-btn'));
+  rulerUnitButtons = Array.from(
+    rulerUnitsHost.querySelectorAll(".ruler-units-btn"),
+  );
   rulerUnitButtons.forEach((btn) => {
     const unit = btn.dataset.unit;
-    btn.addEventListener('click', () => setRulerUnits(unit));
+    btn.addEventListener("click", () => setRulerUnits(unit));
   });
   setRulerUnits(rulerUnits, { persist: false });
   syncCustomUnitControls(
@@ -311,7 +346,7 @@ function initRulerUnitButtons() {
     rulerCustomXYInput,
     rulerCustomZInput,
     rulerCustomUnits,
-    rulerUnits === 'custom'
+    rulerUnits === "custom",
   );
 }
 
@@ -333,13 +368,13 @@ function initRulerCustomInputs() {
     rulerCustomXYInput,
     rulerCustomZInput,
     rulerCustomUnits,
-    rulerUnits === 'custom'
+    rulerUnits === "custom",
   );
 }
 
 function initRulerVisibilityToggle() {
   if (!rulerVisibilityBtn) return;
-  rulerVisibilityBtn.addEventListener('click', () => {
+  rulerVisibilityBtn.addEventListener("click", () => {
     cycleRulerVisibilityMode();
     scheduleHistoryCapture();
   });
@@ -352,8 +387,8 @@ function setMeasurementUnits(units, { persist = true } = {}) {
   if (measurementUnitButtons && measurementUnitButtons.length) {
     measurementUnitButtons.forEach((btn) => {
       const isActive = btn.dataset.unit === units;
-      btn.classList.toggle('is-active', isActive);
-      btn.setAttribute('aria-pressed', String(isActive));
+      btn.classList.toggle("is-active", isActive);
+      btn.setAttribute("aria-pressed", String(isActive));
     });
   }
   if (persist) localStorage.setItem(MEASUREMENT_UNITS_KEY, units);
@@ -362,7 +397,7 @@ function setMeasurementUnits(units, { persist = true } = {}) {
     measurementCustomXYInput,
     measurementCustomZInput,
     measurementCustomUnits,
-    measurementUnits === 'custom'
+    measurementUnits === "custom",
   );
   if (measurementState.startPoint && measurementState.endPoint) {
     // Recompute readout with new units
@@ -372,13 +407,17 @@ function setMeasurementUnits(units, { persist = true } = {}) {
 
 function setMeasurementCustomUnits(nextUnits, { persist = true } = {}) {
   measurementCustomUnits = normalizeCustomUnits(nextUnits);
-  if (persist) saveCustomUnits('pymfcad_measurement_custom_units_v1', measurementCustomUnits);
+  if (persist)
+    saveCustomUnits(
+      "pymfcad_measurement_custom_units_v1",
+      measurementCustomUnits,
+    );
   syncCustomUnitControls(
     measurementCustomUnitsHost,
     measurementCustomXYInput,
     measurementCustomZInput,
     measurementCustomUnits,
-    measurementUnits === 'custom'
+    measurementUnits === "custom",
   );
   if (measurementState.startPoint && measurementState.endPoint) {
     setMeasurementEnd(measurementState.endPoint);
@@ -387,10 +426,12 @@ function setMeasurementCustomUnits(nextUnits, { persist = true } = {}) {
 
 function initMeasurementUnitButtons() {
   if (!measurementUnitsHost) return;
-  measurementUnitButtons = Array.from(measurementUnitsHost.querySelectorAll('.measurement-units-btn'));
+  measurementUnitButtons = Array.from(
+    measurementUnitsHost.querySelectorAll(".measurement-units-btn"),
+  );
   measurementUnitButtons.forEach((btn) => {
     const unit = btn.dataset.unit;
-    btn.addEventListener('click', () => setMeasurementUnits(unit));
+    btn.addEventListener("click", () => setMeasurementUnits(unit));
   });
   // reflect current selection without persisting
   setMeasurementUnits(measurementUnits, { persist: false });
@@ -399,7 +440,7 @@ function initMeasurementUnitButtons() {
     measurementCustomXYInput,
     measurementCustomZInput,
     measurementCustomUnits,
-    measurementUnits === 'custom'
+    measurementUnits === "custom",
   );
 }
 
@@ -407,12 +448,16 @@ function initMeasurementCustomInputs() {
   bindCustomUnitInput(measurementCustomXYInput, () => {
     setMeasurementCustomUnits({
       xy: measurementCustomXYInput.value,
-      z: measurementCustomZInput ? measurementCustomZInput.value : measurementCustomUnits.z,
+      z: measurementCustomZInput
+        ? measurementCustomZInput.value
+        : measurementCustomUnits.z,
     });
   });
   bindCustomUnitInput(measurementCustomZInput, () => {
     setMeasurementCustomUnits({
-      xy: measurementCustomXYInput ? measurementCustomXYInput.value : measurementCustomUnits.xy,
+      xy: measurementCustomXYInput
+        ? measurementCustomXYInput.value
+        : measurementCustomUnits.xy,
       z: measurementCustomZInput.value,
     });
   });
@@ -421,14 +466,14 @@ function initMeasurementCustomInputs() {
     measurementCustomXYInput,
     measurementCustomZInput,
     measurementCustomUnits,
-    measurementUnits === 'custom'
+    measurementUnits === "custom",
   );
 }
 initMeasurementUnitButtons();
 initMeasurementCustomInputs();
 
 function formatMeasurementPoint(point) {
-  if (!point) return '(n/a)';
+  if (!point) return "(n/a)";
   return `(${point.x.toFixed(3)}, ${point.y.toFixed(3)}, ${point.z.toFixed(3)})`;
 }
 
@@ -443,14 +488,15 @@ function updateMeasurementReadout(message, { html = false } = {}) {
 
 function setMeasurementButtonState(enabled) {
   if (!measurementToggleBtn) return;
-  measurementToggleBtn.classList.toggle('is-active', enabled);
-  measurementToggleBtn.textContent = `Measure: ${enabled ? 'On' : 'Off'}`;
+  measurementToggleBtn.classList.toggle("is-active", enabled);
+  measurementToggleBtn.textContent = `Measure: ${enabled ? "On" : "Off"}`;
   measurementToggleBtn.title = enabled
-    ? 'Measurement mode active. Click two points on the model.'
-    : 'Enable measurement mode.';
+    ? "Measurement mode active. Click two points on the model."
+    : "Enable measurement mode.";
 }
 
-let measurementVisibility = localStorage.getItem(MEASUREMENT_VISIBILITY_STORAGE_KEY) !== 'false';
+let measurementVisibility =
+  localStorage.getItem(MEASUREMENT_VISIBILITY_STORAGE_KEY) !== "false";
 
 function updateMeasurementSceneVisibility() {
   const hasMeasurement = !!(
@@ -465,23 +511,40 @@ function updateMeasurementSceneVisibility() {
 function setMeasurementVisibility(visible, { persist = true } = {}) {
   measurementVisibility = !!visible;
   if (persist) {
-    localStorage.setItem(MEASUREMENT_VISIBILITY_STORAGE_KEY, String(measurementVisibility));
+    localStorage.setItem(
+      MEASUREMENT_VISIBILITY_STORAGE_KEY,
+      String(measurementVisibility),
+    );
   }
   if (measurementPanel) {
-    measurementPanel.classList.toggle('is-hidden', !measurementVisibility);
+    measurementPanel.classList.toggle("is-hidden", !measurementVisibility);
   }
   if (measurementVisibilityBtn) {
-    measurementVisibilityBtn.classList.toggle('is-active', measurementVisibility);
-    measurementVisibilityBtn.textContent = `Measurements: ${measurementVisibility ? 'On' : 'Off'}`;
-    measurementVisibilityBtn.setAttribute('aria-pressed', String(measurementVisibility));
+    measurementVisibilityBtn.classList.toggle(
+      "is-active",
+      measurementVisibility,
+    );
+    measurementVisibilityBtn.textContent = `Measurements: ${measurementVisibility ? "On" : "Off"}`;
+    measurementVisibilityBtn.setAttribute(
+      "aria-pressed",
+      String(measurementVisibility),
+    );
     measurementVisibilityBtn.title = measurementVisibility
-      ? 'Hide measurement pane'
-      : 'Show measurement pane';
+      ? "Hide measurement pane"
+      : "Show measurement pane";
   }
   if (measurementPanelToggleBtn) {
-    measurementPanelToggleBtn.classList.toggle('is-active', measurementVisibility);
-    measurementPanelToggleBtn.title = measurementVisibility ? 'Hide Measurement Pane' : 'Show Measurement Pane';
-    measurementPanelToggleBtn.setAttribute('aria-pressed', String(measurementVisibility));
+    measurementPanelToggleBtn.classList.toggle(
+      "is-active",
+      measurementVisibility,
+    );
+    measurementPanelToggleBtn.title = measurementVisibility
+      ? "Hide Measurement Pane"
+      : "Show Measurement Pane";
+    measurementPanelToggleBtn.setAttribute(
+      "aria-pressed",
+      String(measurementVisibility),
+    );
   }
   updateMeasurementSceneVisibility();
 }
@@ -496,19 +559,23 @@ function clearMeasurement({ keepPrompt = false } = {}) {
   measurementGeometry.setFromPoints([]);
   updateMeasurementSceneVisibility();
   if (measurementReadout && !keepPrompt) {
-    updateMeasurementReadout(measurementState.enabled
-      ? 'Click two points on the model.'
-      : 'Measurement is off. Enable Measure to start.');
+    updateMeasurementReadout(
+      measurementState.enabled
+        ? "Click two points on the model."
+        : "Measurement is off. Enable Measure to start.",
+    );
   }
 }
 
 function setMeasurementPanelVisible(visible) {
   if (!measurementPanel) return;
-  measurementPanel.classList.toggle('is-hidden', !visible);
+  measurementPanel.classList.toggle("is-hidden", !visible);
   if (measurementPanelToggleBtn) {
-    measurementPanelToggleBtn.classList.toggle('is-active', visible);
-    measurementPanelToggleBtn.title = visible ? 'Hide Measurement Pane' : 'Show Measurement Pane';
-    measurementPanelToggleBtn.setAttribute('aria-pressed', String(visible));
+    measurementPanelToggleBtn.classList.toggle("is-active", visible);
+    measurementPanelToggleBtn.title = visible
+      ? "Hide Measurement Pane"
+      : "Show Measurement Pane";
+    measurementPanelToggleBtn.setAttribute("aria-pressed", String(visible));
   }
   if (!visible) {
     clearMeasurement();
@@ -522,7 +589,7 @@ function setMeasurementStart(point) {
   measurementStartMarker.position.copy(point);
   measurementStartMarker.visible = true;
   updateMeasurementSceneVisibility();
-  updateMeasurementReadout('Point A pinned. Select point B.');
+  updateMeasurementReadout("Point A pinned. Select point B.");
 }
 
 function setMeasurementEnd(point) {
@@ -530,31 +597,42 @@ function setMeasurementEnd(point) {
   measurementState.endPoint = point.clone();
   measurementEndMarker.position.copy(point);
   measurementEndMarker.visible = true;
-  measurementLine.geometry.setFromPoints([measurementState.startPoint, measurementState.endPoint]);
+  measurementLine.geometry.setFromPoints([
+    measurementState.startPoint,
+    measurementState.endPoint,
+  ]);
   measurementLine.visible = true;
-  const rawSegment = measurementState.endPoint.clone().sub(measurementState.startPoint);
+  const rawSegment = measurementState.endPoint
+    .clone()
+    .sub(measurementState.startPoint);
   const segmentLength = rawSegment.length();
   if (segmentLength > 1e-6) {
-    const segmentCenter = measurementState.startPoint.clone().add(measurementState.endPoint).multiplyScalar(0.5);
+    const segmentCenter = measurementState.startPoint
+      .clone()
+      .add(measurementState.endPoint)
+      .multiplyScalar(0.5);
     measurementBeam.position.copy(segmentCenter);
     const beamDirection = rawSegment.clone().normalize();
-    measurementBeam.quaternion.setFromUnitVectors(measurementBeamAxis, beamDirection);
+    measurementBeam.quaternion.setFromUnitVectors(
+      measurementBeamAxis,
+      beamDirection,
+    );
     measurementBeam.scale.set(0.015, segmentLength, 0.015);
     measurementBeam.visible = true;
   } else {
     measurementBeam.visible = false;
   }
   updateMeasurementSceneVisibility();
-  const factorXY = getUnitScale(measurementUnits, measurementCustomUnits, 'xy');
-  const factorZ = getUnitScale(measurementUnits, measurementCustomUnits, 'z');
+  const factorXY = getUnitScale(measurementUnits, measurementCustomUnits, "xy");
+  const factorZ = getUnitScale(measurementUnits, measurementCustomUnits, "z");
   const unitLabel = getUnitLabel(measurementUnits);
   const dxValue = Math.abs(rawSegment.x * factorXY);
   const dyValue = Math.abs(rawSegment.y * factorZ);
   const dzValue = Math.abs(rawSegment.z * factorXY);
   const totalValue = Math.sqrt(
     (rawSegment.x * factorXY) ** 2 +
-    (rawSegment.y * factorXY) ** 2 +
-    (rawSegment.z * factorZ) ** 2
+      (rawSegment.y * factorXY) ** 2 +
+      (rawSegment.z * factorZ) ** 2,
   );
   const dx = dxValue.toFixed(1);
   const dy = dyValue.toFixed(1);
@@ -567,7 +645,7 @@ function setMeasurementEnd(point) {
     `<div class="measurement-component measurement-dy">ΔY: <span class="measurement-value">${dz} ${unitLabel}</span></div>`,
     `<div class="measurement-component measurement-dz">ΔZ: <span class="measurement-value">${dy} ${unitLabel}</span></div>`,
     `<div class="measurement-component measurement-total">Total: <span class="measurement-value">${total} ${unitLabel}</span></div>`,
-  ].join('');
+  ].join("");
   updateMeasurementReadout(html, { html: true });
   showToast(`Measured total: ${total} ${unitLabel}`);
 }
@@ -575,15 +653,21 @@ function setMeasurementEnd(point) {
 function setMeasurementEnabled(enabled) {
   measurementState.enabled = Boolean(enabled);
   setMeasurementButtonState(measurementState.enabled);
-  renderer.domElement.style.cursor = measurementState.enabled ? 'crosshair' : 'default';
-  if (!measurementState.enabled && measurementState.startPoint && !measurementState.endPoint) {
+  renderer.domElement.style.cursor = measurementState.enabled
+    ? "crosshair"
+    : "default";
+  if (
+    !measurementState.enabled &&
+    measurementState.startPoint &&
+    !measurementState.endPoint
+  ) {
     clearMeasurement();
     return;
   }
   if (measurementState.enabled && !measurementState.startPoint) {
-    updateMeasurementReadout('Click two points on the model.');
+    updateMeasurementReadout("Click two points on the model.");
   } else if (!measurementState.enabled && !measurementState.startPoint) {
-    updateMeasurementReadout('Measurement is off. Enable Measure to start.');
+    updateMeasurementReadout("Measurement is off. Enable Measure to start.");
   }
 }
 
@@ -614,15 +698,20 @@ function handleMeasurementPick(event) {
   }
 }
 
-renderer.domElement.addEventListener('pointerdown', (event) => {
+renderer.domElement.addEventListener("pointerdown", (event) => {
   if (!measurementState.enabled || event.button !== 0) return;
   measurementPointerState.isDown = true;
   measurementPointerState.startX = event.clientX;
   measurementPointerState.startY = event.clientY;
 });
 
-renderer.domElement.addEventListener('pointerup', (event) => {
-  if (!measurementState.enabled || event.button !== 0 || !measurementPointerState.isDown) return;
+renderer.domElement.addEventListener("pointerup", (event) => {
+  if (
+    !measurementState.enabled ||
+    event.button !== 0 ||
+    !measurementPointerState.isDown
+  )
+    return;
   measurementPointerState.isDown = false;
   const dx = Math.abs(event.clientX - measurementPointerState.startX);
   const dy = Math.abs(event.clientY - measurementPointerState.startY);
@@ -630,17 +719,21 @@ renderer.domElement.addEventListener('pointerup', (event) => {
   handleMeasurementPick(event);
 });
 
-renderer.domElement.addEventListener('pointercancel', () => {
+renderer.domElement.addEventListener("pointercancel", () => {
   measurementPointerState.isDown = false;
 });
 
-renderer.domElement.addEventListener('dblclick', (event) => {
+renderer.domElement.addEventListener("dblclick", (event) => {
   if (measurementState.enabled) return;
   const hit = getRaycastHitFromEvent(event);
   if (!hit) return;
 
   const roll = cameraSystem.getCameraState().roll || 0;
-  cameraSystem.setCameraPose(cameraSystem.getCamera().position.clone(), hit.point.clone(), roll);
+  cameraSystem.setCameraPose(
+    cameraSystem.getCamera().position.clone(),
+    hit.point.clone(),
+    roll,
+  );
 });
 
 keyframeSystem = createKeyframeSystem({ cameraSystem, modelManager });
@@ -668,15 +761,17 @@ if (lightSystem?.setLightStateChangeCallback) {
 }
 
 const modelSelector = createModelSelector({
-  formEl: document.getElementById('glbForm'),
-  toggleBtn: document.getElementById('toggleModelSelectorBtn'),
+  formEl: document.getElementById("glbForm"),
+  toggleBtn: document.getElementById("toggleModelSelectorBtn"),
 });
 
 keyframeSystem.setEditorDependencies({
   modelSelector,
 });
 
-modelManager.setVisibilityResolver((idx) => modelSelector.getModelVisibility(idx));
+modelManager.setVisibilityResolver((idx) =>
+  modelSelector.getModelVisibility(idx),
+);
 modelSelector.setVisibilityCallback(() => {
   modelManager.updateVisibility();
   lightSystem.updateDirectionalLightTargets();
@@ -689,142 +784,180 @@ modelSelector.setVersionChangeCallback((idx, versionId) => {
   modelManager.setModelVersion(idx, versionId);
 });
 
-const resetCameraBtn = document.getElementById('resetCameraBtn');
-const reloadModelBtn = document.getElementById('reloadModelBtn');
-const rulerVisibilityBtn = document.getElementById('rulerVisibilityBtn');
-const measurementVisibilityBtn = document.getElementById('measurementVisibilityBtn');
-
-const cameraModeBtn = document.getElementById('cameraModeBtn');
-const homeCameraBtn = document.getElementById('homeCameraBtn');
-const centerTargetBtn = document.getElementById('centerTargetBtn');
-const addCameraBtn = document.getElementById('addCameraBtn');
-const addCameraBtnSettings = document.getElementById('addCameraBtnSettings');
-const removeCameraBtnSettings = document.getElementById('removeCameraBtnSettings');
-const camYaw = document.getElementById('camYaw');
-const camPitch = document.getElementById('camPitch');
-const camTargetX = document.getElementById('camTargetX');
-const camTargetY = document.getElementById('camTargetY');
-const camTargetZ = document.getElementById('camTargetZ');
-const camDistance = document.getElementById('camDistance');
-const camRoll = document.getElementById('camRoll');
-const camFov = document.getElementById('camFov');
-const defaultControlTypeSelect = document.getElementById('defaultControlTypeSelect');
-const cameraControlTypeSelect = document.getElementById('cameraControlTypeSelect');
-const cameraPresetButtons = Array.from(
-  document.querySelectorAll('[data-camera-preset]')
+const resetCameraBtn = document.getElementById("resetCameraBtn");
+const reloadModelBtn = document.getElementById("reloadModelBtn");
+const rulerVisibilityBtn = document.getElementById("rulerVisibilityBtn");
+const measurementVisibilityBtn = document.getElementById(
+  "measurementVisibilityBtn",
 );
 
-const settingsDialogBtn = document.getElementById('settingsDialogBtn');
-const settingsDialog = document.getElementById('settingsDialog');
-const settingsDialogClose = document.getElementById('settingsDialogClose');
-const docsBtn = document.getElementById('docsBtn');
-const saveSnapshotBtn = document.getElementById('saveSnapshotBtn');
-const animationToggleBtn = document.getElementById('animationToggleBtn');
-const animationPanel = document.getElementById('animationPanel');
-const animationPanelBody = document.getElementById('animationPanelBody');
-const keyframeListEl = document.getElementById('keyframeList');
-const keyframeEmptyEl = document.getElementById('keyframeEmpty');
-const addKeyframeBtn = document.getElementById('addKeyframeBtn');
-const moveKeyframeUpBtn = document.getElementById('moveKeyframeUpBtn');
-const moveKeyframeDownBtn = document.getElementById('moveKeyframeDownBtn');
-const removeKeyframeBtn = document.getElementById('removeKeyframeBtn');
-const keyframePlayBtn = document.getElementById('keyframePlayBtn');
-const keyframePlayFromStartBtn = document.getElementById('keyframePlayFromStartBtn');
-const animationExportBtn = document.getElementById('animationExportBtn');
-const transitionMenu = document.getElementById('transitionMenu');
-const transitionMenuList = document.getElementById('transitionMenuList');
-const updateCameraBtn = document.getElementById('updateCameraBtn');
-const modelSelectorEl = document.getElementById('modelSelector');
-const viewCubeEl = document.getElementById('viewCube');
-const cameraStripWrapper = document.getElementById('cameraStripWrapper');
-const controlsEl = document.getElementById('controls');
-const settingsDialogEl = document.getElementById('settingsDialog');
-const lightDialogViewer = document.getElementById('lightDialogViewer');
-const lightsDialogViewer = document.getElementById('lightsDialogViewer');
-const keyframeModelsViewer = document.getElementById('keyframeModelsViewer');
-const keyframeModelSelectorHost = document.getElementById('keyframeModelSelectorHost');
-const cameraListEl = document.getElementById('cameraList');
-const cameraStripEl = document.getElementById('cameraStrip');
-const ambientColorInput = document.getElementById('ambientColor');
-const ambientIntensityInput = document.getElementById('ambientIntensity');
-const directionalLightsList = document.getElementById('directionalLightsList');
-const addDirLightBtn = document.getElementById('addDirLightBtn');
-const removeDirLightBtn = document.getElementById('removeDirLightBtn');
-const themeSelect = document.getElementById('themeSelect');
-const themeResetBtn = document.getElementById('themeResetBtn');
-const themeToCustomBtn = document.getElementById('themeToCustomBtn');
+const cameraModeBtn = document.getElementById("cameraModeBtn");
+const homeCameraBtn = document.getElementById("homeCameraBtn");
+const centerTargetBtn = document.getElementById("centerTargetBtn");
+const addCameraBtn = document.getElementById("addCameraBtn");
+const addCameraBtnSettings = document.getElementById("addCameraBtnSettings");
+const removeCameraBtnSettings = document.getElementById(
+  "removeCameraBtnSettings",
+);
+const camYaw = document.getElementById("camYaw");
+const camPitch = document.getElementById("camPitch");
+const camTargetX = document.getElementById("camTargetX");
+const camTargetY = document.getElementById("camTargetY");
+const camTargetZ = document.getElementById("camTargetZ");
+const camDistance = document.getElementById("camDistance");
+const camRoll = document.getElementById("camRoll");
+const camFov = document.getElementById("camFov");
+const defaultControlTypeSelect = document.getElementById(
+  "defaultControlTypeSelect",
+);
+const cameraControlTypeSelect = document.getElementById(
+  "cameraControlTypeSelect",
+);
+const cameraPresetButtons = Array.from(
+  document.querySelectorAll("[data-camera-preset]"),
+);
+
+const settingsDialogBtn = document.getElementById("settingsDialogBtn");
+const settingsDialog = document.getElementById("settingsDialog");
+const settingsDialogClose = document.getElementById("settingsDialogClose");
+const docsBtn = document.getElementById("docsBtn");
+const saveSnapshotBtn = document.getElementById("saveSnapshotBtn");
+const animationToggleBtn = document.getElementById("animationToggleBtn");
+const animationPanel = document.getElementById("animationPanel");
+const animationPanelBody = document.getElementById("animationPanelBody");
+const keyframeListEl = document.getElementById("keyframeList");
+const keyframeEmptyEl = document.getElementById("keyframeEmpty");
+const addKeyframeBtn = document.getElementById("addKeyframeBtn");
+const moveKeyframeUpBtn = document.getElementById("moveKeyframeUpBtn");
+const moveKeyframeDownBtn = document.getElementById("moveKeyframeDownBtn");
+const removeKeyframeBtn = document.getElementById("removeKeyframeBtn");
+const keyframePlayBtn = document.getElementById("keyframePlayBtn");
+const keyframePlayFromStartBtn = document.getElementById(
+  "keyframePlayFromStartBtn",
+);
+const animationExportBtn = document.getElementById("animationExportBtn");
+const transitionMenu = document.getElementById("transitionMenu");
+const transitionMenuList = document.getElementById("transitionMenuList");
+const updateCameraBtn = document.getElementById("updateCameraBtn");
+const modelSelectorEl = document.getElementById("modelSelector");
+const viewCubeEl = document.getElementById("viewCube");
+const cameraStripWrapper = document.getElementById("cameraStripWrapper");
+const controlsEl = document.getElementById("controls");
+const settingsDialogEl = document.getElementById("settingsDialog");
+const lightDialogViewer = document.getElementById("lightDialogViewer");
+const lightsDialogViewer = document.getElementById("lightsDialogViewer");
+const keyframeModelsViewer = document.getElementById("keyframeModelsViewer");
+const keyframeModelSelectorHost = document.getElementById(
+  "keyframeModelSelectorHost",
+);
+const cameraListEl = document.getElementById("cameraList");
+const cameraStripEl = document.getElementById("cameraStrip");
+const ambientColorInput = document.getElementById("ambientColor");
+const ambientIntensityInput = document.getElementById("ambientIntensity");
+const directionalLightsList = document.getElementById("directionalLightsList");
+const addDirLightBtn = document.getElementById("addDirLightBtn");
+const removeDirLightBtn = document.getElementById("removeDirLightBtn");
+const themeSelect = document.getElementById("themeSelect");
+const themeResetBtn = document.getElementById("themeResetBtn");
+const themeToCustomBtn = document.getElementById("themeToCustomBtn");
 const themeInputs = {
-  '--bg': document.getElementById('themeBg'),
-  '--panel': document.getElementById('themePanel'),
-  '--section-bg': document.getElementById('themeSection'),
-  '--text': document.getElementById('themeText'),
-  '--button-bg': document.getElementById('themeButtonBg'),
-  '--button-text': document.getElementById('themeButtonText'),
-  '--button-border': document.getElementById('themeButtonBorder'),
-  '--button-bg-active': document.getElementById('themeButtonActive'),
-  '--axis-x': document.getElementById('themeAxisX'),
-  '--axis-y': document.getElementById('themeAxisY'),
-  '--axis-z': document.getElementById('themeAxisZ'),
+  "--bg": document.getElementById("themeBg"),
+  "--panel": document.getElementById("themePanel"),
+  "--section-bg": document.getElementById("themeSection"),
+  "--text": document.getElementById("themeText"),
+  "--button-bg": document.getElementById("themeButtonBg"),
+  "--button-text": document.getElementById("themeButtonText"),
+  "--button-border": document.getElementById("themeButtonBorder"),
+  "--button-bg-active": document.getElementById("themeButtonActive"),
+  "--axis-x": document.getElementById("themeAxisX"),
+  "--axis-y": document.getElementById("themeAxisY"),
+  "--axis-z": document.getElementById("themeAxisZ"),
 };
-const cwdValueInput = document.getElementById('cwdValue');
-const modelSourceValueInput = document.getElementById('modelSourceValue');
-const previewDirInput = document.getElementById('previewDirInput');
-const previewDirSetBtn = document.getElementById('previewDirSetBtn');
-const previewDirResetBtn = document.getElementById('previewDirResetBtn');
-const previewDirWarningEl = document.getElementById('previewDirWarning');
-const autoReloadIntervalInput = document.getElementById('autoReloadIntervalInput');
-const defaultModelVersionSelect = document.getElementById('defaultModelVersionSelect');
-const resetSettingsSelect = document.getElementById('resetSettingsSelect');
-const resetSettingsApplyBtn = document.getElementById('resetSettingsApplyBtn');
-const settingsFileInput = document.getElementById('settingsFileInput');
-const fileMenuBtn = document.getElementById('fileMenuBtn');
-const editMenuBtn = document.getElementById('editMenuBtn');
-const menuOpenBtn = document.getElementById('menuOpenBtn');
-const menuSaveBtn = document.getElementById('menuSaveBtn');
-const menuSaveSettingsBtn = document.getElementById('menuSaveSettingsBtn');
-const menuLoadSettingsBtn = document.getElementById('menuLoadSettingsBtn');
-const menuSettingsBtn = document.getElementById('menuSettingsBtn');
-const menuUndoBtn = document.getElementById('menuUndoBtn');
-const menuRedoBtn = document.getElementById('menuRedoBtn');
-const previewSettingsDialog = document.getElementById('previewSettingsDialog');
-const previewSettingsClose = document.getElementById('previewSettingsClose');
-const previewSettingsFileSelect = document.getElementById('previewSettingsFileSelect');
-const previewSettingsLoadBtn = document.getElementById('previewSettingsLoadBtn');
-const previewSettingsFileInput = document.getElementById('previewSettingsFileInput');
-const previewSettingsGeneral = document.getElementById('previewSettingsGeneral');
-const previewSettingsTheme = document.getElementById('previewSettingsTheme');
-const previewSettingsCamera = document.getElementById('previewSettingsCamera');
-const previewSettingsLighting = document.getElementById('previewSettingsLighting');
-const previewSettingsAnimation = document.getElementById('previewSettingsAnimation');
-const toastEl = document.getElementById('toast');
-const previewDirDialog = document.getElementById('previewDirDialog');
-const previewDirClose = document.getElementById('previewDirClose');
-const previewDirBaseInput = document.getElementById('previewDirBaseInput');
-const previewDirRefreshBtn = document.getElementById('previewDirRefreshBtn');
-const previewDirSelect = document.getElementById('previewDirSelect');
-const previewDirCancelBtn = document.getElementById('previewDirCancelBtn');
-const previewDirOpenBtn = document.getElementById('previewDirOpenBtn');
-const snapshotDialog = document.getElementById('snapshotDialog');
-const snapshotDialogClose = document.getElementById('snapshotDialogClose');
-const snapshotSaveBtn = document.getElementById('snapshotSaveBtn');
-const snapshotResolutionSelect = document.getElementById('snapshotResolution');
-const snapshotProgress = document.getElementById('snapshotProgress');
-const snapshotRendererSelect = document.getElementById('snapshotRenderer');
-const snapshotPtPixelRatio = document.getElementById('snapshotPtPixelRatio');
-const snapshotPtExposure = document.getElementById('snapshotPtExposure');
-const snapshotPtSamples = document.getElementById('snapshotPtSamples');
-const animationExportDialog = document.getElementById('animationExportDialog');
-const animationExportClose = document.getElementById('animationExportClose');
-const animationExportResolutionSelect = document.getElementById('animationExportResolution');
-const animationExportFpsInput = document.getElementById('animationExportFps');
-const animationExportQualitySelect = document.getElementById('animationExportQuality');
-const animationExportTypeSelect = document.getElementById('animationExportType');
-const animationExportSaveBtn = document.getElementById('animationExportSaveBtn');
-const animationExportProgress = document.getElementById('animationExportProgress');
-const animationRendererSelect = document.getElementById('animationRenderer');
-const animationPtPixelRatio = document.getElementById('animationPtPixelRatio');
-const animationPtExposure = document.getElementById('animationPtExposure');
-const animationPtSamples = document.getElementById('animationPtSamples');
+const cwdValueInput = document.getElementById("cwdValue");
+const modelSourceValueInput = document.getElementById("modelSourceValue");
+const previewDirInput = document.getElementById("previewDirInput");
+const previewDirSetBtn = document.getElementById("previewDirSetBtn");
+const previewDirResetBtn = document.getElementById("previewDirResetBtn");
+const previewDirWarningEl = document.getElementById("previewDirWarning");
+const autoReloadIntervalInput = document.getElementById(
+  "autoReloadIntervalInput",
+);
+const defaultModelVersionSelect = document.getElementById(
+  "defaultModelVersionSelect",
+);
+const resetSettingsSelect = document.getElementById("resetSettingsSelect");
+const resetSettingsApplyBtn = document.getElementById("resetSettingsApplyBtn");
+const settingsFileInput = document.getElementById("settingsFileInput");
+const fileMenuBtn = document.getElementById("fileMenuBtn");
+const editMenuBtn = document.getElementById("editMenuBtn");
+const menuOpenBtn = document.getElementById("menuOpenBtn");
+const menuSaveBtn = document.getElementById("menuSaveBtn");
+const menuSaveSettingsBtn = document.getElementById("menuSaveSettingsBtn");
+const menuLoadSettingsBtn = document.getElementById("menuLoadSettingsBtn");
+const menuSettingsBtn = document.getElementById("menuSettingsBtn");
+const menuUndoBtn = document.getElementById("menuUndoBtn");
+const menuRedoBtn = document.getElementById("menuRedoBtn");
+const previewSettingsDialog = document.getElementById("previewSettingsDialog");
+const previewSettingsClose = document.getElementById("previewSettingsClose");
+const previewSettingsFileSelect = document.getElementById(
+  "previewSettingsFileSelect",
+);
+const previewSettingsLoadBtn = document.getElementById(
+  "previewSettingsLoadBtn",
+);
+const previewSettingsFileInput = document.getElementById(
+  "previewSettingsFileInput",
+);
+const previewSettingsGeneral = document.getElementById(
+  "previewSettingsGeneral",
+);
+const previewSettingsTheme = document.getElementById("previewSettingsTheme");
+const previewSettingsCamera = document.getElementById("previewSettingsCamera");
+const previewSettingsLighting = document.getElementById(
+  "previewSettingsLighting",
+);
+const previewSettingsAnimation = document.getElementById(
+  "previewSettingsAnimation",
+);
+const toastEl = document.getElementById("toast");
+const previewDirDialog = document.getElementById("previewDirDialog");
+const previewDirClose = document.getElementById("previewDirClose");
+const previewDirBaseInput = document.getElementById("previewDirBaseInput");
+const previewDirRefreshBtn = document.getElementById("previewDirRefreshBtn");
+const previewDirSelect = document.getElementById("previewDirSelect");
+const previewDirCancelBtn = document.getElementById("previewDirCancelBtn");
+const previewDirOpenBtn = document.getElementById("previewDirOpenBtn");
+const snapshotDialog = document.getElementById("snapshotDialog");
+const snapshotDialogClose = document.getElementById("snapshotDialogClose");
+const snapshotSaveBtn = document.getElementById("snapshotSaveBtn");
+const snapshotResolutionSelect = document.getElementById("snapshotResolution");
+const snapshotProgress = document.getElementById("snapshotProgress");
+const snapshotRendererSelect = document.getElementById("snapshotRenderer");
+const snapshotPtPixelRatio = document.getElementById("snapshotPtPixelRatio");
+const snapshotPtExposure = document.getElementById("snapshotPtExposure");
+const snapshotPtSamples = document.getElementById("snapshotPtSamples");
+const animationExportDialog = document.getElementById("animationExportDialog");
+const animationExportClose = document.getElementById("animationExportClose");
+const animationExportResolutionSelect = document.getElementById(
+  "animationExportResolution",
+);
+const animationExportFpsInput = document.getElementById("animationExportFps");
+const animationExportQualitySelect = document.getElementById(
+  "animationExportQuality",
+);
+const animationExportTypeSelect = document.getElementById(
+  "animationExportType",
+);
+const animationExportSaveBtn = document.getElementById(
+  "animationExportSaveBtn",
+);
+const animationExportProgress = document.getElementById(
+  "animationExportProgress",
+);
+const animationRendererSelect = document.getElementById("animationRenderer");
+const animationPtPixelRatio = document.getElementById("animationPtPixelRatio");
+const animationPtExposure = document.getElementById("animationPtExposure");
+const animationPtSamples = document.getElementById("animationPtSamples");
 
 let settingsSystem = null;
 let themeManager = null;
@@ -864,9 +997,9 @@ function applyControlsType(type, persist = true) {
   if (controls && controls.object) {
     controls.object = cameraSystem.getCamera();
   }
-  cameraSystem.setRollEnabled(type === 'trackball');
+  cameraSystem.setRollEnabled(type === "trackball");
   cameraSystem.setCurrentControlType(type);
-  if (typeof controls.handleResize === 'function') {
+  if (typeof controls.handleResize === "function") {
     controls.handleResize();
   }
   if (persist) {
@@ -880,13 +1013,13 @@ function syncThemeInputs(themeName) {
   const theme = state.themes?.[themeName];
   if (!theme) return;
   Object.entries(themeInputs).forEach(([key, input]) => {
-    if (input) input.value = theme[key] || '#000000';
+    if (input) input.value = theme[key] || "#000000";
   });
 }
 
 function setSnapshotStatus(message) {
   if (!snapshotProgress) return;
-  snapshotProgress.textContent = message || '';
+  snapshotProgress.textContent = message || "";
 }
 
 let toastTimer = null;
@@ -902,9 +1035,12 @@ const historyState = {
 function getHistorySnapshot() {
   return {
     cameraState: cameraSystem?.getCameraState?.() || null,
-    cameraStorage: localStorage.getItem('pymfcad_cameras_v1') || null,
+    cameraStorage: localStorage.getItem("pymfcad_cameras_v1") || null,
     axesVisible: axes?.visible ?? true,
-    defaultControlsType: cameraSystem?.getDefaultControlType?.() || defaultControlTypeSelect?.value || 'orbit',
+    defaultControlsType:
+      cameraSystem?.getDefaultControlType?.() ||
+      defaultControlTypeSelect?.value ||
+      "orbit",
     autoReloadEnabled,
     autoReloadIntervalMs,
     defaultModelVersion: getDefaultModelVersionStrategy(),
@@ -947,9 +1083,9 @@ function applyHistorySnapshot(snapshot) {
   if (!snapshot) return;
   historyState.isApplying = true;
   if (snapshot.cameraStorage !== null) {
-    localStorage.setItem('pymfcad_cameras_v1', snapshot.cameraStorage);
+    localStorage.setItem("pymfcad_cameras_v1", snapshot.cameraStorage);
   } else {
-    localStorage.removeItem('pymfcad_cameras_v1');
+    localStorage.removeItem("pymfcad_cameras_v1");
   }
   cameraSystem.initCameraStates();
   if (snapshot.cameraState) {
@@ -958,7 +1094,7 @@ function applyHistorySnapshot(snapshot) {
     cameraSystem.resetCameraHome();
   }
   syncCameraControlSelect();
-  
+
   if (snapshot.defaultControlsType) {
     if (defaultControlTypeSelect) {
       defaultControlTypeSelect.value = snapshot.defaultControlsType;
@@ -970,7 +1106,8 @@ function applyHistorySnapshot(snapshot) {
   }
   if (Number.isFinite(snapshot.autoReloadIntervalMs)) {
     setAutoReloadIntervalMs(snapshot.autoReloadIntervalMs);
-    if (autoReloadIntervalInput) autoReloadIntervalInput.value = String(snapshot.autoReloadIntervalMs);
+    if (autoReloadIntervalInput)
+      autoReloadIntervalInput.value = String(snapshot.autoReloadIntervalMs);
   }
   if (snapshot.autoReloadEnabled !== undefined) {
     autoReloadEnabled = !!snapshot.autoReloadEnabled;
@@ -984,9 +1121,14 @@ function applyHistorySnapshot(snapshot) {
     modelManager.applyDefaultVersionStrategy();
   }
   if (snapshot.modelSelection && modelSelector) {
-    modelSelector.applySelectionSnapshot(snapshot.modelSelection, { persist: true });
+    modelSelector.applySelectionSnapshot(snapshot.modelSelection, {
+      persist: true,
+    });
     if (modelManager?.setModelVersionSelections) {
-      modelManager.setModelVersionSelections(snapshot.modelSelection?.versions, { force: true });
+      modelManager.setModelVersionSelections(
+        snapshot.modelSelection?.versions,
+        { force: true },
+      );
     }
     modelManager.updateVisibility();
   }
@@ -1026,41 +1168,45 @@ function redoHistory() {
   updateUndoRedoButtons();
 }
 
-function showToast(message, { variant = 'info', duration = 2200 } = {}) {
+function showToast(message, { variant = "info", duration = 2200 } = {}) {
   if (!toastEl) return;
-  toastEl.textContent = message || '';
-  toastEl.classList.toggle('is-error', variant === 'error');
-  toastEl.classList.add('is-visible');
+  toastEl.textContent = message || "";
+  toastEl.classList.toggle("is-error", variant === "error");
+  toastEl.classList.add("is-visible");
   if (toastTimer) window.clearTimeout(toastTimer);
   toastTimer = window.setTimeout(() => {
-    toastEl.classList.remove('is-visible');
+    toastEl.classList.remove("is-visible");
   }, duration);
 }
 
 function getDefaultModelVersionStrategy() {
-  return localStorage.getItem(MODEL_DEFAULT_VERSION_KEY) || 'largest';
+  return localStorage.getItem(MODEL_DEFAULT_VERSION_KEY) || "largest";
 }
 
 function setDefaultModelVersionStrategy(value) {
-  const next = value === 'smallest' ? 'smallest' : 'largest';
+  const next = value === "smallest" ? "smallest" : "largest";
   localStorage.setItem(MODEL_DEFAULT_VERSION_KEY, next);
   modelManager.setDefaultVersionStrategy(next);
 }
 
 function setAnimationExportStatus(message) {
   if (!animationExportProgress) return;
-  animationExportProgress.textContent = message || '';
+  animationExportProgress.textContent = message || "";
 }
 
 function applyAnimationSettingsPayload(payload) {
-  if (!payload || typeof payload !== 'object') return;
+  if (!payload || typeof payload !== "object") return;
   const exportDefaults = payload.exportDefaults || payload.export || null;
   if (exportDefaults) {
     const { resolution, fps, quality, type } = exportDefaults;
-    if (resolution && animationExportResolutionSelect) animationExportResolutionSelect.value = resolution;
-    if (Number.isFinite(fps) && animationExportFpsInput) animationExportFpsInput.value = String(fps);
-    if (quality && animationExportQualitySelect) animationExportQualitySelect.value = quality;
-    if (type && animationExportTypeSelect) animationExportTypeSelect.value = type;
+    if (resolution && animationExportResolutionSelect)
+      animationExportResolutionSelect.value = resolution;
+    if (Number.isFinite(fps) && animationExportFpsInput)
+      animationExportFpsInput.value = String(fps);
+    if (quality && animationExportQualitySelect)
+      animationExportQualitySelect.value = quality;
+    if (type && animationExportTypeSelect)
+      animationExportTypeSelect.value = type;
     syncAnimationExportTypeForQuality();
   }
   if (Array.isArray(payload.keyframes) && keyframeSystem) {
@@ -1069,16 +1215,18 @@ function applyAnimationSettingsPayload(payload) {
 }
 
 function normalizeSnapshotName(name) {
-  return 'pymfcad-viewport.png';
+  return "pymfcad-viewport.png";
 }
 
 function getSnapshotSettings() {
   const fileName = normalizeSnapshotName();
-  const resolutionValue = snapshotResolutionSelect?.value || 'current';
+  const resolutionValue = snapshotResolutionSelect?.value || "current";
   let baseWidth = window.innerWidth;
   let baseHeight = window.innerHeight;
-  if (resolutionValue && resolutionValue !== 'current') {
-    const [w, h] = resolutionValue.split('x').map((value) => Number.parseInt(value, 10));
+  if (resolutionValue && resolutionValue !== "current") {
+    const [w, h] = resolutionValue
+      .split("x")
+      .map((value) => Number.parseInt(value, 10));
     if (Number.isFinite(w) && w > 0) baseWidth = w;
     if (Number.isFinite(h) && h > 0) baseHeight = h;
   }
@@ -1086,35 +1234,43 @@ function getSnapshotSettings() {
     fileName,
     baseWidth,
     baseHeight,
-    renderer: snapshotRendererSelect?.value || 'raster',
+    renderer: snapshotRendererSelect?.value || "raster",
   };
 }
 
 function normalizeAnimationName(name, type) {
-  const trimmed = (name || '').trim() || 'pymfcad-animation';
+  const trimmed = (name || "").trim() || "pymfcad-animation";
   const extMap = {
-    webm: '.webm',
-    mp4: '.mp4',
-    gif: '.gif',
-    avi: '.avi',
+    webm: ".webm",
+    mp4: ".mp4",
+    gif: ".gif",
+    avi: ".avi",
   };
-  const ext = extMap[type] || '.webm';
+  const ext = extMap[type] || ".webm";
   return trimmed.toLowerCase().endsWith(ext) ? trimmed : `${trimmed}${ext}`;
 }
 
 function getAnimationExportSettings() {
-  const fps = Math.max(1, Math.min(60, Number.parseInt(animationExportFpsInput?.value || '30', 10) || 30));
-  const quality = animationExportQualitySelect?.value || 'medium';
-  let type = animationExportTypeSelect?.value || 'webm';
-  if (quality === 'lossless') {
-    type = 'webm';
+  const fps = Math.max(
+    1,
+    Math.min(
+      60,
+      Number.parseInt(animationExportFpsInput?.value || "30", 10) || 30,
+    ),
+  );
+  const quality = animationExportQualitySelect?.value || "medium";
+  let type = animationExportTypeSelect?.value || "webm";
+  if (quality === "lossless") {
+    type = "webm";
     if (animationExportTypeSelect) {
-      animationExportTypeSelect.value = 'webm';
+      animationExportTypeSelect.value = "webm";
     }
   }
-  const fileName = normalizeAnimationName('', type);
-  const resolutionValue = animationExportResolutionSelect?.value || '';
-  const [w, h] = resolutionValue.split('x').map((value) => Number.parseInt(value, 10));
+  const fileName = normalizeAnimationName("", type);
+  const resolutionValue = animationExportResolutionSelect?.value || "";
+  const [w, h] = resolutionValue
+    .split("x")
+    .map((value) => Number.parseInt(value, 10));
   const width = Number.isFinite(w) && w > 0 ? w : window.innerWidth;
   const height = Number.isFinite(h) && h > 0 ? h : window.innerHeight;
   return {
@@ -1124,65 +1280,66 @@ function getAnimationExportSettings() {
     quality,
     type,
     fileName,
-    renderer: animationRendererSelect?.value || 'raster',
+    renderer: animationRendererSelect?.value || "raster",
   };
 }
 
 function syncAnimationExportTypeForQuality() {
   if (!animationExportQualitySelect || !animationExportTypeSelect) return;
-  const isLossless = animationExportQualitySelect.value === 'lossless';
+  const isLossless = animationExportQualitySelect.value === "lossless";
   const options = Array.from(animationExportTypeSelect.options);
   options.forEach((opt) => {
-    if (opt.value !== 'webm') {
+    if (opt.value !== "webm") {
       opt.disabled = isLossless;
     }
   });
   if (isLossless) {
-    animationExportTypeSelect.value = 'webm';
+    animationExportTypeSelect.value = "webm";
   }
 }
 
 function openSnapshotDialog() {
   if (!snapshotDialog) return;
   if (snapshotResolutionSelect) {
-    const currentOption = Array.from(snapshotResolutionSelect.options)
-      .find((option) => option.value === 'current');
+    const currentOption = Array.from(snapshotResolutionSelect.options).find(
+      (option) => option.value === "current",
+    );
     if (currentOption) {
       currentOption.textContent = `Current (${window.innerWidth}×${window.innerHeight})`;
     }
   }
-  setSnapshotStatus('');
-  snapshotDialog.classList.add('is-open');
+  setSnapshotStatus("");
+  snapshotDialog.classList.add("is-open");
 }
 
 function closeSnapshotDialog() {
   if (!snapshotDialog) return;
-  snapshotDialog.classList.remove('is-open');
-  setSnapshotStatus('');
+  snapshotDialog.classList.remove("is-open");
+  setSnapshotStatus("");
 }
 
 function openAnimationExportDialog() {
   if (!animationExportDialog) return;
-  setAnimationExportStatus('');
-  animationExportDialog.classList.add('is-open');
+  setAnimationExportStatus("");
+  animationExportDialog.classList.add("is-open");
 }
 
 function closeAnimationExportDialog() {
   if (!animationExportDialog) return;
-  animationExportDialog.classList.remove('is-open');
-  setAnimationExportStatus('');
+  animationExportDialog.classList.remove("is-open");
+  setAnimationExportStatus("");
 }
 
 async function saveBlobAsFile(blob, fileName) {
   if (!blob) return;
-  if ('showSaveFilePicker' in window) {
+  if ("showSaveFilePicker" in window) {
     try {
       const handle = await window.showSaveFilePicker({
         suggestedName: fileName,
         types: [
           {
-            description: 'PNG Image',
-            accept: { 'image/png': ['.png'] },
+            description: "PNG Image",
+            accept: { "image/png": [".png"] },
           },
         ],
       });
@@ -1191,7 +1348,7 @@ async function saveBlobAsFile(blob, fileName) {
       await writable.close();
       return;
     } catch (err) {
-      if (err && err.name === 'AbortError') {
+      if (err && err.name === "AbortError") {
         return;
       }
       // fall back to download link
@@ -1199,7 +1356,7 @@ async function saveBlobAsFile(blob, fileName) {
   }
 
   const url = URL.createObjectURL(blob);
-  const link = document.createElement('a');
+  const link = document.createElement("a");
   link.href = url;
   link.download = fileName;
   document.body.appendChild(link);
@@ -1209,8 +1366,12 @@ async function saveBlobAsFile(blob, fileName) {
 }
 
 async function renderRasterSnapshot({ width, height }) {
-  const offscreenCanvas = document.createElement('canvas');
-  const offscreenRenderer = new THREE.WebGLRenderer({ canvas: offscreenCanvas, antialias: true, preserveDrawingBuffer: true });
+  const offscreenCanvas = document.createElement("canvas");
+  const offscreenRenderer = new THREE.WebGLRenderer({
+    canvas: offscreenCanvas,
+    antialias: true,
+    preserveDrawingBuffer: true,
+  });
   offscreenRenderer.setSize(width, height, false);
   offscreenRenderer.setPixelRatio(1);
   offscreenRenderer.outputColorSpace = renderer.outputColorSpace;
@@ -1239,7 +1400,9 @@ async function renderRasterSnapshot({ width, height }) {
 
   offscreenRenderer.render(scene, snapshotCamera);
 
-  const blob = await new Promise((resolve) => offscreenCanvas.toBlob(resolve, 'image/png'));
+  const blob = await new Promise((resolve) =>
+    offscreenCanvas.toBlob(resolve, "image/png"),
+  );
   offscreenRenderer.dispose();
   if (!blob) return null;
   return blob;
@@ -1257,16 +1420,24 @@ async function handleSnapshotSave() {
     const scale = Math.sqrt(maxPixels / pixelCount);
     exportWidth = Math.max(1, Math.round(baseWidth * scale));
     exportHeight = Math.max(1, Math.round(baseHeight * scale));
-    setSnapshotStatus(`Resolution reduced to ${exportWidth}×${exportHeight} to avoid memory issues.`);
+    setSnapshotStatus(
+      `Resolution reduced to ${exportWidth}×${exportHeight} to avoid memory issues.`,
+    );
   }
-  const uiElements = [modelSelectorEl, cameraStripWrapper, controlsEl, settingsDialogEl].filter(Boolean);
-  const prevCameraHelperVisible = typeof cameraSystem.getCameraHelperVisible === 'function'
-    ? cameraSystem.getCameraHelperVisible()
-    : false;
-  uiElements.forEach((el) => el.classList.add('ui-hidden'));
+  const uiElements = [
+    modelSelectorEl,
+    cameraStripWrapper,
+    controlsEl,
+    settingsDialogEl,
+  ].filter(Boolean);
+  const prevCameraHelperVisible =
+    typeof cameraSystem.getCameraHelperVisible === "function"
+      ? cameraSystem.getCameraHelperVisible()
+      : false;
+  uiElements.forEach((el) => el.classList.add("ui-hidden"));
   if (snapshotSaveBtn) snapshotSaveBtn.disabled = true;
   if (snapshotDialogClose) snapshotDialogClose.disabled = true;
-  setSnapshotStatus('Rendering snapshot...');
+  setSnapshotStatus("Rendering snapshot...");
   cameraSystem.setCameraHelperVisible(false);
 
   try {
@@ -1274,13 +1445,16 @@ async function handleSnapshotSave() {
     const renderWidth = exportWidth;
     const renderHeight = exportHeight;
     let saveHandle = null;
-    blob = await renderRasterSnapshot({ width: renderWidth, height: renderHeight });
+    blob = await renderRasterSnapshot({
+      width: renderWidth,
+      height: renderHeight,
+    });
 
     if (!blob) {
-      setSnapshotStatus('Snapshot failed to render.');
+      setSnapshotStatus("Snapshot failed to render.");
       return;
     }
-    setSnapshotStatus('Saving...');
+    setSnapshotStatus("Saving...");
     if (saveHandle) {
       const writable = await saveHandle.createWritable();
       await writable.write(blob);
@@ -1290,11 +1464,11 @@ async function handleSnapshotSave() {
     }
     closeSnapshotDialog();
   } catch (err) {
-    console.log('Snapshot save error:', err);
-    const message = err instanceof Error ? err.message : 'Snapshot failed.';
+    console.log("Snapshot save error:", err);
+    const message = err instanceof Error ? err.message : "Snapshot failed.";
     setSnapshotStatus(message);
   } finally {
-    uiElements.forEach((el) => el.classList.remove('ui-hidden'));
+    uiElements.forEach((el) => el.classList.remove("ui-hidden"));
     if (snapshotSaveBtn) snapshotSaveBtn.disabled = false;
     if (snapshotDialogClose) snapshotDialogClose.disabled = false;
     cameraSystem.setCameraHelperVisible(prevCameraHelperVisible);
@@ -1310,11 +1484,12 @@ function getAnimationDurationMs() {
     const hold = Number.isFinite(frame?.holdDuration)
       ? Math.max(minDuration, frame.holdDuration)
       : minDuration;
-    const transition = index >= frames.length - 1
-      ? 0
-      : (Number.isFinite(frame?.transitionDuration)
-        ? Math.max(0, frame.transitionDuration)
-        : 0);
+    const transition =
+      index >= frames.length - 1
+        ? 0
+        : Number.isFinite(frame?.transitionDuration)
+          ? Math.max(0, frame.transitionDuration)
+          : 0;
     return total + (hold + transition) * 1000;
   }, 0);
 }
@@ -1343,90 +1518,117 @@ async function handleAnimationExport() {
   const settings = getAnimationExportSettings();
   const durationMs = getAnimationDurationMs();
   if (!durationMs) {
-    setAnimationExportStatus('Add keyframes before exporting.');
+    setAnimationExportStatus("Add keyframes before exporting.");
     return;
   }
-  if (!renderer?.domElement?.captureStream || typeof MediaRecorder === 'undefined') {
-    setAnimationExportStatus('Recording is not supported in this browser.');
+  if (
+    !renderer?.domElement?.captureStream ||
+    typeof MediaRecorder === "undefined"
+  ) {
+    setAnimationExportStatus("Recording is not supported in this browser.");
     return;
   }
 
   let exportRenderer = null;
-  const prevCameraHelperVisible = typeof cameraSystem.getCameraHelperVisible === 'function'
-    ? cameraSystem.getCameraHelperVisible()
-    : false;
+  const prevCameraHelperVisible =
+    typeof cameraSystem.getCameraHelperVisible === "function"
+      ? cameraSystem.getCameraHelperVisible()
+      : false;
   const prevCameraState = cameraSystem.getCameraState();
   const prevLightState = lightSystem ? lightSystem.getLightState() : null;
-  const prevModelSelection = modelSelector ? modelSelector.getSelectionSnapshot() : null;
+  const prevModelSelection = modelSelector
+    ? modelSelector.getSelectionSnapshot()
+    : null;
 
   const exportWidth = Math.max(1, Math.round(settings.width));
   const exportHeight = Math.max(1, Math.round(settings.height));
   let effectiveFps = settings.fps;
-  if (settings.quality === 'lossless' && effectiveFps > 30) {
+  if (settings.quality === "lossless" && effectiveFps > 30) {
     effectiveFps = 30;
-    setAnimationExportStatus('Lossless export capped at 30 fps to avoid memory issues.');
+    setAnimationExportStatus(
+      "Lossless export capped at 30 fps to avoid memory issues.",
+    );
   }
-  if (settings.quality === 'lossless' && exportWidth * exportHeight * effectiveFps > 3840 * 2160 * 30) {
-    setAnimationExportStatus('Lossless export at this resolution/fps is too heavy. Lower resolution or fps.');
+  if (
+    settings.quality === "lossless" &&
+    exportWidth * exportHeight * effectiveFps > 3840 * 2160 * 30
+  ) {
+    setAnimationExportStatus(
+      "Lossless export at this resolution/fps is too heavy. Lower resolution or fps.",
+    );
     return;
   }
-  const uiElements = [modelSelectorEl, cameraStripWrapper, controlsEl, settingsDialogEl, animationPanel].filter(Boolean);
+  const uiElements = [
+    modelSelectorEl,
+    cameraStripWrapper,
+    controlsEl,
+    settingsDialogEl,
+    animationPanel,
+  ].filter(Boolean);
 
   const prevSize = new THREE.Vector2();
   renderer.getSize(prevSize);
   const prevPixelRatio = renderer.getPixelRatio();
 
-  uiElements.forEach((el) => el.classList.add('ui-hidden'));
+  uiElements.forEach((el) => el.classList.add("ui-hidden"));
   cameraSystem.setCameraHelperVisible(false);
   animationExportSaveBtn.disabled = true;
   animationExportClose.disabled = true;
-  setAnimationExportStatus('Recording animation...');
+  setAnimationExportStatus("Recording animation...");
 
   try {
     renderer.setPixelRatio(1);
     applyExportCameraSize(exportWidth, exportHeight);
 
-    let mimeType = '';
+    let mimeType = "";
     let videoBitsPerSecond = 12000000;
-    if (settings.quality === 'low') {
+    if (settings.quality === "low") {
       videoBitsPerSecond = 4000000;
-    } else if (settings.quality === 'high') {
+    } else if (settings.quality === "high") {
       videoBitsPerSecond = 30000000;
-    } else if (settings.quality === 'lossless') {
+    } else if (settings.quality === "lossless") {
       videoBitsPerSecond = 80000000;
     }
-    if (settings.type === 'mp4') {
-      mimeType = 'video/mp4;codecs=h264';
+    if (settings.type === "mp4") {
+      mimeType = "video/mp4;codecs=h264";
       if (!MediaRecorder.isTypeSupported(mimeType)) {
-        mimeType = 'video/mp4';
+        mimeType = "video/mp4";
       }
-    } else if (settings.type === 'avi') {
-      mimeType = 'video/avi';
-    } else if (settings.type === 'gif') {
-      setAnimationExportStatus('GIF export is not supported in this browser. Use WebM or MP4.');
+    } else if (settings.type === "avi") {
+      mimeType = "video/avi";
+    } else if (settings.type === "gif") {
+      setAnimationExportStatus(
+        "GIF export is not supported in this browser. Use WebM or MP4.",
+      );
       return;
     } else {
-      if (settings.quality === 'lossless') {
-        mimeType = 'video/webm;codecs=vp9';
+      if (settings.quality === "lossless") {
+        mimeType = "video/webm;codecs=vp9";
       } else {
-        mimeType = 'video/webm;codecs=vp9';
+        mimeType = "video/webm;codecs=vp9";
       }
       if (!MediaRecorder.isTypeSupported(mimeType)) {
-        mimeType = 'video/webm;codecs=vp8';
+        mimeType = "video/webm;codecs=vp8";
       }
       if (!MediaRecorder.isTypeSupported(mimeType)) {
-        mimeType = 'video/webm';
+        mimeType = "video/webm";
       }
     }
     if (!MediaRecorder.isTypeSupported(mimeType)) {
-      setAnimationExportStatus('Selected file type is not supported in this browser.');
+      setAnimationExportStatus(
+        "Selected file type is not supported in this browser.",
+      );
       return;
     }
 
-    const exportCanvas = document.createElement('canvas');
+    const exportCanvas = document.createElement("canvas");
     exportCanvas.width = exportWidth;
     exportCanvas.height = exportHeight;
-    exportRenderer = new THREE.WebGLRenderer({ canvas: exportCanvas, antialias: true, preserveDrawingBuffer: false });
+    exportRenderer = new THREE.WebGLRenderer({
+      canvas: exportCanvas,
+      antialias: true,
+      preserveDrawingBuffer: false,
+    });
     exportRenderer.setSize(exportWidth, exportHeight, false);
     exportRenderer.setPixelRatio(1);
     exportRenderer.outputColorSpace = renderer.outputColorSpace;
@@ -1440,11 +1642,11 @@ async function handleAnimationExport() {
     if (window.showSaveFilePicker) {
       const pickerTypes = [
         {
-          description: 'Video',
+          description: "Video",
           accept: {
-            'video/webm': ['.webm'],
-            'video/mp4': ['.mp4'],
-            'video/avi': ['.avi'],
+            "video/webm": [".webm"],
+            "video/mp4": [".mp4"],
+            "video/avi": [".avi"],
           },
         },
       ];
@@ -1455,7 +1657,10 @@ async function handleAnimationExport() {
       writable = await handle.createWritable();
     }
 
-    const recorder = new MediaRecorder(stream, { mimeType, videoBitsPerSecond });
+    const recorder = new MediaRecorder(stream, {
+      mimeType,
+      videoBitsPerSecond,
+    });
     recorder.ondataavailable = (event) => {
       if (!event.data || event.data.size === 0) return;
       if (writable) {
@@ -1471,14 +1676,17 @@ async function handleAnimationExport() {
 
     recorder.start(250);
 
-    const totalFrames = Math.max(1, Math.ceil((durationMs / 1000) * effectiveFps) + 1);
+    const totalFrames = Math.max(
+      1,
+      Math.ceil((durationMs / 1000) * effectiveFps) + 1,
+    );
     const track = stream.getVideoTracks()[0];
     for (let i = 0; i < totalFrames; i += 1) {
       const timeMs = Math.min(durationMs, (i / effectiveFps) * 1000);
       keyframeSystem.applyAtTime(timeMs);
       cameraSystem.setCameraHelperVisible(false);
       exportRenderer.render(scene, cameraSystem.getCamera());
-      if (track && typeof track.requestFrame === 'function') {
+      if (track && typeof track.requestFrame === "function") {
         track.requestFrame();
       }
       if (i % Math.max(1, Math.floor(effectiveFps)) === 0) {
@@ -1498,15 +1706,15 @@ async function handleAnimationExport() {
     } else {
       const blob = new Blob(chunks, { type: mimeType });
       if (!blob.size) {
-        setAnimationExportStatus('Export failed to render.');
+        setAnimationExportStatus("Export failed to render.");
         return;
       }
-      setAnimationExportStatus('Saving...');
+      setAnimationExportStatus("Saving...");
       await saveBlobAsFile(blob, settings.fileName);
       closeAnimationExportDialog();
     }
   } catch (err) {
-    const message = err instanceof Error ? err.message : 'Export failed.';
+    const message = err instanceof Error ? err.message : "Export failed.";
     setAnimationExportStatus(message);
   } finally {
     keyframeSystem.stopPlayback();
@@ -1517,31 +1725,32 @@ async function handleAnimationExport() {
       lightSystem.applyLightState(prevLightState);
     }
     if (prevModelSelection && modelSelector) {
-      modelSelector.applySelectionSnapshot(prevModelSelection, { persist: false });
+      modelSelector.applySelectionSnapshot(prevModelSelection, {
+        persist: false,
+      });
     }
     cameraSystem.setCameraHelperVisible(prevCameraHelperVisible);
     renderer.setPixelRatio(prevPixelRatio);
     renderer.setSize(prevSize.x, prevSize.y, false);
     cameraSystem.handleResize();
-    if (controls && typeof controls.handleResize === 'function') {
+    if (controls && typeof controls.handleResize === "function") {
       controls.handleResize();
     }
     if (exportRenderer) {
       exportRenderer.dispose();
     }
-    uiElements.forEach((el) => el.classList.remove('ui-hidden'));
+    uiElements.forEach((el) => el.classList.remove("ui-hidden"));
     animationExportSaveBtn.disabled = false;
     animationExportClose.disabled = false;
   }
 }
-
 
 async function resetGeneralSettings() {
   localStorage.removeItem(AUTO_RELOAD_STORAGE_KEY);
   localStorage.removeItem(AUTO_RELOAD_INTERVAL_KEY);
   localStorage.removeItem(DEFAULT_CONTROLS_TYPE_STORAGE_KEY);
   localStorage.removeItem(MODEL_DEFAULT_VERSION_KEY);
-  const defaultType = 'orbit';
+  const defaultType = "orbit";
   if (defaultControlTypeSelect) {
     defaultControlTypeSelect.value = defaultType;
   }
@@ -1550,14 +1759,14 @@ async function resetGeneralSettings() {
   applyControlsType(defaultType, false);
   setAutoReloadIntervalMs(1000);
   if (autoReloadIntervalInput) {
-    autoReloadIntervalInput.value = '1000';
+    autoReloadIntervalInput.value = "1000";
   }
   autoReloadEnabled = true;
   setAutoReload(true);
-  await fetch('/set_preview_dir', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ path: '' }),
+  await fetch("/set_preview_dir", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ path: "" }),
   }).catch(() => null);
   await initModels();
   settingsSystem?.refreshPreviewInfo();
@@ -1566,13 +1775,13 @@ async function resetGeneralSettings() {
 function openPreviewSettingsDialog(listData) {
   if (!previewSettingsDialog || !previewSettingsFileSelect) return;
   pendingSettingsList = listData;
-  previewSettingsFileSelect.innerHTML = '';
+  previewSettingsFileSelect.innerHTML = "";
   if (Array.isArray(listData.files)) {
     listData.files.forEach((file) => {
-      const option = document.createElement('option');
+      const option = document.createElement("option");
       option.value = file.path;
       option.textContent = `Model Settings (${file.name})`;
-      option.dataset.source = 'model';
+      option.dataset.source = "model";
       previewSettingsFileSelect.appendChild(option);
     });
   }
@@ -1580,46 +1789,48 @@ function openPreviewSettingsDialog(listData) {
   previewSettingsCustomOrder.forEach((key) => {
     const entry = previewSettingsCustomFiles.get(key);
     if (!entry) return;
-    const option = document.createElement('option');
+    const option = document.createElement("option");
     option.value = key;
     option.textContent = entry.label;
-    option.dataset.source = 'custom';
+    option.dataset.source = "custom";
     previewSettingsFileSelect.appendChild(option);
   });
 
-  const chooseOption = document.createElement('option');
-  chooseOption.value = '__choose__';
-  chooseOption.textContent = 'Choose file…';
-  chooseOption.dataset.source = 'choose';
+  const chooseOption = document.createElement("option");
+  chooseOption.value = "__choose__";
+  chooseOption.textContent = "Choose file…";
+  chooseOption.dataset.source = "choose";
   previewSettingsFileSelect.appendChild(chooseOption);
 
   if (previewSettingsFileSelect.options.length > 0) {
-    previewSettingsFileSelect.value = previewSettingsFileSelect.options[0].value;
+    previewSettingsFileSelect.value =
+      previewSettingsFileSelect.options[0].value;
   }
   if (previewSettingsGeneral) previewSettingsGeneral.checked = true;
   if (previewSettingsTheme) previewSettingsTheme.checked = true;
   if (previewSettingsCamera) previewSettingsCamera.checked = true;
   if (previewSettingsLighting) previewSettingsLighting.checked = true;
   if (previewSettingsAnimation) previewSettingsAnimation.checked = true;
-  previewSettingsDialog.classList.add('is-open');
+  previewSettingsDialog.classList.add("is-open");
 }
 
 function closePreviewSettingsDialog() {
   if (!previewSettingsDialog) return;
-  previewSettingsDialog.classList.remove('is-open');
+  previewSettingsDialog.classList.remove("is-open");
   pendingSettingsList = null;
   previewSettingsCustomFiles.clear();
   previewSettingsCustomOrder.length = 0;
   if (previewSettingsFileSelect) {
-    previewSettingsFileSelect.innerHTML = '';
+    previewSettingsFileSelect.innerHTML = "";
   }
 }
 
 async function fetchPreviewSettingsList() {
-  const resp = await fetch('/preview_settings_list.json').catch(() => null);
+  const resp = await fetch("/preview_settings_list.json").catch(() => null);
   if (!resp || !resp.ok) return null;
   const data = await resp.json().catch(() => null);
-  if (!data || !Array.isArray(data.files) || data.files.length === 0) return null;
+  if (!data || !Array.isArray(data.files) || data.files.length === 0)
+    return null;
   return data;
 }
 
@@ -1629,7 +1840,9 @@ async function checkPreviewSettingsPrompt() {
 
   const file = listData.files?.[0];
   if (!file?.path) return;
-  const resp = await fetch(`/preview_settings_file?path=${encodeURIComponent(file.path)}`).catch(() => null);
+  const resp = await fetch(
+    `/preview_settings_file?path=${encodeURIComponent(file.path)}`,
+  ).catch(() => null);
   if (!resp || !resp.ok) return;
   const payload = await resp.json().catch(() => null);
   if (!payload) return;
@@ -1644,7 +1857,7 @@ async function checkPreviewSettingsPrompt() {
 }
 
 function resetCameraSettings() {
-  localStorage.removeItem('pymfcad_cameras_v1');
+  localStorage.removeItem("pymfcad_cameras_v1");
   cameraSystem.initCameraStates();
   cameraSystem.resetCameraHome();
   syncCameraControlSelect();
@@ -1658,14 +1871,14 @@ function resetLightingSettings() {
 function resetThemeSettings() {
   themeManager.resetAllThemes();
   if (themeSelect) {
-    themeSelect.value = 'dark';
+    themeSelect.value = "dark";
   }
-  syncThemeInputs('dark');
+  syncThemeInputs("dark");
 }
 
 function buildModelKey(entry) {
-  const type = (entry?.type || 'unknown').toLowerCase();
-  const id = entry?.id || entry?.name || 'unknown';
+  const type = (entry?.type || "unknown").toLowerCase();
+  const id = entry?.id || entry?.name || "unknown";
   return `${type}|${id}`;
 }
 
@@ -1695,18 +1908,22 @@ function buildModelSelectionPayload() {
 
 function sortVersionIds(ids) {
   return ids.sort((a, b) => {
-    if (a === 'v0') return -1;
-    if (b === 'v0') return 1;
+    if (a === "v0") return -1;
+    if (b === "v0") return 1;
     const aMatch = /^v(\d+)$/i.exec(a);
     const bMatch = /^v(\d+)$/i.exec(b);
-    const aNum = aMatch ? Number.parseInt(aMatch[1], 10) : Number.POSITIVE_INFINITY;
-    const bNum = bMatch ? Number.parseInt(bMatch[1], 10) : Number.POSITIVE_INFINITY;
+    const aNum = aMatch
+      ? Number.parseInt(aMatch[1], 10)
+      : Number.POSITIVE_INFINITY;
+    const bNum = bMatch
+      ? Number.parseInt(bMatch[1], 10)
+      : Number.POSITIVE_INFINITY;
     if (aNum !== bNum) return aNum - bNum;
     return a.localeCompare(b);
   });
 }
 
-function getGlobalVersionId(strategy = 'smallest') {
+function getGlobalVersionId(strategy = "smallest") {
   const entries = modelManager?.getModelList?.() || [];
   const union = new Set();
   entries.forEach((entry) => {
@@ -1715,23 +1932,26 @@ function getGlobalVersionId(strategy = 'smallest') {
   const ids = Array.from(union);
   if (!ids.length) return null;
   const sorted = sortVersionIds(ids);
-  return strategy === 'largest' ? sorted[sorted.length - 1] : sorted[0];
+  return strategy === "largest" ? sorted[sorted.length - 1] : sorted[0];
 }
 
 function applyDefaultVersionVisibilityConstraint() {
   if (!modelSelector?.applyVersionConstraint || !modelManager) return;
-  if (getDefaultModelVersionStrategy() !== 'smallest') return;
-  const target = getGlobalVersionId('smallest');
+  if (getDefaultModelVersionStrategy() !== "smallest") return;
+  const target = getGlobalVersionId("smallest");
   if (!target) return;
   modelSelector.applyVersionConstraint(target, { persist: false });
   if (modelManager?.setModelVersionSelections) {
-    modelManager.setModelVersionSelections(modelSelector.getSelectionSnapshot().versions, { force: true });
+    modelManager.setModelVersionSelections(
+      modelSelector.getSelectionSnapshot().versions,
+      { force: true },
+    );
   }
   modelManager.updateVisibility();
 }
 
 function buildCameraPayload() {
-  const raw = localStorage.getItem('pymfcad_cameras_v1');
+  const raw = localStorage.getItem("pymfcad_cameras_v1");
   if (!raw) return null;
   try {
     return JSON.parse(raw);
@@ -1747,7 +1967,10 @@ function buildSettingsPayload() {
       autoReloadEnabled,
       autoReloadIntervalMs,
       axesVisible: axes?.visible ?? true,
-      defaultControlsType: cameraSystem.getDefaultControlType?.() || defaultControlTypeSelect?.value || 'orbit',
+      defaultControlsType:
+        cameraSystem.getDefaultControlType?.() ||
+        defaultControlTypeSelect?.value ||
+        "orbit",
       defaultModelVersion: getDefaultModelVersionStrategy(),
       measurementUnits: measurementUnits,
       measurementCustomUnits,
@@ -1762,10 +1985,10 @@ function buildSettingsPayload() {
     animation: {
       keyframes: keyframeSystem ? keyframeSystem.getKeyframes() : [],
       exportDefaults: {
-        resolution: animationExportResolutionSelect?.value || '1920x1080',
-        fps: Number.parseInt(animationExportFpsInput?.value || '30', 10) || 30,
-        quality: animationExportQualitySelect?.value || 'medium',
-        type: animationExportTypeSelect?.value || 'webm',
+        resolution: animationExportResolutionSelect?.value || "1920x1080",
+        fps: Number.parseInt(animationExportFpsInput?.value || "30", 10) || 30,
+        quality: animationExportQualitySelect?.value || "medium",
+        type: animationExportTypeSelect?.value || "webm",
       },
     },
   };
@@ -1778,62 +2001,73 @@ async function saveSettingsToFile() {
   try {
     if (window.showSaveFilePicker) {
       const handle = await window.showSaveFilePicker({
-        suggestedName: 'pymfcad-settings.json',
+        suggestedName: "pymfcad-settings.json",
         types: [
           {
-            description: 'JSON',
-            accept: { 'application/json': ['.json'] },
+            description: "JSON",
+            accept: { "application/json": [".json"] },
           },
         ],
       });
       const writable = await handle.createWritable();
       await writable.write(jsonText);
       await writable.close();
-      showToast('Settings exported.');
+      showToast("Settings exported.");
       return;
     }
-    const blob = new Blob([jsonText], { type: 'application/json' });
+    const blob = new Blob([jsonText], { type: "application/json" });
     const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
+    const link = document.createElement("a");
     link.href = url;
-    link.download = 'pymfcad-settings.json';
+    link.download = "pymfcad-settings.json";
     document.body.appendChild(link);
     link.click();
     link.remove();
     URL.revokeObjectURL(url);
-    showToast('Settings exported.');
+    showToast("Settings exported.");
   } catch (error) {
-    if (error && error.name === 'AbortError') return;
-    showToast('Export failed.', { variant: 'error' });
+    if (error && error.name === "AbortError") return;
+    showToast("Export failed.", { variant: "error" });
   }
 }
 
 async function saveSettingsToPreviewDir() {
   if (!menuSaveBtn) return;
-  const previewInfo = await fetch('/preview_info.json').then((resp) => resp.json()).catch(() => null);
-  if (!previewInfo || previewInfo.source === 'demo' || previewInfo.source === 'none') {
+  const previewInfo = await fetch("/preview_info.json")
+    .then((resp) => resp.json())
+    .catch(() => null);
+  if (
+    !previewInfo ||
+    previewInfo.source === "demo" ||
+    previewInfo.source === "none"
+  ) {
     menuSaveBtn.disabled = true;
-    showToast('Save unavailable for demo device.', { variant: 'error' });
+    showToast("Save unavailable for demo device.", { variant: "error" });
     return;
   }
 
   const payload = buildSettingsPayload();
-  const resp = await fetch('/save_preview_settings', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+  const resp = await fetch("/save_preview_settings", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload),
   }).catch(() => null);
   if (resp && resp.ok) {
-    showToast('Settings saved to preview folder.');
+    showToast("Settings saved to preview folder.");
   } else {
-    showToast('Save failed.', { variant: 'error' });
+    showToast("Save failed.", { variant: "error" });
   }
 }
 
 async function updateMenuSaveAvailability() {
   if (!menuSaveBtn) return;
-  const previewInfo = await fetch('/preview_info.json').then((resp) => resp.json()).catch(() => null);
-  const disabled = !previewInfo || previewInfo.source === 'demo' || previewInfo.source === 'none';
+  const previewInfo = await fetch("/preview_info.json")
+    .then((resp) => resp.json())
+    .catch(() => null);
+  const disabled =
+    !previewInfo ||
+    previewInfo.source === "demo" ||
+    previewInfo.source === "none";
   menuSaveBtn.disabled = disabled;
 }
 
@@ -1841,23 +2075,25 @@ async function refreshPreviewDirList() {
   if (!previewDirBaseInput || !previewDirSelect) return;
   const basePath = previewDirBaseInput.value.trim();
   if (!basePath) return;
-  const resp = await fetch(`/preview_dir_list?path=${encodeURIComponent(basePath)}`).catch(() => null);
+  const resp = await fetch(
+    `/preview_dir_list?path=${encodeURIComponent(basePath)}`,
+  ).catch(() => null);
   if (!resp || !resp.ok) {
-    showToast('Unable to list folders.', { variant: 'error' });
+    showToast("Unable to list folders.", { variant: "error" });
     return;
   }
   const data = await resp.json().catch(() => null);
-  previewDirSelect.innerHTML = '';
+  previewDirSelect.innerHTML = "";
   const folders = Array.isArray(data?.folders) ? data.folders : [];
   if (!folders.length) {
-    const opt = document.createElement('option');
-    opt.value = '';
-    opt.textContent = 'No valid folders found';
+    const opt = document.createElement("option");
+    opt.value = "";
+    opt.textContent = "No valid folders found";
     previewDirSelect.appendChild(opt);
     return;
   }
   folders.forEach((entry) => {
-    const opt = document.createElement('option');
+    const opt = document.createElement("option");
     opt.value = entry.path;
     opt.textContent = entry.name;
     previewDirSelect.appendChild(opt);
@@ -1867,22 +2103,24 @@ async function refreshPreviewDirList() {
 
 async function openPreviewDirDialog() {
   if (!previewDirDialog) return;
-  const info = await fetch('/preview_info.json').then((resp) => resp.json()).catch(() => null);
-  const cwd = info?.cwd || '';
+  const info = await fetch("/preview_info.json")
+    .then((resp) => resp.json())
+    .catch(() => null);
+  const cwd = info?.cwd || "";
   if (previewDirBaseInput) {
     previewDirBaseInput.value = cwd;
   }
   await refreshPreviewDirList();
-  previewDirDialog.classList.add('is-open');
+  previewDirDialog.classList.add("is-open");
 }
 
 function closePreviewDirDialog() {
   if (!previewDirDialog) return;
-  previewDirDialog.classList.remove('is-open');
+  previewDirDialog.classList.remove("is-open");
 }
 
 function applySettingsPayload(payload, sections = {}) {
-  if (!payload || typeof payload !== 'object') return;
+  if (!payload || typeof payload !== "object") return;
   const apply = {
     general: sections.general !== false,
     theme: sections.theme !== false,
@@ -1891,17 +2129,20 @@ function applySettingsPayload(payload, sections = {}) {
     animation: sections.animation !== false,
   };
 
-  const isNewFormat = payload.version >= 2 || payload.general || payload.camera || payload.models;
+  const isNewFormat =
+    payload.version >= 2 || payload.general || payload.camera || payload.models;
 
   if (apply.general && isNewFormat) {
     const general = payload.general || {};
     if (general.defaultControlsType) {
       cameraSystem.setDefaultControlType(general.defaultControlsType);
-      if (defaultControlTypeSelect) defaultControlTypeSelect.value = general.defaultControlsType;
+      if (defaultControlTypeSelect)
+        defaultControlTypeSelect.value = general.defaultControlsType;
     }
     if (Number.isFinite(general.autoReloadIntervalMs)) {
       setAutoReloadIntervalMs(general.autoReloadIntervalMs);
-      if (autoReloadIntervalInput) autoReloadIntervalInput.value = String(general.autoReloadIntervalMs);
+      if (autoReloadIntervalInput)
+        autoReloadIntervalInput.value = String(general.autoReloadIntervalMs);
     }
     if (general.autoReloadEnabled !== undefined) {
       autoReloadEnabled = !!general.autoReloadEnabled;
@@ -1915,10 +2156,13 @@ function applySettingsPayload(payload, sections = {}) {
       modelManager.applyDefaultVersionStrategy();
       if (modelSelector) {
         const snapshot = modelSelector.getSelectionSnapshot();
-        modelSelector.applySelectionSnapshot({
-          ...snapshot,
-          versions: modelManager.getVersionSelections(),
-        }, { persist: true });
+        modelSelector.applySelectionSnapshot(
+          {
+            ...snapshot,
+            versions: modelManager.getVersionSelections(),
+          },
+          { persist: true },
+        );
       }
       applyDefaultVersionVisibilityConstraint();
       modelManager.loadAllModels().then(() => {
@@ -1944,7 +2188,7 @@ function applySettingsPayload(payload, sections = {}) {
   }
 
   if (apply.camera && isNewFormat && payload.camera) {
-    localStorage.setItem('pymfcad_cameras_v1', JSON.stringify(payload.camera));
+    localStorage.setItem("pymfcad_cameras_v1", JSON.stringify(payload.camera));
     cameraSystem.initCameraStates();
     cameraSystem.resetCameraHome();
     syncCameraControlSelect();
@@ -1968,24 +2212,27 @@ function applySettingsPayload(payload, sections = {}) {
         const key = buildModelKey(entry);
         const item = payload.models.byKey[key];
         if (!item) return;
-        nextModels[`glb_cb_${idx}`] = item.visible !== undefined ? !!item.visible : true;
+        nextModels[`glb_cb_${idx}`] =
+          item.visible !== undefined ? !!item.visible : true;
         if (item.version) {
           nextVersions[`glb_ver_${idx}`] = item.version;
         }
       });
     }
 
-    modelSelector.applySelectionSnapshot({
-      models: nextModels,
-      groups: nextGroups,
-      versions: nextVersions,
-    }, { persist: true });
+    modelSelector.applySelectionSnapshot(
+      {
+        models: nextModels,
+        groups: nextGroups,
+        versions: nextVersions,
+      },
+      { persist: true },
+    );
     if (modelManager?.setModelVersionSelections) {
       modelManager.setModelVersionSelections(nextVersions, { force: true });
     }
     modelManager.updateVisibility();
   }
-
 
   if (!isNewFormat) return;
 
@@ -2018,14 +2265,17 @@ function syncCameraControlSelect() {
   const activeState = cameraSystem.getActiveCameraState();
   if (isHome || !activeState) {
     cameraControlTypeSelect.disabled = false;
-    const currentType = typeof cameraSystem.getCurrentControlType === 'function'
-      ? cameraSystem.getCurrentControlType()
-      : cameraSystem.getDefaultControlType();
-    cameraControlTypeSelect.value = currentType || cameraSystem.getDefaultControlType();
+    const currentType =
+      typeof cameraSystem.getCurrentControlType === "function"
+        ? cameraSystem.getCurrentControlType()
+        : cameraSystem.getDefaultControlType();
+    cameraControlTypeSelect.value =
+      currentType || cameraSystem.getDefaultControlType();
     return;
   }
   cameraControlTypeSelect.disabled = false;
-  cameraControlTypeSelect.value = activeState.controlType || cameraSystem.getDefaultControlType();
+  cameraControlTypeSelect.value =
+    activeState.controlType || cameraSystem.getDefaultControlType();
 }
 
 cameraSystem.bindCameraUI({
@@ -2089,29 +2339,29 @@ lightSystem.bindLightUI({
   removeDirLight: removeDirLightBtn,
   onOpen: () => {
     if (settingsSystem) {
-      settingsSystem.activateTab('general');
+      settingsSystem.activateTab("general");
     }
   },
 });
 
 // Preview viewer is bound per tab via settingsSystem.
 
-
 function initMeasurementVisibilityToggle() {
   setMeasurementVisibility(measurementVisibility, { persist: false });
   if (!measurementVisibilityBtn) return;
-  measurementVisibilityBtn.addEventListener('click', () => {
+  measurementVisibilityBtn.addEventListener("click", () => {
     setMeasurementVisibility(!measurementVisibility);
     scheduleHistoryCapture();
   });
 }
 
-let autoReloadEnabled = localStorage.getItem(AUTO_RELOAD_STORAGE_KEY) !== 'false';
+let autoReloadEnabled =
+  localStorage.getItem(AUTO_RELOAD_STORAGE_KEY) !== "false";
 let autoReloadInterval = null;
 let autoReloadOffline = false;
 let autoReloadIntervalMs = Number.parseInt(
-  localStorage.getItem(AUTO_RELOAD_INTERVAL_KEY) || '1000',
-  10
+  localStorage.getItem(AUTO_RELOAD_INTERVAL_KEY) || "1000",
+  10,
 );
 if (!Number.isFinite(autoReloadIntervalMs) || autoReloadIntervalMs < 250) {
   autoReloadIntervalMs = 1000;
@@ -2121,7 +2371,10 @@ let viewCubeSystem = null;
 
 function createViewCubeSystem({ container, cameraSystem }) {
   if (!container) return null;
-  const cubeRenderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+  const cubeRenderer = new THREE.WebGLRenderer({
+    antialias: true,
+    alpha: true,
+  });
   cubeRenderer.setPixelRatio(window.devicePixelRatio || 1);
   cubeRenderer.setClearColor(0x000000, 0);
   container.appendChild(cubeRenderer.domElement);
@@ -2132,32 +2385,34 @@ function createViewCubeSystem({ container, cameraSystem }) {
   cubeCamera.up.set(0, 1, 0);
 
   const getCssVar = (name, fallback) => {
-    const value = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+    const value = getComputedStyle(document.documentElement)
+      .getPropertyValue(name)
+      .trim();
     return value || fallback;
   };
 
   const getThemeColors = () => ({
-    face: getCssVar('--panel', '#ffffff'),
-    text: getCssVar('--text', '#111111'),
-    edge: getCssVar('--button-border', '#333333'),
-    hover: getCssVar('--button-bg-active', '#888888'),
+    face: getCssVar("--panel", "#ffffff"),
+    text: getCssVar("--text", "#111111"),
+    edge: getCssVar("--button-border", "#333333"),
+    hover: getCssVar("--button-bg-active", "#888888"),
   });
 
   let themeCache = null;
   const makeLabelTexture = (label, colors) => {
-    const canvas = document.createElement('canvas');
+    const canvas = document.createElement("canvas");
     canvas.width = 256;
     canvas.height = 256;
-    const ctx = canvas.getContext('2d');
+    const ctx = canvas.getContext("2d");
     ctx.fillStyle = colors.face;
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     ctx.strokeStyle = colors.edge;
     ctx.lineWidth = 6;
     ctx.strokeRect(3, 3, canvas.width - 6, canvas.height - 6);
     ctx.fillStyle = colors.text;
-    ctx.font = 'bold 44px Inter, system-ui, -apple-system, sans-serif';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
+    ctx.font = "bold 44px Inter, system-ui, -apple-system, sans-serif";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
     ctx.fillText(label, canvas.width / 2, canvas.height / 2);
     const texture = new THREE.CanvasTexture(canvas);
     texture.needsUpdate = true;
@@ -2165,16 +2420,22 @@ function createViewCubeSystem({ container, cameraSystem }) {
     return texture;
   };
 
-  const faceLabels = ['RIGHT', 'LEFT', 'TOP', 'BOTTOM', 'FRONT', 'BACK'];
-  const faceMaterials = faceLabels.map((label) =>
-    new THREE.MeshBasicMaterial({ map: makeLabelTexture(label, getThemeColors()) })
+  const faceLabels = ["RIGHT", "LEFT", "TOP", "BOTTOM", "FRONT", "BACK"];
+  const faceMaterials = faceLabels.map(
+    (label) =>
+      new THREE.MeshBasicMaterial({
+        map: makeLabelTexture(label, getThemeColors()),
+      }),
   );
 
   const cube = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), faceMaterials);
   cubeScene.add(cube);
 
   const edgeMaterial = new THREE.LineBasicMaterial({ color: 0x111111 });
-  const edges = new THREE.LineSegments(new THREE.EdgesGeometry(cube.geometry), edgeMaterial);
+  const edges = new THREE.LineSegments(
+    new THREE.EdgesGeometry(cube.geometry),
+    edgeMaterial,
+  );
   cube.add(edges);
 
   const raycaster = new THREE.Raycaster();
@@ -2190,17 +2451,28 @@ function createViewCubeSystem({ container, cameraSystem }) {
 
   const hoverIndicator = new THREE.Mesh(
     new THREE.SphereGeometry(0.16, 20, 20),
-    new THREE.MeshBasicMaterial({ color: 0x888888, transparent: true, opacity: 0.6 })
+    new THREE.MeshBasicMaterial({
+      color: 0x888888,
+      transparent: true,
+      opacity: 0.6,
+    }),
   );
   hoverIndicator.visible = false;
   cube.add(hoverIndicator);
 
   const addHotspot = (direction, radius) => {
     const dir = direction.clone().normalize();
-    const maxComponent = Math.max(Math.abs(dir.x), Math.abs(dir.y), Math.abs(dir.z));
+    const maxComponent = Math.max(
+      Math.abs(dir.x),
+      Math.abs(dir.y),
+      Math.abs(dir.z),
+    );
     const t = maxComponent > 0 ? 0.5 / maxComponent : 0.5;
     const position = dir.clone().multiplyScalar(t);
-    const mesh = new THREE.Mesh(new THREE.SphereGeometry(radius, 16, 16), hotspotMaterial);
+    const mesh = new THREE.Mesh(
+      new THREE.SphereGeometry(radius, 16, 16),
+      hotspotMaterial,
+    );
     mesh.position.copy(position);
     mesh.userData.direction = dir;
     cube.add(mesh);
@@ -2298,14 +2570,14 @@ function createViewCubeSystem({ container, cameraSystem }) {
     const hits = raycaster.intersectObjects(hotspots, true);
     if (hits.length === 0) {
       hoverIndicator.visible = false;
-      container.style.cursor = 'default';
+      container.style.cursor = "default";
       return;
     }
     const hit = hits[0].object;
     hoverIndicator.visible = true;
     hoverIndicator.position.copy(hit.position);
-    container.style.cursor = 'pointer';
-    if (event.type === 'pointerdown') {
+    container.style.cursor = "pointer";
+    if (event.type === "pointerdown") {
       const dir = hit.userData?.direction;
       if (dir) {
         applyCameraDirection(dir);
@@ -2313,11 +2585,11 @@ function createViewCubeSystem({ container, cameraSystem }) {
     }
   };
 
-  container.addEventListener('pointerdown', handlePointer);
-  container.addEventListener('pointermove', handlePointer);
-  container.addEventListener('pointerleave', () => {
+  container.addEventListener("pointerdown", handlePointer);
+  container.addEventListener("pointermove", handlePointer);
+  container.addEventListener("pointerleave", () => {
     hoverIndicator.visible = false;
-    container.style.cursor = 'default';
+    container.style.cursor = "default";
   });
 
   function handleResize() {
@@ -2357,28 +2629,30 @@ function createViewCubeSystem({ container, cameraSystem }) {
 
 function setAutoReloadStatus(state) {
   if (!reloadModelBtn) return;
-  if (state === 'offline') {
-    reloadModelBtn.textContent = 'Auto Reload: OFFLINE';
-    reloadModelBtn.classList.remove('is-active');
-    reloadModelBtn.classList.add('is-warning');
+  if (state === "offline") {
+    reloadModelBtn.textContent = "Auto Reload: OFFLINE";
+    reloadModelBtn.classList.remove("is-active");
+    reloadModelBtn.classList.add("is-warning");
   } else {
-    reloadModelBtn.classList.toggle('is-warning', false);
-    reloadModelBtn.textContent = autoReloadEnabled ? 'Auto Reload: ON' : 'Auto Reload: OFF';
-    reloadModelBtn.classList.toggle('is-active', autoReloadEnabled);
+    reloadModelBtn.classList.toggle("is-warning", false);
+    reloadModelBtn.textContent = autoReloadEnabled
+      ? "Auto Reload: ON"
+      : "Auto Reload: OFF";
+    reloadModelBtn.classList.toggle("is-active", autoReloadEnabled);
   }
 }
 
 async function handleModelRefresh() {
   const result = await modelManager.checkForUpdates();
-  if (result.error === 'offline') {
+  if (result.error === "offline") {
     autoReloadOffline = true;
-    setAutoReloadStatus('offline');
+    setAutoReloadStatus("offline");
     return;
   }
 
   if (autoReloadOffline) {
     autoReloadOffline = false;
-    setAutoReloadStatus('ok');
+    setAutoReloadStatus("ok");
   }
   if (result.listChanged) {
     modelManager.setModelList(result.list);
@@ -2391,13 +2665,18 @@ async function handleModelRefresh() {
     });
     if (modelSelector) {
       const snapshot = modelSelector.getSelectionSnapshot();
-      modelSelector.applySelectionSnapshot({
-        ...snapshot,
-        versions: modelManager.getVersionSelections(),
-      }, { persist: false });
+      modelSelector.applySelectionSnapshot(
+        {
+          ...snapshot,
+          versions: modelManager.getVersionSelections(),
+        },
+        { persist: false },
+      );
     }
     applyDefaultVersionVisibilityConstraint();
-    modelManager.setModelVersionSelections(modelSelector.getSelectionSnapshot().versions);
+    modelManager.setModelVersionSelections(
+      modelSelector.getSelectionSnapshot().versions,
+    );
     modelManager.updateVisibility();
     await modelManager.loadAllModels();
     cameraSystem.setTargetToModelCenter({ persist: false });
@@ -2410,7 +2689,10 @@ async function handleModelRefresh() {
   }
 
   if (result.filesChanged) {
-    if (Array.isArray(result.changedEntries) && result.changedEntries.length > 0) {
+    if (
+      Array.isArray(result.changedEntries) &&
+      result.changedEntries.length > 0
+    ) {
       await modelManager.reloadModels(result.changedEntries);
     } else {
       await modelManager.loadAllModels();
@@ -2437,24 +2719,24 @@ async function resetAllSettings() {
   localStorage.removeItem(AUTO_RELOAD_INTERVAL_KEY);
   localStorage.removeItem(AXES_STORAGE_KEY);
   localStorage.removeItem(MEASUREMENT_VISIBILITY_STORAGE_KEY);
-  localStorage.removeItem('pymfcad_measurement_custom_units_v1');
+  localStorage.removeItem("pymfcad_measurement_custom_units_v1");
   localStorage.removeItem(RULER_VISIBILITY_STORAGE_KEY);
   localStorage.removeItem(RULER_UNITS_STORAGE_KEY);
-  localStorage.removeItem('pymfcad_ruler_custom_units_v1');
+  localStorage.removeItem("pymfcad_ruler_custom_units_v1");
   localStorage.removeItem(DEFAULT_CONTROLS_TYPE_STORAGE_KEY);
-  localStorage.removeItem('pymfcad_theme');
-  localStorage.removeItem('pymfcad_theme_defs_v1');
-  localStorage.removeItem('pymfcad_cameras_v1');
-  localStorage.removeItem('pymfcad_keyframes_v1');
-  localStorage.removeItem('pymfcad_model_selector_collapsed');
-  localStorage.removeItem('pymfcad_model_selection_v2');
-  localStorage.removeItem('pymfcad_model_selection_v3');
-  localStorage.removeItem('pymfcad_controls_type');
+  localStorage.removeItem("pymfcad_theme");
+  localStorage.removeItem("pymfcad_theme_defs_v1");
+  localStorage.removeItem("pymfcad_cameras_v1");
+  localStorage.removeItem("pymfcad_keyframes_v1");
+  localStorage.removeItem("pymfcad_model_selector_collapsed");
+  localStorage.removeItem("pymfcad_model_selection_v2");
+  localStorage.removeItem("pymfcad_model_selection_v3");
+  localStorage.removeItem("pymfcad_controls_type");
   localStorage.removeItem(LIGHTS_STORAGE_KEY);
-  await fetch('/set_preview_dir', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ path: '' }),
+  await fetch("/set_preview_dir", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ path: "" }),
   }).catch(() => null);
   window.location.reload();
 }
@@ -2463,7 +2745,7 @@ function setAutoReload(enabled) {
   autoReloadEnabled = enabled;
   localStorage.setItem(AUTO_RELOAD_STORAGE_KEY, String(enabled));
   if (!autoReloadOffline) {
-    setAutoReloadStatus('ok');
+    setAutoReloadStatus("ok");
   }
   if (enabled) {
     if (autoReloadInterval) {
@@ -2481,22 +2763,30 @@ async function initModels() {
   const list = await modelManager.fetchModelList();
   if (!list) {
     autoReloadOffline = true;
-    setAutoReloadStatus('offline');
+    setAutoReloadStatus("offline");
     return;
   }
   modelManager.setModelList(list);
   modelManager.setDefaultVersionStrategy(getDefaultModelVersionStrategy());
   modelManager.applyDefaultVersionStrategy();
-  modelSelector.build({ files: modelManager.getModelList(), signature: modelManager.getListSignature() });
+  modelSelector.build({
+    files: modelManager.getModelList(),
+    signature: modelManager.getListSignature(),
+  });
   if (modelSelector) {
     const snapshot = modelSelector.getSelectionSnapshot();
-    modelSelector.applySelectionSnapshot({
-      ...snapshot,
-      versions: modelManager.getVersionSelections(),
-    }, { persist: false });
+    modelSelector.applySelectionSnapshot(
+      {
+        ...snapshot,
+        versions: modelManager.getVersionSelections(),
+      },
+      { persist: false },
+    );
   }
   applyDefaultVersionVisibilityConstraint();
-  modelManager.setModelVersionSelections(modelSelector.getSelectionSnapshot().versions);
+  modelManager.setModelVersionSelections(
+    modelSelector.getSelectionSnapshot().versions,
+  );
   await modelManager.loadAllModels();
   clearMeasurement();
   cameraSystem.setTargetToModelCenter({ persist: false });
@@ -2509,7 +2799,7 @@ async function initModels() {
 
 function initAutoReload() {
   if (reloadModelBtn) {
-    reloadModelBtn.addEventListener('click', () => {
+    reloadModelBtn.addEventListener("click", () => {
       setAutoReload(!autoReloadEnabled);
     });
   }
@@ -2517,10 +2807,10 @@ function initAutoReload() {
 }
 
 function initResizing() {
-  window.addEventListener('resize', () => {
+  window.addEventListener("resize", () => {
     cameraSystem.handleResize();
     renderer.setSize(window.innerWidth, window.innerHeight);
-    if (controls && typeof controls.handleResize === 'function') {
+    if (controls && typeof controls.handleResize === "function") {
       controls.handleResize();
     }
     previewSystem.updateSize();
@@ -2532,58 +2822,75 @@ function initHistoryObservers() {
   const handleControlChange = () => scheduleHistoryCapture();
   const handleControlEnd = () => pushHistorySnapshot();
   [orbitControls, trackballControls].forEach((ctrl) => {
-    if (!ctrl || typeof ctrl.addEventListener !== 'function') return;
-    ctrl.addEventListener('change', handleControlChange);
-    ctrl.addEventListener('end', handleControlEnd);
+    if (!ctrl || typeof ctrl.addEventListener !== "function") return;
+    ctrl.addEventListener("change", handleControlChange);
+    ctrl.addEventListener("end", handleControlEnd);
   });
 
-  [resetCameraBtn, homeCameraBtn, centerTargetBtn, updateCameraBtn, cameraModeBtn,
-    addCameraBtn, addCameraBtnSettings, removeCameraBtnSettings].forEach((btn) => {
+  [
+    resetCameraBtn,
+    homeCameraBtn,
+    centerTargetBtn,
+    updateCameraBtn,
+    cameraModeBtn,
+    addCameraBtn,
+    addCameraBtnSettings,
+    removeCameraBtnSettings,
+  ].forEach((btn) => {
     if (!btn) return;
-    btn.addEventListener('click', () => scheduleHistoryCapture());
+    btn.addEventListener("click", () => scheduleHistoryCapture());
   });
 
   cameraPresetButtons.forEach((btn) => {
-    btn.addEventListener('click', () => scheduleHistoryCapture());
+    btn.addEventListener("click", () => scheduleHistoryCapture());
   });
 
   if (autoReloadIntervalInput) {
-    autoReloadIntervalInput.addEventListener('change', () => scheduleHistoryCapture());
+    autoReloadIntervalInput.addEventListener("change", () =>
+      scheduleHistoryCapture(),
+    );
   }
 
   if (themeSelect) {
-    themeSelect.addEventListener('change', () => scheduleHistoryCapture());
+    themeSelect.addEventListener("change", () => scheduleHistoryCapture());
   }
 
   if (themeResetBtn) {
-    themeResetBtn.addEventListener('click', () => scheduleHistoryCapture());
+    themeResetBtn.addEventListener("click", () => scheduleHistoryCapture());
   }
 
   if (themeToCustomBtn) {
-    themeToCustomBtn.addEventListener('click', () => scheduleHistoryCapture());
+    themeToCustomBtn.addEventListener("click", () => scheduleHistoryCapture());
   }
 
   Object.values(themeInputs || {}).forEach((input) => {
     if (!input) return;
-    input.addEventListener('input', () => scheduleHistoryCapture());
+    input.addEventListener("input", () => scheduleHistoryCapture());
   });
 
   if (keyframeListEl) {
-    keyframeListEl.addEventListener('input', () => scheduleHistoryCapture());
-    keyframeListEl.addEventListener('change', () => scheduleHistoryCapture());
+    keyframeListEl.addEventListener("input", () => scheduleHistoryCapture());
+    keyframeListEl.addEventListener("change", () => scheduleHistoryCapture());
   }
 
   if (keyframeSystem) {
     const wrap = (name) => {
       const original = keyframeSystem[name];
-      if (typeof original !== 'function') return;
+      if (typeof original !== "function") return;
       keyframeSystem[name] = (...args) => {
         const result = original(...args);
         if (!historyState.isApplying) scheduleHistoryCapture();
         return result;
       };
     };
-    ['addKeyframe', 'removeActiveKeyframe', 'setKeyframes', 'resetKeyframes', 'applyCameraModeToKeyframes', 'clearSelection'].forEach(wrap);
+    [
+      "addKeyframe",
+      "removeActiveKeyframe",
+      "setKeyframes",
+      "resetKeyframes",
+      "applyCameraModeToKeyframes",
+      "clearSelection",
+    ].forEach(wrap);
   }
 }
 
@@ -2606,7 +2913,7 @@ function isEditableTarget(target) {
   if (!target) return false;
   if (target.isContentEditable) return true;
   const tagName = target.tagName;
-  return tagName === 'INPUT' || tagName === 'TEXTAREA' || tagName === 'SELECT';
+  return tagName === "INPUT" || tagName === "TEXTAREA" || tagName === "SELECT";
 }
 
 function isEditingInput() {
@@ -2614,12 +2921,15 @@ function isEditingInput() {
 }
 
 function isAnyDialogOpen() {
-  return !!document.querySelector('.modal.is-open');
+  return !!document.querySelector(".modal.is-open");
 }
 
 async function init() {
-  document.body.classList.add('is-loading');
-  viewCubeSystem = createViewCubeSystem({ container: viewCubeEl, cameraSystem });
+  document.body.classList.add("is-loading");
+  viewCubeSystem = createViewCubeSystem({
+    container: viewCubeEl,
+    cameraSystem,
+  });
   themeManager = createThemeManager({ scene, axes });
   themeManager.initTheme();
   themeManager.bindThemeUI({
@@ -2632,25 +2942,25 @@ async function init() {
   initRulerUnitButtons();
   initRulerCustomInputs();
   if (docsBtn) {
-    docsBtn.addEventListener('click', () => {
-      window.open('/docs/', '_blank', 'noopener');
+    docsBtn.addEventListener("click", () => {
+      window.open("/docs/", "_blank", "noopener");
     });
   }
 
   if (menuOpenBtn) {
-    menuOpenBtn.addEventListener('click', async () => {
+    menuOpenBtn.addEventListener("click", async () => {
       await openPreviewDirDialog();
     });
   }
 
   if (menuSaveSettingsBtn) {
-    menuSaveSettingsBtn.addEventListener('click', async () => {
+    menuSaveSettingsBtn.addEventListener("click", async () => {
       await saveSettingsToFile();
     });
   }
 
   if (menuLoadSettingsBtn) {
-    menuLoadSettingsBtn.addEventListener('click', async () => {
+    menuLoadSettingsBtn.addEventListener("click", async () => {
       try {
         const listData = await fetchPreviewSettingsList();
         if (listData) {
@@ -2665,90 +2975,89 @@ async function init() {
   }
 
   if (menuSettingsBtn) {
-    menuSettingsBtn.addEventListener('click', async () => {
+    menuSettingsBtn.addEventListener("click", async () => {
       settingsDialogBtn?.click();
     });
   }
 
   if (menuSaveBtn) {
-    menuSaveBtn.addEventListener('click', async () => {
+    menuSaveBtn.addEventListener("click", async () => {
       await saveSettingsToPreviewDir();
     });
   }
   if (menuUndoBtn) {
-    menuUndoBtn.addEventListener('click', () => {
+    menuUndoBtn.addEventListener("click", () => {
       undoHistory();
     });
   }
   if (menuRedoBtn) {
-    menuRedoBtn.addEventListener('click', () => {
+    menuRedoBtn.addEventListener("click", () => {
       redoHistory();
     });
   }
   if (saveSnapshotBtn) {
-    saveSnapshotBtn.addEventListener('click', () => {
+    saveSnapshotBtn.addEventListener("click", () => {
       openSnapshotDialog();
     });
   }
 
   if (animationExportBtn) {
-    animationExportBtn.addEventListener('click', () => {
+    animationExportBtn.addEventListener("click", () => {
       openAnimationExportDialog();
     });
   }
 
-
   if (animationExportQualitySelect) {
-    animationExportQualitySelect.addEventListener('change', () => {
+    animationExportQualitySelect.addEventListener("change", () => {
       syncAnimationExportTypeForQuality();
     });
   }
 
   if (snapshotDialogClose) {
-    snapshotDialogClose.addEventListener('click', () => {
+    snapshotDialogClose.addEventListener("click", () => {
       closeSnapshotDialog();
     });
   }
 
   if (animationExportClose) {
-    animationExportClose.addEventListener('click', () => {
+    animationExportClose.addEventListener("click", () => {
       closeAnimationExportDialog();
     });
   }
 
   if (snapshotSaveBtn) {
-    snapshotSaveBtn.addEventListener('click', async () => {
+    snapshotSaveBtn.addEventListener("click", async () => {
       await handleSnapshotSave();
     });
   }
 
   if (animationExportSaveBtn) {
-    animationExportSaveBtn.addEventListener('click', async () => {
+    animationExportSaveBtn.addEventListener("click", async () => {
       await handleAnimationExport();
     });
   }
 
   if (resetSettingsApplyBtn && resetSettingsSelect) {
-    resetSettingsApplyBtn.addEventListener('click', async () => {
+    resetSettingsApplyBtn.addEventListener("click", async () => {
       const value = resetSettingsSelect.value;
-      if (value === 'general') {
+      if (value === "general") {
         await resetGeneralSettings();
-      } else if (value === 'theme') {
+      } else if (value === "theme") {
         resetThemeSettings();
-      } else if (value === 'camera') {
+      } else if (value === "camera") {
         resetCameraSettings();
-      } else if (value === 'lighting') {
+      } else if (value === "lighting") {
         resetLightingSettings();
-      } else if (value === 'animation') {
+      } else if (value === "animation") {
         if (keyframeSystem) keyframeSystem.resetKeyframes();
-      } else if (value === 'all') {
+      } else if (value === "all") {
         await resetAllSettings();
       }
     });
   }
 
   if (settingsFileInput) {
-    settingsFileInput.addEventListener('change', async () => {
+    settingsFileInput.addEventListener("change", async () => {
       const file = settingsFileInput.files?.[0];
       if (!file) return;
       await loadSettingsFromFile(file);
@@ -2756,18 +3065,17 @@ async function init() {
   }
 
   if (previewSettingsClose) {
-    previewSettingsClose.addEventListener('click', () => {
+    previewSettingsClose.addEventListener("click", () => {
       closePreviewSettingsDialog();
     });
   }
 
-
   if (previewSettingsLoadBtn) {
-    previewSettingsLoadBtn.addEventListener('click', async () => {
+    previewSettingsLoadBtn.addEventListener("click", async () => {
       if (!pendingSettingsList || !previewSettingsFileSelect) return;
       const path = previewSettingsFileSelect.value;
       if (!path) return;
-      if (path === '__choose__') {
+      if (path === "__choose__") {
         previewSettingsFileInput?.click();
         return;
       }
@@ -2784,7 +3092,9 @@ async function init() {
         }
         return;
       }
-      const resp = await fetch(`/preview_settings_file?path=${encodeURIComponent(path)}`);
+      const resp = await fetch(
+        `/preview_settings_file?path=${encodeURIComponent(path)}`,
+      );
       if (!resp.ok) {
         closePreviewSettingsDialog();
         return;
@@ -2803,15 +3113,16 @@ async function init() {
   }
 
   if (previewSettingsFileInput) {
-    previewSettingsFileInput.addEventListener('change', async () => {
+    previewSettingsFileInput.addEventListener("change", async () => {
       const file = previewSettingsFileInput.files?.[0];
       if (!file) return;
       const text = await file.text();
       const parsed = JSON.parse(text);
       const key = `local:${Date.now()}:${file.name}`;
-      const label = file.webkitRelativePath && file.webkitRelativePath.length > 0
-        ? file.webkitRelativePath
-        : file.name;
+      const label =
+        file.webkitRelativePath && file.webkitRelativePath.length > 0
+          ? file.webkitRelativePath
+          : file.name;
       previewSettingsCustomFiles.set(key, {
         label: `Local (${label})`,
         payload: parsed,
@@ -2825,16 +3136,16 @@ async function init() {
   }
 
   if (previewSettingsFileSelect && previewSettingsFileInput) {
-    previewSettingsFileSelect.addEventListener('change', () => {
-      if (previewSettingsFileSelect.value === '__choose__') {
-        previewSettingsFileInput.value = '';
+    previewSettingsFileSelect.addEventListener("change", () => {
+      if (previewSettingsFileSelect.value === "__choose__") {
+        previewSettingsFileInput.value = "";
         previewSettingsFileInput.click();
       }
     });
   }
 
   if (previewSettingsDialog) {
-    previewSettingsDialog.addEventListener('click', (event) => {
+    previewSettingsDialog.addEventListener("click", (event) => {
       if (event.target === previewSettingsDialog) {
         closePreviewSettingsDialog();
       }
@@ -2842,34 +3153,36 @@ async function init() {
   }
 
   if (previewDirClose) {
-    previewDirClose.addEventListener('click', () => {
+    previewDirClose.addEventListener("click", () => {
       closePreviewDirDialog();
     });
   }
 
   if (previewDirCancelBtn) {
-    previewDirCancelBtn.addEventListener('click', () => {
+    previewDirCancelBtn.addEventListener("click", () => {
       closePreviewDirDialog();
     });
   }
 
   if (previewDirRefreshBtn) {
-    previewDirRefreshBtn.addEventListener('click', async () => {
+    previewDirRefreshBtn.addEventListener("click", async () => {
       await refreshPreviewDirList();
     });
   }
 
   if (previewDirOpenBtn) {
-    previewDirOpenBtn.addEventListener('click', async () => {
+    previewDirOpenBtn.addEventListener("click", async () => {
       if (!previewDirSelect || !previewDirSelect.value) return;
-      const resp = await fetch('/set_preview_dir', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const resp = await fetch("/set_preview_dir", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ path: previewDirSelect.value }),
       }).catch(() => null);
       if (!resp || !resp.ok) {
         const data = await resp?.json().catch(() => null);
-        showToast(data?.error || 'Unable to set preview folder.', { variant: 'error' });
+        showToast(data?.error || "Unable to set preview folder.", {
+          variant: "error",
+        });
         return;
       }
       closePreviewDirDialog();
@@ -2880,18 +3193,18 @@ async function init() {
   }
 
   if (animationExportDialog) {
-    animationExportDialog.addEventListener('click', (event) => {
+    animationExportDialog.addEventListener("click", (event) => {
       if (event.target === animationExportDialog) {
         closeAnimationExportDialog();
       }
     });
   }
 
-  window.addEventListener('keydown', (event) => {
+  window.addEventListener("keydown", (event) => {
     if (!event) return;
     if (isEditableTarget(event.target) || isEditingInput()) return;
     if (isAnyDialogOpen()) return;
-    if (event.key === 'Escape' && measurementState.enabled) {
+    if (event.key === "Escape" && measurementState.enabled) {
       event.preventDefault();
       setMeasurementEnabled(false);
       return;
@@ -2899,62 +3212,72 @@ async function init() {
     const isCtrl = event.ctrlKey || event.metaKey;
     if (!isCtrl) return;
     const key = event.key?.toLowerCase();
-    if (key === 'o') {
+    if (key === "o") {
       event.preventDefault();
       menuOpenBtn?.click();
-    } else if (key === 's') {
+    } else if (key === "s") {
       event.preventDefault();
       if (menuSaveBtn?.disabled) {
-        showToast('Save unavailable for demo device.', { variant: 'error' });
+        showToast("Save unavailable for demo device.", { variant: "error" });
         return;
       }
       menuSaveBtn?.click();
-    } else if (key === 'z') {
+    } else if (key === "z") {
       event.preventDefault();
       undoHistory();
-    } else if (key === 'y') {
+    } else if (key === "y") {
       event.preventDefault();
       redoHistory();
     }
   });
 
-  window.addEventListener('keydown', (event) => {
-    if (!event) return;
-    if (!isAnyDialogOpen()) return;
-    const isEditing = isEditableTarget(event.target) || isEditingInput();
-    event.stopImmediatePropagation();
-    if (!isEditing) {
-      event.preventDefault();
-    }
-  }, true);
+  window.addEventListener(
+    "keydown",
+    (event) => {
+      if (!event) return;
+      if (!isAnyDialogOpen()) return;
+      const isEditing = isEditableTarget(event.target) || isEditingInput();
+      event.stopImmediatePropagation();
+      if (!isEditing) {
+        event.preventDefault();
+      }
+    },
+    true,
+  );
 
-  window.addEventListener('keyup', (event) => {
-    if (!event) return;
-    if (!isAnyDialogOpen()) return;
-    const isEditing = isEditableTarget(event.target) || isEditingInput();
-    event.stopImmediatePropagation();
-    if (!isEditing) {
-      event.preventDefault();
-    }
-  }, true);
+  window.addEventListener(
+    "keyup",
+    (event) => {
+      if (!event) return;
+      if (!isAnyDialogOpen()) return;
+      const isEditing = isEditableTarget(event.target) || isEditingInput();
+      event.stopImmediatePropagation();
+      if (!isEditing) {
+        event.preventDefault();
+      }
+    },
+    true,
+  );
 
   syncAnimationExportTypeForQuality();
 
   if (measurementToggleBtn) {
-    measurementToggleBtn.addEventListener('click', () => {
+    measurementToggleBtn.addEventListener("click", () => {
       setMeasurementEnabled(!measurementState.enabled);
     });
   }
 
   if (measurementClearBtn) {
-    measurementClearBtn.addEventListener('click', () => {
+    measurementClearBtn.addEventListener("click", () => {
       clearMeasurement();
     });
   }
 
   if (measurementPanelToggleBtn) {
-    measurementPanelToggleBtn.addEventListener('click', () => {
-      const nextVisible = measurementPanel ? measurementPanel.classList.contains('is-hidden') : false;
+    measurementPanelToggleBtn.addEventListener("click", () => {
+      const nextVisible = measurementPanel
+        ? measurementPanel.classList.contains("is-hidden")
+        : false;
       setMeasurementPanelVisible(nextVisible);
     });
   }
@@ -2963,11 +3286,12 @@ async function init() {
   clearMeasurement({ keepPrompt: true });
 
   if (defaultControlTypeSelect) {
-    const savedType = localStorage.getItem(DEFAULT_CONTROLS_TYPE_STORAGE_KEY) || 'orbit';
+    const savedType =
+      localStorage.getItem(DEFAULT_CONTROLS_TYPE_STORAGE_KEY) || "orbit";
     defaultControlTypeSelect.value = savedType;
     cameraSystem.setDefaultControlType(savedType);
     applyControlsType(savedType, false);
-    defaultControlTypeSelect.addEventListener('change', () => {
+    defaultControlTypeSelect.addEventListener("change", () => {
       const nextType = defaultControlTypeSelect.value;
       cameraSystem.setDefaultControlType(nextType);
       localStorage.setItem(DEFAULT_CONTROLS_TYPE_STORAGE_KEY, nextType);
@@ -2980,7 +3304,7 @@ async function init() {
 
   if (cameraControlTypeSelect) {
     syncCameraControlSelect();
-    cameraControlTypeSelect.addEventListener('change', () => {
+    cameraControlTypeSelect.addEventListener("change", () => {
       const nextType = cameraControlTypeSelect.value;
       if (cameraSystem.isHomeMode() || !cameraSystem.getActiveCameraState()) {
         cameraSystem.setDefaultControlType(nextType);
@@ -3000,7 +3324,7 @@ async function init() {
     previewViewers: {
       camera: lightDialogViewer,
       lights: lightsDialogViewer,
-      'keyframe-models': keyframeModelsViewer,
+      "keyframe-models": keyframeModelsViewer,
     },
     cwdValueInput,
     modelSourceValueInput,
@@ -3032,19 +3356,22 @@ async function init() {
     addCameraBtnSettings: addCameraBtnSettings,
     removeCameraBtnSettings: removeCameraBtnSettings,
   });
-  settingsSystem.initTabs('general');
+  settingsSystem.initTabs("general");
   settingsSystem.initGeneralSettings();
   if (defaultModelVersionSelect) {
     defaultModelVersionSelect.value = getDefaultModelVersionStrategy();
-    defaultModelVersionSelect.addEventListener('change', async () => {
+    defaultModelVersionSelect.addEventListener("change", async () => {
       setDefaultModelVersionStrategy(defaultModelVersionSelect.value);
       modelManager.applyDefaultVersionStrategy();
       if (modelSelector) {
         const snapshot = modelSelector.getSelectionSnapshot();
-        modelSelector.applySelectionSnapshot({
-          ...snapshot,
-          versions: modelManager.getVersionSelections(),
-        }, { persist: true });
+        modelSelector.applySelectionSnapshot(
+          {
+            ...snapshot,
+            versions: modelManager.getVersionSelections(),
+          },
+          { persist: true },
+        );
       }
       await modelManager.loadAllModels();
       lightSystem.updateDirectionalLightTargets();
@@ -3061,7 +3388,7 @@ async function init() {
   suppressLocalPersistence = false;
   syncCameraControlSelect();
 
-  window.addEventListener('beforeunload', () => {
+  window.addEventListener("beforeunload", () => {
     if (skipBeforeUnloadSave || suppressLocalPersistence) return;
     saveLightState();
   });
@@ -3069,7 +3396,7 @@ async function init() {
   initAutoReload();
   initHistoryObservers();
   initResizing();
-  document.body.classList.remove('is-loading');
+  document.body.classList.remove("is-loading");
   animate();
   pushHistorySnapshot();
 }

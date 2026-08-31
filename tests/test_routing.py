@@ -4,9 +4,8 @@ from pathlib import Path
 
 import pytest
 
-from pymfcad import Component, Port, Router
+from pymfcad import BezierCurveShape, Component, PolychannelShape, Port, Router
 from pymfcad.backend import Color, Cube
-from pymfcad import PolychannelShape, BezierCurveShape
 from pymfcad.component_library import TJunction
 from tests.utils.mesh_metrics import compute_mesh_metrics, load_mesh
 
@@ -23,11 +22,12 @@ def _render_and_validate(component: Component, out_path: Path) -> None:
 
 
 def _build_parent_component(size=(40, 30, 20)) -> Component:
-    comp = Component(size=size, position=(0, 0, 0), quiet=True)
+    comp = Component(size=size, quiet=True)
     comp.add_label("device", Color.from_name("gray", 255))
     comp.add_label("fluidic", Color.from_name("blue", 255))
     comp.add_bulk("device_bulk", Cube(size=size, center=False), label="device")
     return comp
+
 
 @pytest.mark.mesh
 def test_component_routing(tmp_path):
@@ -36,6 +36,7 @@ def test_component_routing(tmp_path):
     comp.add_subcomponent("junction", TJunction())
 
     _render_and_validate(comp, tmp_path / "component_routing.glb")
+
 
 @pytest.mark.mesh
 def test_routing_fractional_path_render(tmp_path):
@@ -178,17 +179,14 @@ def test_polychannel():
     assert shape != bad_shape
 
     bezier_shape = BezierCurveShape(
-        control_points=[(0,0,0)],
+        control_points=[(0, 0, 0)],
         bezier_segments=5,
     )
     assert bezier_shape != "not_a_shape"
     assert bezier_shape == bezier_shape
 
     bad_bezier_shape = BezierCurveShape(
-        control_points=[("20",False,[])],
+        control_points=[("20", False, [])],
         bezier_segments=5,
     )
     assert bezier_shape != bad_bezier_shape
-
-    
-    

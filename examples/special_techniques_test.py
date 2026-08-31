@@ -1,25 +1,44 @@
 from pymfcad import (
-    Device,
-    Settings,
-    Printer,
-    LightEngine,
-    ResinType,
-    PositionSettings,
+    Color,
+    Component,
+    Cube,
     ExposureSettings,
+    LightEngine,
+    PositionSettings,
+    Printer,
+    PrintFileGenerator,
+    PrintOnFilm,
     PrintUnderVacuum,
+    ResinType,
     SqueezeOutResin,
     ZeroMicronLayer,
-    PrintOnFilm,
-    Color,
-    Cube,
-    Slicer,
+)
+
+# Base exposure settings (no special image techniques)
+exposure_settings = ExposureSettings(
+    bulk_exposure_multiplier=250.0 / 300.0,
+)
+
+# Layer-level technique: squeeze out resin
+position_settings = PositionSettings(
+    distance_up=1.0,
+    final_wait=0.0,
 )
 
 # Printer definition
 printer = Printer(
     name="HR3v3",
-    light_engines=[LightEngine(px_size=0.0076, px_count=(2560, 1600), wavelengths=[365])],
+    light_engines=[
+        LightEngine(
+            px_size=0.0076,
+            px_count=(2560, 1600),
+            wavelengths=[365],
+            default_exposure_settings=[exposure_settings],
+        )
+    ],
     xy_stage_available=True,
+    vacuum_available=True,
+    default_position_settings=position_settings,
 )
 
 # Special print technique: print under vacuum
@@ -29,35 +48,10 @@ vacuum = PrintUnderVacuum(
     vacuum_wait_time=30.0,
 )
 
-# Layer-level technique: squeeze out resin
-position_settings = PositionSettings(
-    distance_up=1.0,
-    final_wait=0.0,
-)
-
-# Base exposure settings (no special image techniques)
-exposure_settings = ExposureSettings(
-    bulk_exposure_multiplier=250.0 / 300.0,
-)
-
-settings = Settings(
-    printer=printer,
-    resin=ResinType(bulk_exposure=300.0),
-    default_position_settings=position_settings,
-    default_exposure_settings=exposure_settings,
-    special_print_techniques=[vacuum],
-    user="example",
-    purpose="special techniques demo",
-    description="Demonstrates print, layer, and image techniques.",
-)
-
 # Simple device
-device = Device(
-    name="SpecialTechDemo",
-    position=(0, 0, 0),
-    layers=80,
+device = Component(
+    size=(2560, 1600, 80),
     layer_size=0.01,
-    px_count=(2560, 1600),
     px_size=0.0076,
 )
 
@@ -87,7 +81,9 @@ device.add_regional_settings(
     "squeeze_region",
     squeeze_region,
     PositionSettings(
-        special_layer_techniques=[SqueezeOutResin(enabled=True, count=2, squeeze_force=5.0, squeeze_time=200.0)],
+        special_layer_techniques=[
+            SqueezeOutResin(enabled=True, count=2, squeeze_force=5.0, squeeze_time=200.0)
+        ],
     ),
     label="squeeze",
 )
@@ -119,12 +115,17 @@ device.add_regional_settings(
 device.preview()
 
 # Slice
-slicer = Slicer(
-    device=device,
-    settings=settings,
+slicer = PrintFileGenerator(
     filename="special_techniques_demo",
+    author="example",
+    purpose="special techniques demo",
+    description="Demonstrates print, layer, and image techniques.",
+    component=device,
+    printer=printer,
+    resin=ResinType(bulk_exposure=300.0),
+    special_print_techniques=[vacuum],
     minimize_file=True,
     zip_output=False,
 )
 
-slicer.make_print_file()
+slicer.run(overwrite=True)

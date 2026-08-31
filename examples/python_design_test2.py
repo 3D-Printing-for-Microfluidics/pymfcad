@@ -1,17 +1,16 @@
 from pymfcad import (
-    set_fn,
-    Device,
-    Component,
     Color,
     Cube,
-    Router,
-    Slicer,
-    Settings,
-    ResinType,
-    Printer,
+    Device,
+    ExposureSettings,
     LightEngine,
     PositionSettings,
-    ExposureSettings,
+    Printer,
+    ResinType,
+    Router,
+    Settings,
+    Slicer,
+    set_fn,
 )
 from pymfcad.component_library import Valve20px
 
@@ -103,14 +102,17 @@ for l in range(z):
             valve_col.append(valve_row)
     valve_grid.append(valve_col)
 
-device.relabel({
-    "device": "device",
-    "pneumatic": "pneumatic",
-    "fluidic": "fluidic",
-    "membrane": "membrane",
-    valve_grid[0][0][0].shapes["FluidicChamber"]: "highlight",
-    "Valve_1_1_0.PneumaticShapes": "highlight",
-}, recursive=True)
+device.relabel(
+    {
+        "device": "device",
+        "pneumatic": "pneumatic",
+        "fluidic": "fluidic",
+        "membrane": "membrane",
+        valve_grid[0][0][0].shapes["FluidicChamber"]: "highlight",
+        "Valve_1_1_0.PneumaticShapes": "highlight",
+    },
+    recursive=True,
+)
 
 rtr = Router(component=device, channel_size=chan_size, channel_margin=chan_size)
 for l in range(z):

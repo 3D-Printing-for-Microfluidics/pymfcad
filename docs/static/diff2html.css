@@ -28,7 +28,6 @@
   background-color: var(--diff-ins-bg) !important;
 }
 
-
 .diff2html-wrapper .d2h-del .d2h-code-line,
 .diff2html-wrapper .d2h-del .d2h-code-line-ctn,
 .diff2html-wrapper .d2h-del .d2h-code-line-prefix {

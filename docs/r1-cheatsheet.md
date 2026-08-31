@@ -4,11 +4,7 @@ Quick reference to build, render, and slice a device.
 
 ## Core classes
 
-- `Component(size, position, px_size, layer_size, quiet=False)`
-- `Device(name, position, layers, layer_size, px_count, px_size, quiet=False)`
-- `StitchedDevice(name, position, layers, layer_size, tiles_x, tiles_y, base_px_count=(2560,1600), overlap_px=0, px_size=0.0076, quiet=False)`
-- `Both Device and StitchedDevice can use ._with_visitech_1x(), ._with_visitech_2x(), or ._with_wintech() contructors`
-- `If alternate constructor is used, you don't need to specify px_size or px_count`
+- `Component(size, px_size, layer_size, quiet=False)`
 - `VariableLayerThicknessComponent(size, position, px_size, layer_sizes, quiet=False)`
 
 ## Labels and colors
@@ -33,7 +29,8 @@ Primitives and key parameters:
 
 Transforms (shapes):
 
-- `translate((x,y,z))`, `rotate((rx,ry,rz))`, `resize((x,y,z))`, `mirror((x,y,z))`
+- `translate((x,y,z))`, `rotate((rx,ry,rz))`, `scale((sx,sy,sz))`, `resize((x,y,z))`, `mirror((x,y,z))`
+- `resize_locked(dimension, axis)` scales uniformly to a target dimension while preserving proportions; `axis` is `0` for x, `1` for y, or `2` for z
 
 Boolean ops:
 
@@ -111,13 +108,12 @@ Helpers:
 - `component.preview()`
 - `component.render("file.glb")`
 
-## Slicing
+## Print File Generation
 
 Settings objects (key parameters):
 
-- `Settings(printer, resin, default_position_settings, default_exposure_settings, special_print_techniques=[...], user="", purpose="", description="")`
-- `Printer(name, light_engines, xy_stage_available=False, vacuum_available=False)`
-- `LightEngine(px_size, px_count, wavelengths, grayscale_available=[False])`
+- `Printer(name, light_engines, xy_stage_available=False, vacuum_available=False, default_position_settings=PositionSettings())`
+- `LightEngine(px_size, px_count, wavelengths, default_exposure_settings=[ExposureSettings()], grayscale_available=[False], settle_time_ms, stitched_px_overlap, x_offset_limits, y_offset_limits)`
 - `ResinType(bulk_exposure, exposure_offset=0.0, monomer=[...], uv_absorbers=[...], initiators=[...], additives=[...])`
 - `PositionSettings(distance_up, initial_wait, up_speed, up_acceleration, up_wait, down_speed, down_acceleration, final_wait, special_layer_techniques=[...])`
 - `ExposureSettings(grayscale_correction, bulk_exposure_multiplier, power_setting, wavelength, relative_focus_position, wait_before_exposure, wait_after_exposure, special_image_techniques=[...])`
@@ -141,29 +137,35 @@ Special techniques:
 	- `ZeroMicronLayer(enabled=False, count=0)`
 	- `PrintOnFilm(enabled=False, distance_up_mm=0.3)`
 
-Device‑level defaults:
+Top‑level defaults:
 
 - `device.add_default_position_settings(PositionSettings(...), label)`
 - `device.add_default_exposure_settings(ExposureSettings(...), label)`
 - `device.set_burn_in_exposure([t1, t2, ...], label)`
 
-Slicer:
+PrintFileGenerator:
 
-- `Slicer(device, settings, filename, minimize_file=True, zip_output=False)`
-- `slicer.make_print_file()`
+- `PrintFileGenerator(filename, author, purpose, description, component, workspaces, printer, resin, special_print_techniques, minimize_file=True, zip_output=False)`
+- `print_file_gen.run()`
+
+Workspaces:
+
+- Workspace(printer, pixel_size, exposure_abs_pos_um, light_engine_stitching=(1,1))
+- workspace.add_component(name, component, centered=True)
+- workspace.adjust_subcomponent_light_engine_position(subcomponent_fqn, exposure_rel_pos_um)
 
 Stitching notes:
 
-- `StitchedDevice` requires printer `xy_stage_available=True`
-- Device is centered; per‑tile offsets are written in JSON
-- Use `overlap_px` to overlap tiles (step = base size − overlap)
+- light_engine_stitching > (1,1) requires printer `xy_stage_available=True`
+- Component is centered by default, can be adjusted if custom workspace(s) is/are used; per‑tile offsets are written in JSON
+- Use light_engine `stitched_px_overlap` to overlap tiles
 
 ## Regional settings
 
 - `component.add_regional_settings(name, shape, settings, label)`
 - `ExposureSettings(bulk_exposure_multiplier, power_setting, wavelength, relative_focus_position, wait_before_exposure, wait_after_exposure, special_image_techniques=[...])`
 - `PositionSettings(distance_up, initial_wait, up_speed, up_acceleration, up_wait, down_speed, down_acceleration, final_wait, special_layer_techniques=[...])`
-- `MembraneSettings(max_membrane_thickness_um, bulk_exposure_multiplier, dilation_px, defocus_um, special_image_techniques=[...])`
+- `MembraneSettings(exposure_settings, max_membrane_thickness_um, dilation_px)`
 - `SecondaryDoseSettings(edge_bulk_exposure_multiplier, edge_erosion_px, edge_dilation_px, roof_bulk_exposure_multiplier, roof_erosion_px, roof_layers_above)`
 
 ## Global tessellation (optional)

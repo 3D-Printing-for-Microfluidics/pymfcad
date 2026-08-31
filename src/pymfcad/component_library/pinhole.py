@@ -1,4 +1,4 @@
-from pymfcad import Component, Port, Color, Cube, Polychannel, PolychannelShape
+from pymfcad import Color, Component, Cube, Polychannel, PolychannelShape, Port
 
 
 class Pinhole(Component):
@@ -6,14 +6,16 @@ class Pinhole(Component):
     Simple 144 px pinhole component.
 
     Ports:
-    
+
     - port:
         - Type: INOUT
         - Size: (8, 8, 6)
         - Normal: POS_X
     """
 
-    def __init__(self, channel_size: tuple[int, int, int] = (8, 8, 6), quiet: bool = False):
+    def __init__(
+        self, channel_size: tuple[int, int, int] = (8, 8, 6), quiet: bool = False
+    ):
         """Initialize a Pinhole component."""
         pinhole_height = 144
         pinhole_width = 110
@@ -23,7 +25,6 @@ class Pinhole(Component):
 
         super().__init__(
             size=(total_length, pinhole_height, pinhole_width),
-            position=(0, 0, 0),
             px_size=0.0076,
             layer_size=0.01,
             quiet=quiet,

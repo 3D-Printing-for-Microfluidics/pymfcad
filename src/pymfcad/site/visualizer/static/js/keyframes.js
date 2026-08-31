@@ -1,6 +1,6 @@
-import * as THREE from 'three';
+import * as THREE from "three";
 
-const KEYFRAME_STORAGE_KEY = 'pymfcad_keyframes_v1';
+const KEYFRAME_STORAGE_KEY = "pymfcad_keyframes_v1";
 const DEFAULT_HOLD_DURATION = 1;
 const DEFAULT_TRANSITION_DURATION = 1;
 const MIN_FRAME_DURATION = 0.05;
@@ -70,26 +70,26 @@ export function createKeyframeSystem({
 
   function restoreDialogChrome() {
     if (settingsTitleEl) {
-      settingsTitleEl.textContent = prevTitleText || 'Settings';
-      settingsTitleEl.style.display = prevTitleDisplay || '';
+      settingsTitleEl.textContent = prevTitleText || "Settings";
+      settingsTitleEl.style.display = prevTitleDisplay || "";
     }
     hiddenTabButtons.forEach(({ el, display }) => {
-      el.style.display = display || '';
+      el.style.display = display || "";
     });
     hiddenTabPanels.forEach(({ el, display }) => {
-      el.style.display = display || '';
+      el.style.display = display || "";
     });
     hiddenTabButtons = [];
     hiddenTabPanels = [];
 
     if (cameraListEl) {
-      cameraListEl.style.display = prevCameraListDisplay || '';
+      cameraListEl.style.display = prevCameraListDisplay || "";
     }
     if (addCameraBtnSettingsEl) {
-      addCameraBtnSettingsEl.style.display = prevAddCameraDisplay || '';
+      addCameraBtnSettingsEl.style.display = prevAddCameraDisplay || "";
     }
     if (removeCameraBtnSettingsEl) {
-      removeCameraBtnSettingsEl.style.display = prevRemoveCameraDisplay || '';
+      removeCameraBtnSettingsEl.style.display = prevRemoveCameraDisplay || "";
     }
     if (cameraModeBtnEl) {
       cameraModeBtnEl.disabled = prevCameraModeDisabled ?? false;
@@ -107,8 +107,12 @@ export function createKeyframeSystem({
 
     const frame = normalizeKeyframe(keyframes[editingIndex]);
     frame.camera = cameraSystem.getCameraState();
-    frame.lights = lightSystemRef ? cloneLightState(lightSystemRef.getLightState()) : frame.lights;
-    frame.models = modelSelector ? ensureModelSnapshotByKey(modelSelector.getSelectionSnapshot()) : frame.models;
+    frame.lights = lightSystemRef
+      ? cloneLightState(lightSystemRef.getLightState())
+      : frame.lights;
+    frame.models = modelSelector
+      ? ensureModelSnapshotByKey(modelSelector.getSelectionSnapshot())
+      : frame.models;
     keyframes[editingIndex] = frame;
     saveKeyframes();
     renderList();
@@ -137,7 +141,7 @@ export function createKeyframeSystem({
     }
 
     if (activateGlobalTab && settingsSystemRef) {
-      settingsSystemRef.activateTab('general');
+      settingsSystemRef.activateTab("general");
     }
 
     cameraSystem.updateActiveCameraStateFromControls();
@@ -163,7 +167,9 @@ export function createKeyframeSystem({
         camera: raw.camera || raw,
         lights: raw.lights || null,
         models: raw.models || null,
-        holdDuration: Number.isFinite(raw.holdDuration) ? raw.holdDuration : DEFAULT_HOLD_DURATION,
+        holdDuration: Number.isFinite(raw.holdDuration)
+          ? raw.holdDuration
+          : DEFAULT_HOLD_DURATION,
         transitionDuration: Number.isFinite(raw.transitionDuration)
           ? raw.transitionDuration
           : DEFAULT_TRANSITION_DURATION,
@@ -201,7 +207,7 @@ export function createKeyframeSystem({
   function saveKeyframes() {
     localStorage.setItem(
       KEYFRAME_STORAGE_KEY,
-      JSON.stringify({ keyframes, activeIndex: activeKeyframeIndex })
+      JSON.stringify({ keyframes, activeIndex: activeKeyframeIndex }),
     );
   }
 
@@ -212,14 +218,23 @@ export function createKeyframeSystem({
       const parsed = JSON.parse(saved);
       if (Array.isArray(parsed.keyframes)) {
         const legacyFrames = parsed.keyframes;
-        const hasLegacyTime = legacyFrames.some((frame) => Object.prototype.hasOwnProperty.call(frame, 'time'));
+        const hasLegacyTime = legacyFrames.some((frame) =>
+          Object.prototype.hasOwnProperty.call(frame, "time"),
+        );
         const hasDurationFields = legacyFrames.some(
-          (frame) => Object.prototype.hasOwnProperty.call(frame, 'holdDuration') || Object.prototype.hasOwnProperty.call(frame, 'transitionDuration')
+          (frame) =>
+            Object.prototype.hasOwnProperty.call(frame, "holdDuration") ||
+            Object.prototype.hasOwnProperty.call(frame, "transitionDuration"),
         );
         if (hasLegacyTime && !hasDurationFields) {
-          const times = legacyFrames.map((frame) => (Number.isFinite(frame?.time) ? frame.time : 0));
+          const times = legacyFrames.map((frame) =>
+            Number.isFinite(frame?.time) ? frame.time : 0,
+          );
           const migrated = legacyFrames.map((frame, index) => {
-            const transitionDelta = index < times.length - 1 ? Math.max(0, times[index + 1] - times[index]) : 0;
+            const transitionDelta =
+              index < times.length - 1
+                ? Math.max(0, times[index + 1] - times[index])
+                : 0;
             return normalizeKeyframe({
               ...frame,
               holdDuration: 0,
@@ -250,51 +265,53 @@ export function createKeyframeSystem({
 
   function updateEmptyState() {
     if (!emptyEl) return;
-    emptyEl.style.display = keyframes.length ? 'none' : '';
+    emptyEl.style.display = keyframes.length ? "none" : "";
   }
 
   function renderList() {
     if (!listEl) return;
-    listEl.innerHTML = '';
+    listEl.innerHTML = "";
     keyframes.forEach((state, index) => {
-      const row = document.createElement('div');
-      row.className = 'keyframe-row';
+      const row = document.createElement("div");
+      row.className = "keyframe-row";
       row.dataset.keyframeIndex = String(index);
 
-      const topRow = document.createElement('div');
-      topRow.className = 'keyframe-row-line';
+      const topRow = document.createElement("div");
+      topRow.className = "keyframe-row-line";
 
-      const bottomRow = document.createElement('div');
-      bottomRow.className = 'keyframe-row-line keyframe-row-line-secondary';
+      const bottomRow = document.createElement("div");
+      bottomRow.className = "keyframe-row-line keyframe-row-line-secondary";
 
-      const editBtn = document.createElement('button');
-      editBtn.type = 'button';
-      editBtn.className = 'control-btn icon-btn keyframe-edit-btn';
+      const editBtn = document.createElement("button");
+      editBtn.type = "button";
+      editBtn.className = "control-btn icon-btn keyframe-edit-btn";
       editBtn.title = `Edit Keyframe ${index + 1}`;
       editBtn.innerHTML = '<i class="fa-solid fa-pen"></i>';
-      editBtn.addEventListener('click', (event) => {
+      editBtn.addEventListener("click", (event) => {
         event.stopPropagation();
         openEditor(index);
       });
 
-      const btn = document.createElement('button');
-      btn.type = 'button';
-      btn.className = 'camera-btn keyframe-btn keyframe-select-btn';
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "camera-btn keyframe-btn keyframe-select-btn";
       btn.innerHTML = `Keyframe ${index + 1}`;
       if (index === activeKeyframeIndex) {
-        btn.classList.add('is-active');
+        btn.classList.add("is-active");
       }
-      btn.addEventListener('click', () => {
+      btn.addEventListener("click", () => {
         selectKeyframe(index);
       });
-      const holdInput = document.createElement('input');
-      holdInput.type = 'number';
-      holdInput.className = 'keyframe-time-input';
-      holdInput.min = '0';
-      holdInput.step = '0.1';
-      holdInput.value = Number.isFinite(state.holdDuration) ? state.holdDuration : 0;
-      holdInput.title = 'Keyframe hold duration (s)';
-      holdInput.addEventListener('change', () => {
+      const holdInput = document.createElement("input");
+      holdInput.type = "number";
+      holdInput.className = "keyframe-time-input";
+      holdInput.min = "0";
+      holdInput.step = "0.1";
+      holdInput.value = Number.isFinite(state.holdDuration)
+        ? state.holdDuration
+        : 0;
+      holdInput.title = "Keyframe hold duration (s)";
+      holdInput.addEventListener("change", () => {
         const next = Number.parseFloat(holdInput.value);
         const safeValue = Number.isFinite(next) ? Math.max(0, next) : 0;
         const frame = normalizeKeyframe(keyframes[index]);
@@ -305,27 +322,28 @@ export function createKeyframeSystem({
         saveKeyframes();
       });
 
-      const spacer = document.createElement('div');
-      spacer.className = 'keyframe-row-spacer';
+      const spacer = document.createElement("div");
+      spacer.className = "keyframe-row-spacer";
 
-      const transitionLabel = document.createElement('div');
-      transitionLabel.className = 'keyframe-transition-label';
-      transitionLabel.textContent = 'Transition';
+      const transitionLabel = document.createElement("div");
+      transitionLabel.className = "keyframe-transition-label";
+      transitionLabel.textContent = "Transition";
 
-      const transitionInput = document.createElement('input');
-      transitionInput.type = 'number';
-      transitionInput.className = 'keyframe-time-input keyframe-transition-input';
-      transitionInput.min = '0';
-      transitionInput.step = '0.1';
+      const transitionInput = document.createElement("input");
+      transitionInput.type = "number";
+      transitionInput.className =
+        "keyframe-time-input keyframe-transition-input";
+      transitionInput.min = "0";
+      transitionInput.step = "0.1";
       transitionInput.value = Number.isFinite(state.transitionDuration)
         ? state.transitionDuration
         : DEFAULT_TRANSITION_DURATION;
-      transitionInput.title = 'Transition duration (s)';
+      transitionInput.title = "Transition duration (s)";
       if (index >= keyframes.length - 1) {
-        transitionInput.value = '0';
+        transitionInput.value = "0";
         transitionInput.disabled = true;
       }
-      transitionInput.addEventListener('change', () => {
+      transitionInput.addEventListener("change", () => {
         const next = Number.parseFloat(transitionInput.value);
         const safeValue = Number.isFinite(next) ? Math.max(0, next) : 0;
         const frame = normalizeKeyframe(keyframes[index]);
@@ -357,35 +375,40 @@ export function createKeyframeSystem({
       moveUpBtn.disabled = !hasSelection || activeKeyframeIndex <= 0;
     }
     if (moveDownBtn) {
-      moveDownBtn.disabled = !hasSelection || activeKeyframeIndex >= keyframes.length - 1;
+      moveDownBtn.disabled =
+        !hasSelection || activeKeyframeIndex >= keyframes.length - 1;
     }
     if (playBtn) {
       playBtn.disabled = keyframes.length === 0;
     }
     if (!hasSelection && transitionMenuEl) {
-      transitionMenuEl.style.display = 'none';
+      transitionMenuEl.style.display = "none";
     }
     if (hasSelection && transitionMenuEl) {
-      transitionMenuEl.style.display = '';
+      transitionMenuEl.style.display = "";
     }
   }
 
   function scrollToActiveKeyframe() {
     if (!listEl || activeKeyframeIndex === null) return;
-    const row = listEl.querySelector(`[data-keyframe-index="${activeKeyframeIndex}"]`);
+    const row = listEl.querySelector(
+      `[data-keyframe-index="${activeKeyframeIndex}"]`,
+    );
     if (!row) return;
-    row.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    row.scrollIntoView({ behavior: "smooth", block: "nearest" });
   }
 
   function stableStringify(value) {
     if (value === null || value === undefined) return String(value);
-    if (typeof value !== 'object') return JSON.stringify(value);
+    if (typeof value !== "object") return JSON.stringify(value);
     if (Array.isArray(value)) {
-      return `[${value.map((item) => stableStringify(item)).join(',')}]`;
+      return `[${value.map((item) => stableStringify(item)).join(",")}]`;
     }
     const keys = Object.keys(value).sort();
-    const pairs = keys.map((key) => `${JSON.stringify(key)}:${stableStringify(value[key])}`);
-    return `{${pairs.join(',')}}`;
+    const pairs = keys.map(
+      (key) => `${JSON.stringify(key)}:${stableStringify(value[key])}`,
+    );
+    return `{${pairs.join(",")}}`;
   }
 
   function isEqual(a, b) {
@@ -393,9 +416,13 @@ export function createKeyframeSystem({
   }
 
   function getChangedItems(index) {
-    if (!Number.isInteger(index) || index < 0 || index >= keyframes.length) return [];
+    if (!Number.isInteger(index) || index < 0 || index >= keyframes.length)
+      return [];
     const current = normalizeKeyframe(keyframes[index]);
-    const next = index < keyframes.length - 1 ? normalizeKeyframe(keyframes[index + 1]) : null;
+    const next =
+      index < keyframes.length - 1
+        ? normalizeKeyframe(keyframes[index + 1])
+        : null;
 
     const changed = [];
     const pushIfChanged = (key, label, currentValue, nextValue) => {
@@ -405,28 +432,28 @@ export function createKeyframeSystem({
       }
     };
 
-    pushIfChanged('camera', 'Camera', current.camera, next?.camera);
-    pushIfChanged('lights', 'Lighting', current.lights, next?.lights);
-    pushIfChanged('models', 'Models', current.models, next?.models);
+    pushIfChanged("camera", "Camera", current.camera, next?.camera);
+    pushIfChanged("lights", "Lighting", current.lights, next?.lights);
+    pushIfChanged("models", "Models", current.models, next?.models);
     return changed;
   }
 
   function renderTransitionMenu() {
     if (!transitionMenuListEl || activeKeyframeIndex === null) return;
     if (activeKeyframeIndex >= keyframes.length - 1) {
-      transitionMenuListEl.innerHTML = '';
-      const note = document.createElement('div');
-      note.className = 'transition-item';
-      note.textContent = 'No transition after the last keyframe.';
+      transitionMenuListEl.innerHTML = "";
+      const note = document.createElement("div");
+      note.className = "transition-item";
+      note.textContent = "No transition after the last keyframe.";
       transitionMenuListEl.appendChild(note);
       return;
     }
-    transitionMenuListEl.innerHTML = '';
+    transitionMenuListEl.innerHTML = "";
     const items = getChangedItems(activeKeyframeIndex);
     if (items.length === 0) {
-      const empty = document.createElement('div');
-      empty.className = 'transition-item';
-      empty.textContent = 'No changes detected.';
+      const empty = document.createElement("div");
+      empty.className = "transition-item";
+      empty.textContent = "No changes detected.";
       transitionMenuListEl.appendChild(empty);
       return;
     }
@@ -436,31 +463,31 @@ export function createKeyframeSystem({
     keyframes[activeKeyframeIndex] = frame;
 
     const options = [
-      { value: 'start', label: 'On start' },
-      { value: 'middle', label: 'In middle' },
-      { value: 'end', label: 'On end' },
-      { value: 'linear', label: 'Linear' },
-      { value: 's-curve', label: 'S-curve' },
+      { value: "start", label: "On start" },
+      { value: "middle", label: "In middle" },
+      { value: "end", label: "On end" },
+      { value: "linear", label: "Linear" },
+      { value: "s-curve", label: "S-curve" },
     ];
 
     items.forEach(({ key, label }) => {
-      const row = document.createElement('div');
-      row.className = 'transition-item';
+      const row = document.createElement("div");
+      row.className = "transition-item";
 
-      const name = document.createElement('label');
+      const name = document.createElement("label");
       name.textContent = label;
 
-      const select = document.createElement('select');
+      const select = document.createElement("select");
       const entry = getTransitionEntry(frame, key);
-      const current = entry.type || 'linear';
+      const current = entry.type || "linear";
       options.forEach((opt) => {
-        const option = document.createElement('option');
+        const option = document.createElement("option");
         option.value = opt.value;
         option.textContent = opt.label;
         if (opt.value === current) option.selected = true;
         select.appendChild(option);
       });
-      select.addEventListener('change', () => {
+      select.addEventListener("change", () => {
         const updated = normalizeKeyframe(keyframes[activeKeyframeIndex]);
         updated.transitions = updated.transitions || {};
         updated.transitions[key] = {
@@ -472,35 +499,38 @@ export function createKeyframeSystem({
         renderTransitionMenu();
       });
 
-      const curveWrap = document.createElement('div');
-      curveWrap.className = 'transition-curve';
+      const curveWrap = document.createElement("div");
+      curveWrap.className = "transition-curve";
       const width = 160;
       const height = 80;
-      const svgNS = 'http://www.w3.org/2000/svg';
-      const svg = document.createElementNS(svgNS, 'svg');
-      svg.setAttribute('viewBox', `0 0 ${width} ${height}`);
-      svg.setAttribute('width', String(width));
-      svg.setAttribute('height', String(height));
+      const svgNS = "http://www.w3.org/2000/svg";
+      const svg = document.createElementNS(svgNS, "svg");
+      svg.setAttribute("viewBox", `0 0 ${width} ${height}`);
+      svg.setAttribute("width", String(width));
+      svg.setAttribute("height", String(height));
 
-      const axis = document.createElementNS(svgNS, 'path');
-      axis.setAttribute('d', `M5 ${height - 5} L${width - 5} ${height - 5} M5 ${height - 5} L5 5`);
-      axis.setAttribute('stroke', 'currentColor');
-      axis.setAttribute('stroke-width', '1');
-      axis.setAttribute('opacity', '0.3');
-      axis.setAttribute('fill', 'none');
+      const axis = document.createElementNS(svgNS, "path");
+      axis.setAttribute(
+        "d",
+        `M5 ${height - 5} L${width - 5} ${height - 5} M5 ${height - 5} L5 5`,
+      );
+      axis.setAttribute("stroke", "currentColor");
+      axis.setAttribute("stroke-width", "1");
+      axis.setAttribute("opacity", "0.3");
+      axis.setAttribute("fill", "none");
       svg.appendChild(axis);
 
-      const curvePath = document.createElementNS(svgNS, 'path');
-      curvePath.setAttribute('stroke', 'currentColor');
-      curvePath.setAttribute('stroke-width', '2');
-      curvePath.setAttribute('fill', 'none');
+      const curvePath = document.createElementNS(svgNS, "path");
+      curvePath.setAttribute("stroke", "currentColor");
+      curvePath.setAttribute("stroke-width", "2");
+      curvePath.setAttribute("fill", "none");
       svg.appendChild(curvePath);
 
       const handles = [];
       for (let i = 1; i <= 3; i += 1) {
-        const handle = document.createElementNS(svgNS, 'circle');
-        handle.setAttribute('r', '4');
-        handle.setAttribute('fill', 'currentColor');
+        const handle = document.createElementNS(svgNS, "circle");
+        handle.setAttribute("r", "4");
+        handle.setAttribute("fill", "currentColor");
         svg.appendChild(handle);
         handles.push(handle);
       }
@@ -509,33 +539,38 @@ export function createKeyframeSystem({
         const points = normalizeCurvePoints(curve, current);
         const plot = points.map((p) => {
           const x = 5 + p.x * (width - 10);
-          const y = (height - 5) - clamp01(p.y) * (height - 10);
+          const y = height - 5 - clamp01(p.y) * (height - 10);
           return { x, y };
         });
-        const isStep = current === 'start' || current === 'middle' || current === 'end';
+        const isStep =
+          current === "start" || current === "middle" || current === "end";
         let segments = [];
         if (isStep) {
           const samples = 32;
           for (let i = 0; i <= samples; i += 1) {
             const t = i / samples;
-            const y = evaluateTransition({ transitions: { temp: { type: current } } }, 'temp', t);
+            const y = evaluateTransition(
+              { transitions: { temp: { type: current } } },
+              "temp",
+              t,
+            );
             const x = 5 + t * (width - 10);
-            const py = (height - 5) - y * (height - 10);
-            segments.push(`${i === 0 ? 'M' : 'L'}${x} ${py}`);
+            const py = height - 5 - y * (height - 10);
+            segments.push(`${i === 0 ? "M" : "L"}${x} ${py}`);
           }
         } else {
           const smooth = smoothCurvePoints(points, 3);
           segments = smooth.map((p, idx) => {
             const x = 5 + p.x * (width - 10);
-            const y = (height - 5) - clamp01(p.y) * (height - 10);
-            return `${idx === 0 ? 'M' : 'L'}${x} ${y}`;
+            const y = height - 5 - clamp01(p.y) * (height - 10);
+            return `${idx === 0 ? "M" : "L"}${x} ${y}`;
           });
         }
-        curvePath.setAttribute('d', segments.join(' '));
+        curvePath.setAttribute("d", segments.join(" "));
         handles.forEach((handle, idx) => {
           const pt = plot[idx + 1];
-          handle.setAttribute('cx', String(pt.x));
-          handle.setAttribute('cy', String(pt.y));
+          handle.setAttribute("cx", String(pt.x));
+          handle.setAttribute("cy", String(pt.y));
         });
       };
 
@@ -543,7 +578,10 @@ export function createKeyframeSystem({
         const updated = normalizeKeyframe(keyframes[activeKeyframeIndex]);
         updated.transitions = updated.transitions || {};
         const currentEntry = getTransitionEntry(updated, key);
-        const base = normalizeCurvePoints(currentEntry.curve || getPresetCurve(currentEntry.type || 'linear'), currentEntry.type || 'linear');
+        const base = normalizeCurvePoints(
+          currentEntry.curve || getPresetCurve(currentEntry.type || "linear"),
+          currentEntry.type || "linear",
+        );
         const nextPoints = base.map((p) => ({ x: p.x, y: p.y }));
         const idx = midIndex + 1;
         nextPoints[2].x = 0.5;
@@ -554,7 +592,7 @@ export function createKeyframeSystem({
         }
         nextPoints[idx].y = clamp01(cy);
         updated.transitions[key] = {
-          type: currentEntry.type || 'linear',
+          type: currentEntry.type || "linear",
           curve: { points: nextPoints },
         };
         keyframes[activeKeyframeIndex] = updated;
@@ -579,34 +617,40 @@ export function createKeyframeSystem({
       const onPointer = (event) => {
         const rect = svg.getBoundingClientRect();
         const px = clamp01((event.clientX - rect.left - 5) / (rect.width - 10));
-        const py = clamp01(1 - (event.clientY - rect.top - 5) / (rect.height - 10));
+        const py = clamp01(
+          1 - (event.clientY - rect.top - 5) / (rect.height - 10),
+        );
         const currentFrame = normalizeKeyframe(keyframes[activeKeyframeIndex]);
         const currentEntry = getTransitionEntry(currentFrame, key);
-        const points = normalizeCurvePoints(currentEntry.curve || getPresetCurve(currentEntry.type || 'linear'), currentEntry.type || 'linear');
+        const points = normalizeCurvePoints(
+          currentEntry.curve || getPresetCurve(currentEntry.type || "linear"),
+          currentEntry.type || "linear",
+        );
         const midIndex = pickMidIndex(px, points);
         applyCurveChange(midIndex, px, py);
       };
 
       let dragging = false;
-      const isStepType = current === 'start' || current === 'middle' || current === 'end';
-      svg.style.opacity = isStepType ? '0.6' : '1';
-      svg.style.pointerEvents = isStepType ? 'none' : 'auto';
+      const isStepType =
+        current === "start" || current === "middle" || current === "end";
+      svg.style.opacity = isStepType ? "0.6" : "1";
+      svg.style.pointerEvents = isStepType ? "none" : "auto";
 
-      svg.addEventListener('pointerdown', (event) => {
+      svg.addEventListener("pointerdown", (event) => {
         if (isStepType) return;
         dragging = true;
         svg.setPointerCapture(event.pointerId);
         onPointer(event);
       });
-      svg.addEventListener('pointermove', (event) => {
+      svg.addEventListener("pointermove", (event) => {
         if (!dragging || isStepType) return;
         onPointer(event);
       });
-      svg.addEventListener('pointerup', (event) => {
+      svg.addEventListener("pointerup", (event) => {
         dragging = false;
         svg.releasePointerCapture(event.pointerId);
       });
-      svg.addEventListener('pointerleave', () => {
+      svg.addEventListener("pointerleave", () => {
         dragging = false;
       });
 
@@ -635,8 +679,8 @@ export function createKeyframeSystem({
         : [];
       const nextDirectional = templateState.directional.map((tpl, idx) => {
         const current = currentDirectional[idx];
-        const tplType = tpl?.type || 'directional';
-        const currentType = current?.type || 'directional';
+        const tplType = tpl?.type || "directional";
+        const currentType = current?.type || "directional";
         if (current && currentType === tplType) {
           return { ...tpl, ...current, type: tplType };
         }
@@ -662,7 +706,10 @@ export function createKeyframeSystem({
   function ensureKeyframeLightSnapshots() {
     if (!lightSystemRef) return;
     const templateState = lightSystemRef.getLightState();
-    const templateAmbient = templateState?.ambient || { color: '#ffffff', intensity: 1.0 };
+    const templateAmbient = templateState?.ambient || {
+      color: "#ffffff",
+      intensity: 1.0,
+    };
     let updated = false;
     keyframes = keyframes.map((frame) => {
       const normalized = normalizeKeyframe(frame);
@@ -673,7 +720,9 @@ export function createKeyframeSystem({
           color: nextAmbient.color || templateAmbient.color,
           intensity: Number.isFinite(nextAmbient.intensity)
             ? nextAmbient.intensity
-            : (Number.isFinite(templateAmbient.intensity) ? templateAmbient.intensity : 1.0),
+            : Number.isFinite(templateAmbient.intensity)
+              ? templateAmbient.intensity
+              : 1.0,
         };
         normalized.lights = nextLights;
         updated = true;
@@ -692,7 +741,9 @@ export function createKeyframeSystem({
 
   function ensureKeyframeModelSnapshots() {
     if (!modelManagerRef) return;
-    const fallbackSnapshot = modelSelector ? ensureModelSnapshotByKey(modelSelector.getSelectionSnapshot()) : null;
+    const fallbackSnapshot = modelSelector
+      ? ensureModelSnapshotByKey(modelSelector.getSelectionSnapshot())
+      : null;
     let updated = false;
     keyframes = keyframes.map((frame) => {
       const normalized = normalizeKeyframe(frame);
@@ -716,7 +767,9 @@ export function createKeyframeSystem({
     keyframes.forEach((frame, index) => {
       const normalized = normalizeKeyframe(frame);
       normalized.holdDuration = normalizeDuration(normalized.holdDuration);
-      normalized.transitionDuration = Number.isFinite(normalized.transitionDuration)
+      normalized.transitionDuration = Number.isFinite(
+        normalized.transitionDuration,
+      )
         ? Math.max(0, normalized.transitionDuration)
         : 0;
       if (index >= keyframes.length - 1) {
@@ -728,20 +781,20 @@ export function createKeyframeSystem({
 
   function updatePlayButton() {
     if (!playBtn) return;
-    const icon = playBtn.querySelector('i');
-    const label = playBtn.querySelector('span');
+    const icon = playBtn.querySelector("i");
+    const label = playBtn.querySelector("span");
     if (isPlaying) {
       if (icon) {
-        icon.classList.remove('fa-play');
-        icon.classList.add('fa-pause');
+        icon.classList.remove("fa-play");
+        icon.classList.add("fa-pause");
       }
-      if (label) label.textContent = 'Pause';
+      if (label) label.textContent = "Pause";
     } else {
       if (icon) {
-        icon.classList.remove('fa-pause');
-        icon.classList.add('fa-play');
+        icon.classList.remove("fa-pause");
+        icon.classList.add("fa-play");
       }
-      if (label) label.textContent = 'Play';
+      if (label) label.textContent = "Play";
     }
   }
 
@@ -762,7 +815,7 @@ export function createKeyframeSystem({
   }
 
   function easeFor(type, t) {
-    if (type === 's-curve') {
+    if (type === "s-curve") {
       return t * t * (3 - 2 * t);
     }
     return t;
@@ -770,24 +823,24 @@ export function createKeyframeSystem({
 
   function getTransitionType(frame, key) {
     const entry = frame?.transitions?.[key];
-    if (!entry) return 'linear';
-    if (typeof entry === 'string') return entry;
-    return entry.type || 'linear';
+    if (!entry) return "linear";
+    if (typeof entry === "string") return entry;
+    return entry.type || "linear";
   }
 
   function getTransitionEntry(frame, key) {
     const entry = frame?.transitions?.[key];
-    if (!entry) return { type: 'linear', curve: null };
-    if (typeof entry === 'string') return { type: entry, curve: null };
+    if (!entry) return { type: "linear", curve: null };
+    if (typeof entry === "string") return { type: entry, curve: null };
     return {
-      type: entry.type || 'linear',
+      type: entry.type || "linear",
       curve: entry.curve || null,
     };
   }
 
   function getPresetCurve(type) {
     switch (type) {
-      case 'start':
+      case "start":
         return {
           points: [
             { x: 0, y: 0 },
@@ -797,7 +850,7 @@ export function createKeyframeSystem({
             { x: 1, y: 1 },
           ],
         };
-      case 'end':
+      case "end":
         return {
           points: [
             { x: 0, y: 0 },
@@ -807,7 +860,7 @@ export function createKeyframeSystem({
             { x: 1, y: 1 },
           ],
         };
-      case 's-curve':
+      case "s-curve":
         return {
           points: [
             { x: 0, y: 0 },
@@ -817,7 +870,7 @@ export function createKeyframeSystem({
             { x: 1, y: 1 },
           ],
         };
-      case 'middle':
+      case "middle":
         return {
           points: [
             { x: 0, y: 0 },
@@ -827,7 +880,7 @@ export function createKeyframeSystem({
             { x: 1, y: 1 },
           ],
         };
-      case 'linear':
+      case "linear":
       default:
         return {
           points: [
@@ -848,11 +901,12 @@ export function createKeyframeSystem({
   function catmullRom(p0, p1, p2, p3, t) {
     const t2 = t * t;
     const t3 = t2 * t;
-    return 0.5 * (
-      (2 * p1) +
-      (-p0 + p2) * t +
-      (2 * p0 - 5 * p1 + 4 * p2 - p3) * t2 +
-      (-p0 + 3 * p1 - 3 * p2 + p3) * t3
+    return (
+      0.5 *
+      (2 * p1 +
+        (-p0 + p2) * t +
+        (2 * p0 - 5 * p1 + 4 * p2 - p3) * t2 +
+        (-p0 + 3 * p1 - 3 * p2 + p3) * t3)
     );
   }
 
@@ -864,8 +918,14 @@ export function createKeyframeSystem({
       for (let j = 0; j < current.length - 1; j += 1) {
         const p0 = current[j];
         const p1 = current[j + 1];
-        const q = { x: 0.75 * p0.x + 0.25 * p1.x, y: 0.75 * p0.y + 0.25 * p1.y };
-        const r = { x: 0.25 * p0.x + 0.75 * p1.x, y: 0.25 * p0.y + 0.75 * p1.y };
+        const q = {
+          x: 0.75 * p0.x + 0.25 * p1.x,
+          y: 0.75 * p0.y + 0.25 * p1.y,
+        };
+        const r = {
+          x: 0.25 * p0.x + 0.75 * p1.x,
+          y: 0.25 * p0.y + 0.75 * p1.y,
+        };
         next.push(q, r);
       }
       next.push(current[current.length - 1]);
@@ -880,7 +940,7 @@ export function createKeyframeSystem({
       return fallback.map((p) => ({ x: p.x, y: p.y }));
     }
     const normalized = curve.points.map((p, idx) => {
-      if (typeof p === 'number') {
+      if (typeof p === "number") {
         return { x: fallback[idx].x, y: clamp01(p) };
       }
       return {
@@ -898,11 +958,14 @@ export function createKeyframeSystem({
 
   function evaluateTransition(frame, key, t) {
     const entry = getTransitionEntry(frame, key);
-    if (entry.type === 'start') return t <= 0 ? 0 : 1;
-    if (entry.type === 'middle') return t < 0.5 ? 0 : 1;
-    if (entry.type === 'end') return t < 1 ? 0 : 1;
+    if (entry.type === "start") return t <= 0 ? 0 : 1;
+    if (entry.type === "middle") return t < 0.5 ? 0 : 1;
+    if (entry.type === "end") return t < 1 ? 0 : 1;
 
-    const points = normalizeCurvePoints(entry.curve || getPresetCurve(entry.type), entry.type);
+    const points = normalizeCurvePoints(
+      entry.curve || getPresetCurve(entry.type),
+      entry.type,
+    );
     const smoothPoints = smoothCurvePoints(points, 3);
     const xs = smoothPoints.map((p) => p.x);
     const values = smoothPoints.map((p) => p.y);
@@ -926,9 +989,17 @@ export function createKeyframeSystem({
 
   function interpolateCameraState(start, end, t) {
     const startPos = new THREE.Vector3(start.pos.x, start.pos.y, start.pos.z);
-    const startTarget = new THREE.Vector3(start.target.x, start.target.y, start.target.z);
+    const startTarget = new THREE.Vector3(
+      start.target.x,
+      start.target.y,
+      start.target.z,
+    );
     const endPos = new THREE.Vector3(end.pos.x, end.pos.y, end.pos.z);
-    const endTarget = new THREE.Vector3(end.target.x, end.target.y, end.target.z);
+    const endTarget = new THREE.Vector3(
+      end.target.x,
+      end.target.y,
+      end.target.z,
+    );
 
     const startDir = startPos.clone().sub(startTarget);
     const endDir = endPos.clone().sub(endTarget);
@@ -950,8 +1021,8 @@ export function createKeyframeSystem({
       target: { x: target.x, y: target.y, z: target.z },
       roll: (start.roll || 0) + ((end.roll || 0) - (start.roll || 0)) * t,
       fov: (start.fov || 0) + ((end.fov || 0) - (start.fov || 0)) * t,
-      mode: end.mode || start.mode || 'perspective',
-      controlType: end.controlType || start.controlType || 'orbit',
+      mode: end.mode || start.mode || "perspective",
+      controlType: end.controlType || start.controlType || "orbit",
     };
   }
 
@@ -962,7 +1033,7 @@ export function createKeyframeSystem({
     const checked = Object.prototype.hasOwnProperty.call(snapshot.models, cb.id)
       ? snapshot.models[cb.id]
       : cb.checked;
-    const groups = (cb.dataset.groups || '').split('|').filter(Boolean);
+    const groups = (cb.dataset.groups || "").split("|").filter(Boolean);
     const groupsOn = groups.every((groupId) => {
       if (!snapshot.groups) return true;
       if (Object.prototype.hasOwnProperty.call(snapshot.groups, groupId)) {
@@ -974,8 +1045,8 @@ export function createKeyframeSystem({
   }
 
   function buildModelKey(entry) {
-    const type = (entry?.type || 'unknown').toLowerCase();
-    const id = entry?.id || entry?.name || 'unknown';
+    const type = (entry?.type || "unknown").toLowerCase();
+    const id = entry?.id || entry?.name || "unknown";
     return `${type}|${id}`;
   }
 
@@ -989,15 +1060,22 @@ export function createKeyframeSystem({
       const key = buildModelKey(entry);
       const existing = byKey[key] || {};
       const versionFromSnapshot = snapshot.versions?.[`glb_ver_${idx}`];
-      const hasModelOverride = snapshot.models && Object.prototype.hasOwnProperty.call(snapshot.models, `glb_cb_${idx}`);
-      const hasIndexVisibility = hasModelOverride || (!hasByKey && groupEntries.length > 0);
-      const visibleFromSnapshot = hasIndexVisibility ? getModelVisibilityFromSnapshot(snapshot, idx) : undefined;
-      const nextVisible = visibleFromSnapshot !== undefined
-        ? !!visibleFromSnapshot
-        : (existing.visible !== undefined ? !!existing.visible : undefined);
-      const nextVersion = versionFromSnapshot
-        || existing.version
-        || entry?.versionId;
+      const hasModelOverride =
+        snapshot.models &&
+        Object.prototype.hasOwnProperty.call(snapshot.models, `glb_cb_${idx}`);
+      const hasIndexVisibility =
+        hasModelOverride || (!hasByKey && groupEntries.length > 0);
+      const visibleFromSnapshot = hasIndexVisibility
+        ? getModelVisibilityFromSnapshot(snapshot, idx)
+        : undefined;
+      const nextVisible =
+        visibleFromSnapshot !== undefined
+          ? !!visibleFromSnapshot
+          : existing.visible !== undefined
+            ? !!existing.visible
+            : undefined;
+      const nextVersion =
+        versionFromSnapshot || existing.version || entry?.versionId;
       if (nextVisible === undefined && nextVersion === undefined) return;
       byKey[key] = {
         visible: nextVisible !== undefined ? !!nextVisible : true,
@@ -1044,12 +1122,17 @@ export function createKeyframeSystem({
 
   function getModelVersionFromSnapshot(snapshot, idx) {
     const selectId = `glb_ver_${idx}`;
-    if (snapshot?.versions && Object.prototype.hasOwnProperty.call(snapshot.versions, selectId)) {
+    if (
+      snapshot?.versions &&
+      Object.prototype.hasOwnProperty.call(snapshot.versions, selectId)
+    ) {
       return snapshot.versions[selectId];
     }
     const select = document.getElementById(selectId);
     if (select) return select.value;
-    return modelManagerRef?.getModelVersionId ? modelManagerRef.getModelVersionId(idx) : null;
+    return modelManagerRef?.getModelVersionId
+      ? modelManagerRef.getModelVersionId(idx)
+      : null;
   }
 
   function buildVisibilityMap(snapshot) {
@@ -1061,11 +1144,16 @@ export function createKeyframeSystem({
     return map;
   }
 
-  function applyModelTransition(startSnapshot, endSnapshot, t, transitionFrame) {
+  function applyModelTransition(
+    startSnapshot,
+    endSnapshot,
+    t,
+    transitionFrame,
+  ) {
     if (!modelManagerRef || !modelSelector) return;
     const startNormalized = normalizeModelSnapshot(startSnapshot);
     const endNormalized = normalizeModelSnapshot(endSnapshot);
-    const easedT = evaluateTransition(transitionFrame, 'models', t);
+    const easedT = evaluateTransition(transitionFrame, "models", t);
 
     const startMap = buildVisibilityMap(startNormalized);
     const endMap = buildVisibilityMap(endNormalized);
@@ -1084,12 +1172,15 @@ export function createKeyframeSystem({
       const endVisible = endMap.get(i);
       const startVersion = getModelVersionFromSnapshot(startNormalized, i);
       const endVersion = getModelVersionFromSnapshot(endNormalized, i);
-      const hasVersionChange = startVersion && endVersion && startVersion !== endVersion;
+      const hasVersionChange =
+        startVersion && endVersion && startVersion !== endVersion;
 
       if (modelManagerRef?.setModelVersionVisibilitySet) {
         let visibleVersions = [];
         if (startVisible && endVisible) {
-          visibleVersions = hasVersionChange ? [startVersion, endVersion] : [startVersion || endVersion];
+          visibleVersions = hasVersionChange
+            ? [startVersion, endVersion]
+            : [startVersion || endVersion];
         } else if (startVisible && !endVisible) {
           visibleVersions = startVersion ? [startVersion] : [];
         } else if (!startVisible && endVisible) {
@@ -1133,7 +1224,9 @@ export function createKeyframeSystem({
       suppressModelSelectionSave = true;
       modelSelector.applySelectionSnapshot(endNormalized, { persist: false });
       if (modelManagerRef?.setModelVersionSelections) {
-        modelManagerRef.setModelVersionSelections(endNormalized?.versions, { force: true });
+        modelManagerRef.setModelVersionSelections(endNormalized?.versions, {
+          force: true,
+        });
       }
       modelManagerRef.clearVisibilityOverrides();
       modelManagerRef.updateVisibility?.();
@@ -1146,15 +1239,23 @@ export function createKeyframeSystem({
   }
 
   function applyCameraTransition(startFrame, endFrame, t, transitionFrame) {
-    const easedT = evaluateTransition(transitionFrame, 'camera', t);
-    const interpolated = interpolateCameraState(startFrame.camera, endFrame.camera, easedT);
+    const easedT = evaluateTransition(transitionFrame, "camera", t);
+    const interpolated = interpolateCameraState(
+      startFrame.camera,
+      endFrame.camera,
+      easedT,
+    );
     cameraSystem.applyExternalCameraState(interpolated);
   }
 
   function applyLightingTransition(startFrame, endFrame, t, transitionFrame) {
     if (!lightSystemRef) return;
-    const easedT = evaluateTransition(transitionFrame, 'lights', t);
-    lightSystemRef.applyLightStateInterpolated(startFrame.lights, endFrame.lights, easedT);
+    const easedT = evaluateTransition(transitionFrame, "lights", t);
+    lightSystemRef.applyLightStateInterpolated(
+      startFrame.lights,
+      endFrame.lights,
+      easedT,
+    );
   }
 
   function applyFrameState(frame, { persist = false } = {}) {
@@ -1168,7 +1269,9 @@ export function createKeyframeSystem({
       const normalizedModels = normalizeModelSnapshot(frame.models);
       modelSelector.applySelectionSnapshot(normalizedModels, { persist });
       if (modelManagerRef?.setModelVersionSelections) {
-        modelManagerRef.setModelVersionSelections(normalizedModels?.versions, { force: true });
+        modelManagerRef.setModelVersionSelections(normalizedModels?.versions, {
+          force: true,
+        });
       }
     }
     if (modelManagerRef) {
@@ -1192,7 +1295,9 @@ export function createKeyframeSystem({
         frame.lights = cloneLightState(lightSystemRef.getLightState());
       }
       if (!frame.models && modelSelector) {
-        frame.models = ensureModelSnapshotByKey(modelSelector.getSelectionSnapshot());
+        frame.models = ensureModelSnapshotByKey(
+          modelSelector.getSelectionSnapshot(),
+        );
       } else if (frame.models) {
         frame.models = ensureModelSnapshotByKey(frame.models);
       }
@@ -1209,7 +1314,12 @@ export function createKeyframeSystem({
       }
       elapsed += holdMs;
 
-      const transitionMs = Math.max(0, (Number.isFinite(frame.transitionDuration) ? frame.transitionDuration : 0) * 1000);
+      const transitionMs = Math.max(
+        0,
+        (Number.isFinite(frame.transitionDuration)
+          ? frame.transitionDuration
+          : 0) * 1000,
+      );
       if (i < keyframes.length - 1) {
         const nextFrame = ensureFrameData(normalizeKeyframe(keyframes[i + 1]));
         if (clamped <= elapsed + transitionMs) {
@@ -1224,7 +1334,9 @@ export function createKeyframeSystem({
       elapsed += transitionMs;
     }
 
-    const lastFrame = ensureFrameData(normalizeKeyframe(keyframes[keyframes.length - 1]));
+    const lastFrame = ensureFrameData(
+      normalizeKeyframe(keyframes[keyframes.length - 1]),
+    );
     applyFrameState(lastFrame, { persist: false });
     suppressModelSelectionSave = prevSuppress;
   }
@@ -1239,7 +1351,9 @@ export function createKeyframeSystem({
       endFrame.lights = cloneLightState(startFrame.lights);
     }
     if (!startFrame.models && modelSelector) {
-      startFrame.models = ensureModelSnapshotByKey(modelSelector.getSelectionSnapshot());
+      startFrame.models = ensureModelSnapshotByKey(
+        modelSelector.getSelectionSnapshot(),
+      );
     }
     if (!endFrame.models && modelSelector) {
       endFrame.models = startFrame.models;
@@ -1255,7 +1369,7 @@ export function createKeyframeSystem({
       startTimeMs: nowMs,
       holdDurationMs: holdDuration * 1000,
       transitionDurationMs: transitionDuration * 1000,
-      phase: holdDuration > 0 ? 'hold' : 'transition',
+      phase: holdDuration > 0 ? "hold" : "transition",
       holdApplied: false,
       modelsStartApplied: false,
       modelsEndApplied: false,
@@ -1266,7 +1380,13 @@ export function createKeyframeSystem({
 
   function tickPlayback(nowMs) {
     if (!isPlaying || !playbackSegment) return;
-    const { fromIndex, toIndex, startTimeMs, holdDurationMs, transitionDurationMs } = playbackSegment;
+    const {
+      fromIndex,
+      toIndex,
+      startTimeMs,
+      holdDurationMs,
+      transitionDurationMs,
+    } = playbackSegment;
     const startFrame = normalizeKeyframe(keyframes[fromIndex]);
     const endFrame = normalizeKeyframe(keyframes[toIndex]);
     if (!startFrame.lights && lightSystemRef) {
@@ -1276,12 +1396,14 @@ export function createKeyframeSystem({
       endFrame.lights = cloneLightState(startFrame.lights);
     }
     if (!startFrame.models && modelSelector) {
-      startFrame.models = ensureModelSnapshotByKey(modelSelector.getSelectionSnapshot());
+      startFrame.models = ensureModelSnapshotByKey(
+        modelSelector.getSelectionSnapshot(),
+      );
     }
     if (!endFrame.models && modelSelector) {
       endFrame.models = startFrame.models;
     }
-    if (playbackSegment.phase === 'hold') {
+    if (playbackSegment.phase === "hold") {
       if (!playbackSegment.holdApplied) {
         if (startFrame.camera) {
           cameraSystem.applyExternalCameraState(startFrame.camera);
@@ -1290,12 +1412,14 @@ export function createKeyframeSystem({
           lightSystemRef.applyLightState(startFrame.lights);
         }
         if (startFrame.models && modelSelector) {
-          modelSelector.applySelectionSnapshot(startFrame.models, { persist: false });
+          modelSelector.applySelectionSnapshot(startFrame.models, {
+            persist: false,
+          });
         }
         playbackSegment.holdApplied = true;
       }
       if (holdDurationMs <= 0 || nowMs - startTimeMs >= holdDurationMs) {
-        playbackSegment.phase = 'transition';
+        playbackSegment.phase = "transition";
         playbackSegment.startTimeMs = nowMs;
       } else {
         playbackRaf = requestAnimationFrame(tickPlayback);
@@ -1304,9 +1428,10 @@ export function createKeyframeSystem({
     }
 
     const elapsed = nowMs - playbackSegment.startTimeMs;
-    const rawT = transitionDurationMs <= 0
-      ? 1
-      : Math.min(1, Math.max(0, elapsed / transitionDurationMs));
+    const rawT =
+      transitionDurationMs <= 0
+        ? 1
+        : Math.min(1, Math.max(0, elapsed / transitionDurationMs));
 
     applyCameraTransition(startFrame, endFrame, rawT, startFrame);
     applyLightingTransition(startFrame, endFrame, rawT, startFrame);
@@ -1331,7 +1456,8 @@ export function createKeyframeSystem({
     if (isPlaying) return;
     isPlaying = true;
     suppressModelSelectionSave = true;
-    playbackIndex = fromStart || activeKeyframeIndex === null ? 0 : activeKeyframeIndex;
+    playbackIndex =
+      fromStart || activeKeyframeIndex === null ? 0 : activeKeyframeIndex;
     if (playbackIndex >= keyframes.length - 1) {
       selectKeyframe(playbackIndex);
       stopPlayback();
@@ -1355,13 +1481,13 @@ export function createKeyframeSystem({
   function setPanelOpen(open) {
     isPanelOpen = !!open;
     if (panelEl) {
-      panelEl.style.display = isPanelOpen ? '' : 'none';
+      panelEl.style.display = isPanelOpen ? "" : "none";
     }
     if (panelBodyEl) {
-      panelBodyEl.style.display = '';
+      panelBodyEl.style.display = "";
     }
     if (toggleBtn) {
-      toggleBtn.classList.toggle('is-active', isPanelOpen);
+      toggleBtn.classList.toggle("is-active", isPanelOpen);
     }
     setModelSelectorLocation(isPanelOpen);
     if (!isPanelOpen) {
@@ -1386,40 +1512,55 @@ export function createKeyframeSystem({
     if (!modelSelectorContainerEl) return;
     if (!modelSelectorHomeParent) {
       modelSelectorHomeParent = modelSelectorContainerEl.parentElement;
-      modelSelectorHomeNextSibling = modelSelectorContainerEl.nextElementSibling;
+      modelSelectorHomeNextSibling =
+        modelSelectorContainerEl.nextElementSibling;
     }
     if (enabled && modelSelectorHostEl) {
       if (modelSelectorContainerEl.parentElement !== modelSelectorHostEl) {
         modelSelectorHostEl.appendChild(modelSelectorContainerEl);
       }
-      modelSelectorContainerEl.classList.add('is-in-dialog');
-      const form = modelSelectorContainerEl.querySelector('form');
-      if (form) form.style.display = '';
+      modelSelectorContainerEl.classList.add("is-in-dialog");
+      const form = modelSelectorContainerEl.querySelector("form");
+      if (form) form.style.display = "";
     } else if (!enabled && modelSelectorHomeParent) {
       if (modelSelectorContainerEl.parentElement !== modelSelectorHomeParent) {
-        if (modelSelectorHomeNextSibling && modelSelectorHomeNextSibling.parentElement === modelSelectorHomeParent) {
-          modelSelectorHomeParent.insertBefore(modelSelectorContainerEl, modelSelectorHomeNextSibling);
+        if (
+          modelSelectorHomeNextSibling &&
+          modelSelectorHomeNextSibling.parentElement === modelSelectorHomeParent
+        ) {
+          modelSelectorHomeParent.insertBefore(
+            modelSelectorContainerEl,
+            modelSelectorHomeNextSibling,
+          );
         } else {
           modelSelectorHomeParent.appendChild(modelSelectorContainerEl);
         }
       }
-      modelSelectorContainerEl.classList.remove('is-in-dialog');
+      modelSelectorContainerEl.classList.remove("is-in-dialog");
     }
   }
 
   function selectKeyframe(index, options = {}) {
-    if (!Number.isInteger(index) || index < 0 || index >= keyframes.length) return;
+    if (!Number.isInteger(index) || index < 0 || index >= keyframes.length)
+      return;
     const applyState = options.applyState !== false;
     if (activeKeyframeIndex === null && lightSystemRef) {
-      globalLightStateBeforeKeyframe = cloneLightState(lightSystemRef.getLightState());
+      globalLightStateBeforeKeyframe = cloneLightState(
+        lightSystemRef.getLightState(),
+      );
     }
     if (activeKeyframeIndex === null && modelSelector) {
-      globalModelSelectionBeforeKeyframe = ensureModelSnapshotByKey(modelSelector.getSelectionSnapshot(), { keepIndices: true });
+      globalModelSelectionBeforeKeyframe = ensureModelSnapshotByKey(
+        modelSelector.getSelectionSnapshot(),
+        { keepIndices: true },
+      );
     }
     activeKeyframeIndex = index;
     const frame = normalizeKeyframe(keyframes[index]);
     keyframes[index] = frame;
-    cameraSystem.setDirtyStateProvider(() => keyframes[activeKeyframeIndex]?.camera || null);
+    cameraSystem.setDirtyStateProvider(
+      () => keyframes[activeKeyframeIndex]?.camera || null,
+    );
     cameraSystem.setSuppressActiveCameraHighlight(true);
     if (applyState) {
       if (frame.camera) {
@@ -1432,7 +1573,10 @@ export function createKeyframeSystem({
         const normalizedModels = normalizeModelSnapshot(frame.models);
         modelSelector.applySelectionSnapshot(normalizedModels);
         if (modelManagerRef?.setModelVersionSelections) {
-          modelManagerRef.setModelVersionSelections(normalizedModels?.versions, { force: true });
+          modelManagerRef.setModelVersionSelections(
+            normalizedModels?.versions,
+            { force: true },
+          );
         }
       }
     }
@@ -1458,7 +1602,7 @@ export function createKeyframeSystem({
     }
     globalModelSelectionBeforeKeyframe = null;
     if (transitionMenuEl) {
-      transitionMenuEl.style.display = 'none';
+      transitionMenuEl.style.display = "none";
     }
     saveKeyframes();
   }
@@ -1466,12 +1610,12 @@ export function createKeyframeSystem({
   function setKeyframes(nextFrames = []) {
     keyframes = Array.isArray(nextFrames)
       ? nextFrames.map((frame) => {
-        const normalized = normalizeKeyframe(frame);
-        if (normalized.models) {
-          normalized.models = ensureModelSnapshotByKey(normalized.models);
-        }
-        return normalized;
-      })
+          const normalized = normalizeKeyframe(frame);
+          if (normalized.models) {
+            normalized.models = ensureModelSnapshotByKey(normalized.models);
+          }
+          return normalized;
+        })
       : [];
     activeKeyframeIndex = null;
     enforceKeyframeDurations();
@@ -1492,8 +1636,12 @@ export function createKeyframeSystem({
 
   function addKeyframe() {
     const state = cameraSystem.getCameraState();
-    const lights = lightSystemRef ? cloneLightState(lightSystemRef.getLightState()) : null;
-    const models = modelSelector ? ensureModelSnapshotByKey(modelSelector.getSelectionSnapshot()) : null;
+    const lights = lightSystemRef
+      ? cloneLightState(lightSystemRef.getLightState())
+      : null;
+    const models = modelSelector
+      ? ensureModelSnapshotByKey(modelSelector.getSelectionSnapshot())
+      : null;
     keyframes.push({
       camera: state,
       lights,
@@ -1546,7 +1694,8 @@ export function createKeyframeSystem({
 
   function removeActiveKeyframe() {
     if (activeKeyframeIndex === null) return;
-    if (activeKeyframeIndex < 0 || activeKeyframeIndex >= keyframes.length) return;
+    if (activeKeyframeIndex < 0 || activeKeyframeIndex >= keyframes.length)
+      return;
     keyframes.splice(activeKeyframeIndex, 1);
     enforceKeyframeDurations();
     if (keyframes.length === 0) {
@@ -1572,7 +1721,9 @@ export function createKeyframeSystem({
     if (activeKeyframeIndex === null) return false;
     const frame = normalizeKeyframe(keyframes[activeKeyframeIndex]);
     frame.camera = cameraSystem.getCameraState();
-    frame.models = modelSelector ? ensureModelSnapshotByKey(modelSelector.getSelectionSnapshot()) : frame.models;
+    frame.models = modelSelector
+      ? ensureModelSnapshotByKey(modelSelector.getSelectionSnapshot())
+      : frame.models;
     if (lightSystemRef) {
       frame.lights = cloneLightState(lightSystemRef.getLightState());
     }
@@ -1586,11 +1737,14 @@ export function createKeyframeSystem({
   loadKeyframes();
   ensureKeyframeModelSnapshots();
   if (activeKeyframeIndex !== null) {
-    cameraSystem.setDirtyStateProvider(() => keyframes[activeKeyframeIndex]?.camera || null);
+    cameraSystem.setDirtyStateProvider(
+      () => keyframes[activeKeyframeIndex]?.camera || null,
+    );
   }
 
   function openEditor(index) {
-    if (!Number.isInteger(index) || index < 0 || index >= keyframes.length) return;
+    if (!Number.isInteger(index) || index < 0 || index >= keyframes.length)
+      return;
     if (!lightSystemRef || !settingsDialogEl) {
       selectKeyframe(index);
       return;
@@ -1601,7 +1755,9 @@ export function createKeyframeSystem({
       frame.lights = cloneLightState(lightSystemRef.getLightState());
     }
     if (!frame.models && modelSelector) {
-      frame.models = ensureModelSnapshotByKey(modelSelector.getSelectionSnapshot());
+      frame.models = ensureModelSnapshotByKey(
+        modelSelector.getSelectionSnapshot(),
+      );
     }
 
     isEditing = true;
@@ -1610,11 +1766,15 @@ export function createKeyframeSystem({
     prevLightState = cloneLightState(lightSystemRef.getLightState());
 
     activeKeyframeIndex = index;
-    cameraSystem.setDirtyStateProvider(() => keyframes[activeKeyframeIndex]?.camera || null);
+    cameraSystem.setDirtyStateProvider(
+      () => keyframes[activeKeyframeIndex]?.camera || null,
+    );
     cameraSystem.applyExternalCameraState(frame.camera);
     lightSystemRef.applyLightState(frame.lights);
     if (frame.models && modelSelector) {
-      modelSelector.applySelectionSnapshot(normalizeModelSnapshot(frame.models));
+      modelSelector.applySelectionSnapshot(
+        normalizeModelSnapshot(frame.models),
+      );
     }
 
     cameraSystem.syncCameraInputs();
@@ -1625,7 +1785,7 @@ export function createKeyframeSystem({
 
     if (settingsDialogEl) {
       if (!settingsTitleEl) {
-        settingsTitleEl = settingsDialogEl.querySelector('.modal-header h3');
+        settingsTitleEl = settingsDialogEl.querySelector(".modal-header h3");
       }
       if (settingsTitleEl) {
         prevTitleText = settingsTitleEl.textContent;
@@ -1635,53 +1795,63 @@ export function createKeyframeSystem({
 
       hiddenTabButtons = [];
       hiddenTabPanels = [];
-      const tabButtons = settingsDialogEl.querySelectorAll('.tab-btn');
-      const tabPanels = settingsDialogEl.querySelectorAll('.tab-panel');
+      const tabButtons = settingsDialogEl.querySelectorAll(".tab-btn");
+      const tabPanels = settingsDialogEl.querySelectorAll(".tab-panel");
       tabButtons.forEach((btn) => {
-        if (btn.dataset.tab === 'general' || btn.dataset.tab === 'appearance') {
+        if (btn.dataset.tab === "general" || btn.dataset.tab === "appearance") {
           hiddenTabButtons.push({ el: btn, display: btn.style.display });
-          btn.style.display = 'none';
+          btn.style.display = "none";
         }
-        if (btn.dataset.tab === 'keyframes' || btn.dataset.tab === 'keyframe-models') {
+        if (
+          btn.dataset.tab === "keyframes" ||
+          btn.dataset.tab === "keyframe-models"
+        ) {
           hiddenTabButtons.push({ el: btn, display: btn.style.display });
-          btn.style.display = '';
+          btn.style.display = "";
         }
       });
       tabPanels.forEach((panel) => {
-        if (panel.dataset.tabPanel === 'general' || panel.dataset.tabPanel === 'appearance') {
+        if (
+          panel.dataset.tabPanel === "general" ||
+          panel.dataset.tabPanel === "appearance"
+        ) {
           hiddenTabPanels.push({ el: panel, display: panel.style.display });
-          panel.style.display = 'none';
+          panel.style.display = "none";
         }
-        if (panel.dataset.tabPanel === 'keyframes' || panel.dataset.tabPanel === 'keyframe-models') {
+        if (
+          panel.dataset.tabPanel === "keyframes" ||
+          panel.dataset.tabPanel === "keyframe-models"
+        ) {
           hiddenTabPanels.push({ el: panel, display: panel.style.display });
-          panel.style.display = '';
+          panel.style.display = "";
         }
       });
     }
 
     if (cameraListEl) {
       prevCameraListDisplay = cameraListEl.style.display;
-      cameraListEl.style.display = 'none';
+      cameraListEl.style.display = "none";
     }
     if (addCameraBtnSettingsEl) {
       prevAddCameraDisplay = addCameraBtnSettingsEl.style.display;
-      addCameraBtnSettingsEl.style.display = 'none';
+      addCameraBtnSettingsEl.style.display = "none";
     }
     if (removeCameraBtnSettingsEl) {
       prevRemoveCameraDisplay = removeCameraBtnSettingsEl.style.display;
-      removeCameraBtnSettingsEl.style.display = 'none';
+      removeCameraBtnSettingsEl.style.display = "none";
     }
 
     if (!cameraModeBtnEl && settingsDialogEl) {
-      cameraModeBtnEl = settingsDialogEl.querySelector('#cameraModeBtn');
+      cameraModeBtnEl = settingsDialogEl.querySelector("#cameraModeBtn");
     }
     if (cameraModeBtnEl) {
       prevCameraModeDisabled = cameraModeBtnEl.disabled;
       cameraModeBtnEl.disabled = index !== 0;
       if (index !== 0) {
-        cameraModeBtnEl.title = 'Camera mode can only be changed in keyframe 1.';
+        cameraModeBtnEl.title =
+          "Camera mode can only be changed in keyframe 1.";
       } else {
-        cameraModeBtnEl.title = 'Camera: Perspective/Ortho';
+        cameraModeBtnEl.title = "Camera: Perspective/Ortho";
       }
     }
 
@@ -1690,7 +1860,7 @@ export function createKeyframeSystem({
     }
 
     if (settingsSystemRef) {
-      settingsSystemRef.activateTab('keyframes');
+      settingsSystemRef.activateTab("keyframes");
     }
     lightSystemRef.setDialogOpen(true);
     renderList();
@@ -1701,7 +1871,13 @@ export function createKeyframeSystem({
     if (lightSystemRef?.setStructureEditable) {
       lightSystemRef.setStructureEditable(true);
     }
-    exitKeyframeEditing({ restoreCamera: false, restoreLights: false, restoreModels: false, clearKeyframeSelection: false, activateGlobalTab: false });
+    exitKeyframeEditing({
+      restoreCamera: false,
+      restoreLights: false,
+      restoreModels: false,
+      clearKeyframeSelection: false,
+      activateGlobalTab: false,
+    });
   }
 
   return {
@@ -1744,7 +1920,8 @@ export function createKeyframeSystem({
       playFromStartBtn = playFromStartButton || playFromStartBtn;
       transitionMenuEl = transitionMenu || transitionMenuEl;
       transitionMenuListEl = transitionMenuList || transitionMenuListEl;
-      modelSelectorContainerEl = modelSelectorContainer || modelSelectorContainerEl;
+      modelSelectorContainerEl =
+        modelSelectorContainer || modelSelectorContainerEl;
       modelSelectorHostEl = modelSelectorHost || modelSelectorHostEl;
       settingsDialogEl = dialog || settingsDialogEl;
       settingsDialogCloseBtn = dialogClose || settingsDialogCloseBtn;
@@ -1754,11 +1931,13 @@ export function createKeyframeSystem({
       modelManagerRef = modelManagerRefInput || modelManagerRef;
       cameraListEl = cameraList || cameraListEl;
       addCameraBtnSettingsEl = addCameraBtnSettings || addCameraBtnSettingsEl;
-      removeCameraBtnSettingsEl = removeCameraBtnSettings || removeCameraBtnSettingsEl;
+      removeCameraBtnSettingsEl =
+        removeCameraBtnSettings || removeCameraBtnSettingsEl;
 
       if (modelSelector && !selectionListenerAttached) {
         modelSelector.setSelectionChangeCallback((snapshot) => {
-          if (activeKeyframeIndex === null || suppressModelSelectionSave) return;
+          if (activeKeyframeIndex === null || suppressModelSelectionSave)
+            return;
           const frame = normalizeKeyframe(keyframes[activeKeyframeIndex]);
           frame.models = ensureModelSnapshotByKey(snapshot);
           keyframes[activeKeyframeIndex] = frame;
@@ -1777,37 +1956,37 @@ export function createKeyframeSystem({
       ensureKeyframeModelSnapshots();
 
       if (toggleBtn) {
-        toggleBtn.addEventListener('click', () => {
+        toggleBtn.addEventListener("click", () => {
           setPanelOpen(!isPanelOpen);
         });
       }
 
       if (addBtn) {
-        addBtn.addEventListener('click', () => {
+        addBtn.addEventListener("click", () => {
           addKeyframe();
         });
       }
 
       if (removeBtn) {
-        removeBtn.addEventListener('click', () => {
+        removeBtn.addEventListener("click", () => {
           removeActiveKeyframe();
         });
       }
 
       if (moveUpBtn) {
-        moveUpBtn.addEventListener('click', () => {
+        moveUpBtn.addEventListener("click", () => {
           moveActiveKeyframe(-1);
         });
       }
 
       if (moveDownBtn) {
-        moveDownBtn.addEventListener('click', () => {
+        moveDownBtn.addEventListener("click", () => {
           moveActiveKeyframe(1);
         });
       }
 
       if (playBtn) {
-        playBtn.addEventListener('click', () => {
+        playBtn.addEventListener("click", () => {
           if (isPlaying) {
             stopPlayback();
           } else {
@@ -1818,24 +1997,25 @@ export function createKeyframeSystem({
       }
 
       if (playFromStartBtn) {
-        playFromStartBtn.addEventListener('click', () => {
+        playFromStartBtn.addEventListener("click", () => {
           startPlaybackFromBeginning();
         });
       }
 
       if (transitionMenuEl) {
-        transitionMenuEl.style.display = activeKeyframeIndex === null ? 'none' : '';
+        transitionMenuEl.style.display =
+          activeKeyframeIndex === null ? "none" : "";
         renderTransitionMenu();
       }
 
       if (settingsDialogCloseBtn) {
-        settingsDialogCloseBtn.addEventListener('click', () => {
+        settingsDialogCloseBtn.addEventListener("click", () => {
           closeEditor();
         });
       }
 
       if (settingsDialogEl) {
-        settingsDialogEl.addEventListener('click', (event) => {
+        settingsDialogEl.addEventListener("click", (event) => {
           if (event.target === settingsDialogEl) {
             closeEditor();
           }
@@ -1865,11 +2045,13 @@ export function createKeyframeSystem({
       modelManagerRef = modelManagerRefInput || modelManagerRef;
       cameraListEl = cameraList || cameraListEl;
       addCameraBtnSettingsEl = addCameraBtnSettings || addCameraBtnSettingsEl;
-      removeCameraBtnSettingsEl = removeCameraBtnSettings || removeCameraBtnSettingsEl;
+      removeCameraBtnSettingsEl =
+        removeCameraBtnSettings || removeCameraBtnSettingsEl;
 
       if (modelSelector && !selectionListenerAttached) {
         modelSelector.setSelectionChangeCallback((snapshot) => {
-          if (activeKeyframeIndex === null || suppressModelSelectionSave) return;
+          if (activeKeyframeIndex === null || suppressModelSelectionSave)
+            return;
           const frame = normalizeKeyframe(keyframes[activeKeyframeIndex]);
           frame.models = ensureModelSnapshotByKey(snapshot);
           keyframes[activeKeyframeIndex] = frame;
@@ -1886,11 +2068,17 @@ export function createKeyframeSystem({
       const hasSaved = !!cameraSystem.getActiveCameraState();
       if (isHome || hasSaved) {
         if (isEditing) {
-          exitKeyframeEditing({ restoreCamera: false, restoreLights: true, restoreModels: true, clearKeyframeSelection: true, activateGlobalTab: true });
+          exitKeyframeEditing({
+            restoreCamera: false,
+            restoreLights: true,
+            restoreModels: true,
+            clearKeyframeSelection: true,
+            activateGlobalTab: true,
+          });
         } else if (activeKeyframeIndex !== null) {
           clearSelection();
           if (settingsSystemRef) {
-            settingsSystemRef.activateTab('general');
+            settingsSystemRef.activateTab("general");
           }
         }
       }
@@ -1905,15 +2093,18 @@ export function createKeyframeSystem({
     applyCameraModeToKeyframes,
     setKeyframes,
     resetKeyframes,
-    getKeyframes: () => keyframes.map((frame) => {
-      if (!frame) return frame;
-      const next = { ...frame };
-      if (next.models) {
-        next.models = ensureModelSnapshotByKey(next.models);
-      } else if (modelSelector) {
-        next.models = ensureModelSnapshotByKey(modelSelector.getSelectionSnapshot());
-      }
-      return next;
-    }),
+    getKeyframes: () =>
+      keyframes.map((frame) => {
+        if (!frame) return frame;
+        const next = { ...frame };
+        if (next.models) {
+          next.models = ensureModelSnapshotByKey(next.models);
+        } else if (modelSelector) {
+          next.models = ensureModelSnapshotByKey(
+            modelSelector.getSelectionSnapshot(),
+          );
+        }
+        return next;
+      }),
   };
 }

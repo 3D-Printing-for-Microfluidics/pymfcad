@@ -4,22 +4,27 @@ Module that provides 3D manifold shapes and transforms as well as polychannel (c
 
 from .color import Color
 from .manifold3d import (
-    set_fn,
-    Shape,
+    TPMS,
     Cube,
     Cylinder,
-    Sphere,
-    RoundedCube,
-    TextExtrusion,
     ImportModel,
-    TPMS,
+    RoundedCube,
+    Shape,
+    Sphere,
+    TextExtrusion,
     TPMSGrid,
+    set_fn,
 )
-from .render import render_component
-
-from .slice import slice_component, rle_decode_packed, rle_encode_packed, rle_is_all_non_zeros, rle_is_all_zeros
 from .polychannel import (
+    BezierCurveShape,
     Polychannel,
     PolychannelShape,
-    BezierCurveShape,
+)
+from .render import render_component
+from .slice import (
+    rle_decode_packed,
+    rle_encode_packed,
+    rle_is_all_non_zeros,
+    rle_is_all_zeros,
+    slice_component,
 )

@@ -2,7 +2,7 @@
 
 Prev: [Part 5: Modeling Introduction](5-modeling-introduction.md)
 
-This step starts the **Modeling** section. Thoughout the **Modeling** section you will build a device in small, readable chunks. In this step you learn about **basic shapes** as well as how **bulks** and **voids** work together.
+This step starts the **Modeling** section. Thoughout the **Modeling** section you will build a component in small, readable chunks. In this step you learn about **basic shapes** as well as how **bulks** and **voids** work together.
 
 The basic example is a **cube void inside a cube bulk**. Then we expand into a **shape gallery** that shows every supported shape type side‑by‑side.
 
@@ -29,19 +29,18 @@ index 0000000..1111111 100644
 +++ b/overlapping_shapes.py
 @@ -0 +1 @@
 +import pymfcad
++
 +# Import shapes
 +from pymfcad import (
 +    Cube,
 +    RoundedCube,
-+    Cylinder,
-+    Sphere,
 +)
     </script>
 </div>
 
-### Step 2 — Create a Device
+### Step 2 — Create a Component
 
-The `Device` is the sliceable 3D canvas that constrains your design to the printer's hardware limits. Its dimensions are defined by pixel counts (x,y), layer count (z), and physical resolution (pixel and layer size).
+Components are the basic building block in this package. They are defined by size [x,y,z] (where x and y are measured in pixels and z is in layers), and the physical resolution (pixel and layer size in mm). They can also contain sub-components as well, which we will get into later.
 
 <div class="diff2html-wrapper">
     <div class="diff2html"></div>
@@ -52,20 +51,16 @@ index 0000000..1111111 100644
 +++ b/overlapping_shapes.py
 @@ -1 +1 @@
  import pymfcad
+ 
  # Import shapes
  from pymfcad import (
      Cube,
      RoundedCube,
-     Cylinder,
-     Sphere,
  )
 +
-+# Initialize our Device, the "canvas" we work within
-+overlapping_shapes = pymfcad.Device(
-+    name="overlapping_shapes",
-+    position=[0,0,0],
-+    px_count=(300,300),
-+    layers=300,
++# Initialize our Component
++overlapping_shapes = pymfcad.Component(
++    size=[300, 300, 300],
 +    px_size=0.01,
 +    layer_size=0.01,
 +)
@@ -83,18 +78,18 @@ diff --git a/overlapping_shapes.py b/overlapping_shapes.py
 index 0000000..1111111 100644
 --- a/overlapping_shapes.py
 +++ b/overlapping_shapes.py
-@@ -11 +11 @@
- overlapping_shapes = pymfcad.Device(
-     name="overlapping_shapes",
-     position=[0,0,0],
-     px_count=(300,300),
-     layers=300,
+@@ -9 +9 @@
+ # Initialize our Component
+ overlapping_shapes = pymfcad.Component(
+     size=[300, 300, 300],
      px_size=0.01,
      layer_size=0.01,
  )
-+
++ 
 +# Create labels
-+overlapping_shapes.add_label("bulk", pymfcad.Color.from_name("aqua", 127)) # try changing the color and alpha values!
++overlapping_shapes.add_label(
++    "bulk", pymfcad.Color.from_name("aqua", 127)
++)  # try changing the color and alpha values!
 +overlapping_shapes.add_label("void", pymfcad.Color.from_rgba((0, 255, 0, 255)))
     </script>
 </div>
@@ -110,14 +105,16 @@ diff --git a/overlapping_shapes.py b/overlapping_shapes.py
 index 0000000..1111111 100644
 --- a/overlapping_shapes.py
 +++ b/overlapping_shapes.py
-@@ -20 +20 @@
+@@ -16 +16 @@
  # Create labels
- overlapping_shapes.add_label("bulk", pymfcad.Color.from_name("aqua", 127)) # try changing the color and alpha values!
+ overlapping_shapes.add_label(
+     "bulk", pymfcad.Color.from_name("aqua", 127)
+ )  # try changing the color and alpha values!
  overlapping_shapes.add_label("void", pymfcad.Color.from_rgba((0, 255, 0, 255)))
 +
 +# Make our shapes
-+inner_shape = RoundedCube(size=[200,200,200], radius=[30,30,30])
-+outer_shape = Cube(size=[300,300,300]) # try changing the size!
++inner_shape = RoundedCube(size=[200, 200, 200], radius=[30, 30, 30])
++outer_shape = Cube(size=[300, 300, 300])  # try changing the size!
     </script>
 </div>
 
@@ -132,19 +129,19 @@ diff --git a/overlapping_shapes.py b/overlapping_shapes.py
 index 0000000..1111111 100644
 --- a/overlapping_shapes.py
 +++ b/overlapping_shapes.py
-@@ -24 +24 @@
+@@ -22 +22 @@
  # Make our shapes
- inner_shape = RoundedCube(size=[200,200,200], radius=[30,30,30])
- outer_shape = Cube(size=[300,300,300]) # try changing the size!
+ inner_shape = RoundedCube(size=[200, 200, 200], radius=[30, 30, 30])
+ outer_shape = Cube(size=[300, 300, 300])  # try changing the size!
 +
 +# Move our inner shape
-+inner_shape.translate(translation=[50,50,50])
++inner_shape.translate(translation=[50, 50, 50])
     </script>
 </div>
 
 ### Step 6 — Add the bulk and void
 
-Bulks add material; voids remove material from bulks. The order doesn’t matter for previewing, but both must be added to the same device.
+Bulks add material; voids remove material from bulks. The order doesn’t matter for previewing, but both must be added to the same component.
 
 <div class="diff2html-wrapper">
     <div class="diff2html"></div>
@@ -153,19 +150,21 @@ diff --git a/overlapping_shapes.py b/overlapping_shapes.py
 index 0000000..1111111 100644
 --- a/overlapping_shapes.py
 +++ b/overlapping_shapes.py
-@@ -28 +28 @@
+@@ -26 +26 @@
  # Move our inner shape
- inner_shape.translate(translation=[50,50,50])
+ inner_shape.translate(translation=[50, 50, 50])
 +
-+# Add shapes to the Device
-+overlapping_shapes.add_void("inner", inner_shape, "void") # Name of shape, the shape itself (variable name), and label
++# Add shapes to the Component
++overlapping_shapes.add_void(
++    "inner", inner_shape, "void"
++)  # Name of shape, the shape itself (variable name), and label
 +overlapping_shapes.add_bulk("outer", outer_shape, "bulk")
     </script>
 </div>
 
 ### Step 7 — Preview the result
 
-Send the device to the visualizer so you can inspect it.
+Send the component to the visualizer so you can inspect it.
 
 <div class="diff2html-wrapper">
     <div class="diff2html"></div>
@@ -174,9 +173,11 @@ diff --git a/overlapping_shapes.py b/overlapping_shapes.py
 index 0000000..1111111 100644
 --- a/overlapping_shapes.py
 +++ b/overlapping_shapes.py
-@@ -31 +31 @@
- # Add shapes to the Device
- overlapping_shapes.add_void("inner", inner_shape, "void") # Name of shape, the shape itself (variable name), and label
+@@ -29 +29 @@
+ # Add shapes to the Component
+ overlapping_shapes.add_void(
+     "inner", inner_shape, "void"
+ )  # Name of shape, the shape itself (variable name), and label
  overlapping_shapes.add_bulk("outer", outer_shape, "bulk")
 +
 +# Send to visualizer for preview
@@ -184,7 +185,13 @@ index 0000000..1111111 100644
     </script>
 </div>
 
-![Cube in cube](resources/6/6-1.png)
+<img
+    class="theme-aware-image"
+    alt="Cube in cube"
+    src="resources/6/6-1_dark.png"
+    data-light-src="resources/6/6-1_light.png"
+    data-dark-src="resources/6/6-1_dark.png"
+/>
 
 ### Full cube-in-cube example
 
@@ -197,37 +204,37 @@ index 0000000..1111111 100644
 +++ b/shape_gallery.py
 @@ -1 +1 @@
  import pymfcad
+ 
  # Import shapes
  from pymfcad import (
      Cube,
      RoundedCube,
-     Cylinder,
-     Sphere,
  )
-
- # Initialize our Device, the "canvas" we work within
- overlapping_shapes = pymfcad.Device(
-     name="overlapping_shapes",
-     position=[0,0,0],
-     px_count=(300,300),
-     layers=300,
+ 
+ # Initialize our Component
+ overlapping_shapes = pymfcad.Component(
+     size=[300, 300, 300],
      px_size=0.01,
      layer_size=0.01,
  )
  
  # Create labels
- overlapping_shapes.add_label("bulk", pymfcad.Color.from_name("aqua", 127)) # try changing the color and alpha values!
+ overlapping_shapes.add_label(
+     "bulk", pymfcad.Color.from_name("aqua", 127)
+ )  # try changing the color and alpha values!
  overlapping_shapes.add_label("void", pymfcad.Color.from_rgba((0, 255, 0, 255)))
  
  # Make our shapes
- inner_shape = RoundedCube(size=[200,200,200], radius=[30,30,30])
- outer_shape = Cube(size=[300,300,300]) # try changing the size!
+ inner_shape = RoundedCube(size=[200, 200, 200], radius=[30, 30, 30])
+ outer_shape = Cube(size=[300, 300, 300])  # try changing the size!
  
  # Move our inner shape
- inner_shape.translate(translation=[50,50,50])
+ inner_shape.translate(translation=[50, 50, 50])
  
- # Add shapes to the Device
- overlapping_shapes.add_void("inner", inner_shape, "void") # Name of shape, the shape itself (variable name), and label
+ # Add shapes to the Component
+ overlapping_shapes.add_void(
+     "inner", inner_shape, "void"
+ )  # Name of shape, the shape itself (variable name), and label
  overlapping_shapes.add_bulk("outer", outer_shape, "bulk")
  
  # Send to visualizer for preview
@@ -252,22 +259,23 @@ index 0000000..1111111 100644
 +++ b/shape_gallery.py
 @@ -0 +1 @@
 +import pymfcad
++
 +# Import shapes
 +from pymfcad import (
++    TPMS,
 +    Cube,
-+    RoundedCube,
 +    Cylinder,
++    ImportModel,
++    RoundedCube,
 +    Sphere,
 +    TextExtrusion,
-+    TPMS,
-+    ImportModel,
 +)
     </script>
 </div>
 
-### Step 2 — Create a Device
+### Step 2 — Create a Component
 
-We use a larger canvas so all shapes can fit in a grid.
+We use a larger component so all shapes can fit in a grid.
 
 <div class="diff2html-wrapper">
     <div class="diff2html"></div>
@@ -278,23 +286,21 @@ index 0000000..1111111 100644
 +++ b/shape_gallery.py
 @@ -1 +1 @@
  import pymfcad
+ 
  # Import shapes
  from pymfcad import (
+     TPMS,
      Cube,
-     RoundedCube,
      Cylinder,
+     ImportModel,
+     RoundedCube,
      Sphere,
      TextExtrusion,
-     TPMS,
-     ImportModel,
  )
 +
-+# Initialize our Device, the "canvas" we work within
-+gallery = pymfcad.Device(
-+    name="overlapping_shapes",
-+    position=[0,0,0],
-+    px_count=(1200,750),
-+    layers=300,
++# Initialize our Component
++gallery = pymfcad.Component(
++    size=[1200, 750, 300],
 +    px_size=0.01,
 +    layer_size=0.01,
 +)
@@ -313,11 +319,9 @@ index 0000000..1111111 100644
 --- a/shape_gallery.py
 +++ b/shape_gallery.py
 @@ -14 +14 @@
- gallery = pymfcad.Device(
-     name="overlapping_shapes",
-     position=[0,0,0],
-     px_count=(1200,750),
-     layers=300,
+ # Initialize our Component
+ gallery = pymfcad.Component(
+     size=[1200, 750, 300],
      px_size=0.01,
      layer_size=0.01,
  )
@@ -344,7 +348,7 @@ diff --git a/shape_gallery.py b/shape_gallery.py
 index 0000000..1111111 100644
 --- a/shape_gallery.py
 +++ b/shape_gallery.py
-@@ -23 +23 @@
+@@ -21 +21 @@
  # Create labels
  gallery.add_label("red", pymfcad.Color.from_name("red9", 200))
  gallery.add_label("orange", pymfcad.Color.from_name("orange4", 200))
@@ -355,19 +359,26 @@ index 0000000..1111111 100644
  gallery.add_label("purple", pymfcad.Color.from_name("violet4", 200))
 +
 +# Make our shapes (notice the differences between each shape in its declaration)
-+cube = Cube(size=[300,300,300], center=False)
-+rounded = RoundedCube(size=[300,300,300], radius=[75,75,75], center=False)
++cube = Cube(size=[300, 300, 300], center=False)
++rounded = RoundedCube(size=[300, 300, 300], radius=[75, 75, 75], center=False)
 +cylinder = Cylinder(height=300, radius=150, center_xy=False, center_z=False)
-+sphere = Sphere(size=[300,300,300], center=False)
++sphere = Sphere(size=[300, 300, 300], center=False)
 +text = TextExtrusion(text="A", height=150, font="OpenSans-Medium", font_size=430)
-+tpms = TPMS(size=[100,100,100], cells=[3,3,3], func=pymfcad.TPMS.gyroid, fill=0.0, refinement=10)
++tpms = TPMS(
++    size=[100, 100, 100],
++    cells=[3, 3, 3],
++    func=pymfcad.TPMS.gyroid,
++    fill=0.0,
++    refinement=10,
++)
 +imported = ImportModel("[YOUR FILE PATH HERE]")
+
     </script>
 </div>
 
 ### Step 5 — Resize the imported model
 
-`ImportModel` usually needs to be resized to fit the canvas.
+`ImportModel` usually needs to be resized to fit the component.
 
 <div class="diff2html-wrapper">
     <div class="diff2html"></div>
@@ -376,24 +387,32 @@ diff --git a/shape_gallery.py b/shape_gallery.py
 index 0000000..1111111 100644
 --- a/shape_gallery.py
 +++ b/shape_gallery.py
-@@ -32 +32 @@
+@@ -30 +30 @@
  # Make our shapes (notice the differences between each shape in its declaration)
- cube = Cube(size=[300,300,300], center=False)
- rounded = RoundedCube(size=[300,300,300], radius=[75,75,75], center=False)
+ cube = Cube(size=[300, 300, 300], center=False)
+ rounded = RoundedCube(size=[300, 300, 300], radius=[75, 75, 75], center=False)
  cylinder = Cylinder(height=300, radius=150, center_xy=False, center_z=False)
- sphere = Sphere(size=[300,300,300], center=False)
+ sphere = Sphere(size=[300, 300, 300], center=False)
  text = TextExtrusion(text="A", height=150, font="OpenSans-Medium", font_size=430)
- tpms = TPMS(size=[100,100,100], cells=[3,3,3], func=pymfcad.TPMS.gyroid, fill=0.0, refinement=10)
+ tpms = TPMS(
+     size=[100, 100, 100],
+     cells=[3, 3, 3],
+     func=pymfcad.TPMS.gyroid,
+     fill=0.0,
+     refinement=10,
+ )
  imported = ImportModel("[YOUR FILE PATH HERE]")
 +
-+# There are 4 main ways to transform shapes:
++# There are 6 main ways to transform shapes:
 +# translate((x,y,z))
 +# rotate((rx,ry,rz))
++# scale((sx,sy,sz))
 +# resize((x,y,z))
++# resize_locked(dimension, axis)
 +# and mirror((x,y,z))
 +
-+# Resize the imported model
-+imported.resize([300,160,250])
++# Resize the imported model while preserving its proportions
++imported.resize_locked(300, axis=0)
     </script>
 </div>
 
@@ -408,22 +427,22 @@ diff --git a/shape_gallery.py b/shape_gallery.py
 index 0000000..1111111 100644
 --- a/shape_gallery.py
 +++ b/shape_gallery.py
-@@ -47 +47 @@
- # Resize the imported model
- imported.resize([300,160,250])
+@@ -51 +51 @@
+ # Resize the imported model while preserving its proportions
+ imported.resize_locked(300, axis=0)
 +
 +# Move our shapes
-+cube.translate([0,0,0])
-+rounded.translate([450,0,0])
-+cylinder.translate([0,450,0])
-+sphere.translate([450,450,0])
-+text.translate([900,0,0])
-+tpms.translate([900,450,0])
-+imported.translate([1500,150,0])
++cube.translate([0, 0, 0])
++rounded.translate([450, 0, 0])
++cylinder.translate([0, 450, 0])
++sphere.translate([450, 450, 0])
++text.translate([900, 0, 0])
++tpms.translate([900, 450, 0])
++imported.translate([1500, 150, 0])
     </script>
 </div>
 
-### Step 7 — Add shapes to the device
+### Step 7 — Add shapes to the component
 
 Each shape is added as a bulk and assigned its color label.
 
@@ -434,15 +453,15 @@ diff --git a/shape_gallery.py b/shape_gallery.py
 index 0000000..1111111 100644
 --- a/shape_gallery.py
 +++ b/shape_gallery.py
-@@ -50 +50 @@
+@@ -54 +54 @@
  # Move our shapes
- cube.translate([0,0,0])
- rounded.translate([450,0,0])
- cylinder.translate([0,450,0])
- sphere.translate([450,450,0])
- text.translate([900,0,0])
- tpms.translate([900,450,0])
- imported.translate([1500,150,0])
+ cube.translate([0, 0, 0])
+ rounded.translate([450, 0, 0])
+ cylinder.translate([0, 450, 0])
+ sphere.translate([450, 450, 0])
+ text.translate([900, 0, 0])
+ tpms.translate([900, 450, 0])
+ imported.translate([1500, 150, 0])
 +
 +# Add our shapes
 +gallery.add_bulk("cube", cube, "red")
@@ -464,7 +483,7 @@ diff --git a/shape_gallery.py b/shape_gallery.py
 index 0000000..1111111 100644
 --- a/shape_gallery.py
 +++ b/shape_gallery.py
-@@ -59 +59 @@
+@@ -63 +63 @@
  # Add our shapes
  gallery.add_bulk("cube", cube, "red")
  gallery.add_bulk("rounded", rounded, "dark_orange")
@@ -479,7 +498,13 @@ index 0000000..1111111 100644
     </script>
 </div>
 
-![Shape gallery](resources/6/6-2.png)
+<img
+    class="theme-aware-image"
+    alt="Shape gallery"
+    src="resources/6/6-2_dark.png"
+    data-light-src="resources/6/6-2_light.png"
+    data-dark-src="resources/6/6-2_dark.png"
+/>
 
 ### Full shape gallery example
 
@@ -492,23 +517,21 @@ index 0000000..1111111 100644
 +++ b/shape_gallery.py
 @@ -1 +1 @@
  import pymfcad
+ 
  # Import shapes
  from pymfcad import (
+     TPMS,
      Cube,
-     RoundedCube,
      Cylinder,
+     ImportModel,
+     RoundedCube,
      Sphere,
      TextExtrusion,
-     TPMS,
-     ImportModel,
  )
  
- # Initialize our Device, the "canvas" we work within
- gallery = pymfcad.Device(
-     name="overlapping_shapes",
-     position=[0,0,0],
-     px_count=(1200,750),
-     layers=300,
+ # Initialize our Component
+ gallery = pymfcad.Component(
+     size=[1200, 750, 300],
      px_size=0.01,
      layer_size=0.01,
  )
@@ -523,31 +546,39 @@ index 0000000..1111111 100644
  gallery.add_label("purple", pymfcad.Color.from_name("violet4", 200))
  
  # Make our shapes (notice the differences between each shape in its declaration)
- cube = Cube(size=[300,300,300], center=False)
- rounded = RoundedCube(size=[300,300,300], radius=[75,75,75], center=False)
+ cube = Cube(size=[300, 300, 300], center=False)
+ rounded = RoundedCube(size=[300, 300, 300], radius=[75, 75, 75], center=False)
  cylinder = Cylinder(height=300, radius=150, center_xy=False, center_z=False)
- sphere = Sphere(size=[300,300,300], center=False)
+ sphere = Sphere(size=[300, 300, 300], center=False)
  text = TextExtrusion(text="A", height=150, font="OpenSans-Medium", font_size=430)
- tpms = TPMS(size=[100,100,100], cells=[3,3,3], func=pymfcad.TPMS.gyroid, fill=0.0, refinement=10)
+ tpms = TPMS(
+     size=[100, 100, 100],
+     cells=[3, 3, 3],
+     func=pymfcad.TPMS.gyroid,
+     fill=0.0,
+     refinement=10,
+ )
  imported = ImportModel("[YOUR FILE PATH HERE]")
  
- # There are 4 main ways to transform shapes:
+ # There are 6 main ways to transform shapes:
  # translate((x,y,z))
  # rotate((rx,ry,rz))
+ # scale((sx,sy,sz))
  # resize((x,y,z))
+ # resize_locked(dimension, axis)
  # and mirror((x,y,z))
  
- # Resize the imported model
- imported.resize([300,160,250])
+ # Resize the imported model while preserving its proportions
+ imported.resize_locked(300, axis=0)
  
  # Move our shapes
- cube.translate([0,0,0])
- rounded.translate([450,0,0])
- cylinder.translate([0,450,0])
- sphere.translate([450,450,0])
- text.translate([900,0,0])
- tpms.translate([900,450,0])
- imported.translate([1500,150,0])
+ cube.translate([0, 0, 0])
+ rounded.translate([450, 0, 0])
+ cylinder.translate([0, 450, 0])
+ sphere.translate([450, 450, 0])
+ text.translate([900, 0, 0])
+ tpms.translate([900, 450, 0])
+ imported.translate([1500, 150, 0])
  
  # Add our shapes
  gallery.add_bulk("cube", cube, "red")

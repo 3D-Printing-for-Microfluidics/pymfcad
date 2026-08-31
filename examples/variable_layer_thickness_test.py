@@ -1,0 +1,205 @@
+from pymfcad import (
+    Color,
+    Cube,
+    Cylinder,
+    ExposureSettings,
+    MembraneSettings,
+    Polychannel,
+    PolychannelShape,
+    PositionSettings,
+    SecondaryDoseSettings,
+    VariableLayerThicknessComponent,
+    set_fn,
+)
+
+set_fn(100)
+
+
+class MembraneValve6px(VariableLayerThicknessComponent):
+    def __init__(self):
+        super().__init__(
+            size=(18, 18, 13),
+            position=(0, 0, 0),
+            px_size=0.0076,
+            layer_sizes=[
+                (7, 0.01),
+                (1, 0.008),
+                (1, 0.004),
+                (1, 0.008),
+                (3, 0.01),
+            ],
+        )
+        # all z coordinates/sizes are in units of the greatest common denominator of the layer sizes (0.002 mm in this case)
+        # the sum of the layer sizes should be an integer multiple of the parent component's layer size (0.01 mm in this case)
+
+        self.add_label("default", Color.from_name("aqua", 127))
+        self.add_label("pneumatic", Color.from_name("blue", 127))
+        self.add_label("fluidic", Color.from_name("red", 127))
+
+        self.add_void(
+            "fluidic_channel",
+            Polychannel(
+                [
+                    PolychannelShape("cube", position=(0, 9, 12), size=(0, 6, 25)),
+                    PolychannelShape(position=(9, 0, 0), size=(2, 6, 25)),
+                    PolychannelShape(position=(0, 0, 0), size=(2, 2, 25)),
+                    PolychannelShape(position=(0, 0, 18), size=(2, 2, 0)),
+                ],
+            ),
+            label="fluidic",
+        )
+
+        self.add_void(
+            "fluidic_channel2",
+            Polychannel(
+                [
+                    PolychannelShape("cube", position=(9, 9, 32), size=(0, 6, 5)),
+                    PolychannelShape(position=(3, 0, 0), size=(0, 6, 5)),
+                    PolychannelShape(position=(0, 0, 0), size=(0, 0, 0)),
+                    PolychannelShape(position=(0, 0, -10), size=(0, 0, 0)),
+                    PolychannelShape(position=(0, 0, 0), size=(0, 6, 25)),
+                    PolychannelShape(position=(6, 0, 0), size=(0, 6, 25)),
+                ],
+            ),
+            label="fluidic",
+        )
+
+        self.add_void(
+            "fluidic_chamber",
+            Cylinder(height=9, radius=3, center_xy=True).translate((9, 9, 30)),
+            label="fluidic",
+        )
+        self.add_void(
+            "pneumatic_chamber",
+            Cylinder(height=19, radius=3, center_xy=True).translate((9, 9, 41)),
+            label="pneumatic",
+        )
+
+        self.add_default_exposure_settings(
+            ExposureSettings(
+                bulk_exposure_multiplier=300 / 300.0,
+            )
+        )
+
+        self.add_default_position_settings(
+            PositionSettings(
+                up_acceleration=50.0,
+            )
+        )
+
+        self.add_regional_settings(
+            "membrane_settings",
+            Cylinder(height=2, radius=3, center_xy=True).translate((9, 9, 39)),
+            MembraneSettings(
+                ExposureSettings(
+                    bulk_exposure_multiplier=350 / 300.0,
+                    relative_focus_position=100.0,
+                ),
+                max_membrane_thickness_um=10,
+                dilation_px=2,
+            ),
+            label="pneumatic",
+        )
+
+        self.add_regional_settings(
+            "secondary_settings",
+            Cube((9, 18, 65), center=False),
+            SecondaryDoseSettings(
+                edge_bulk_exposure_multiplier=250.0 / 300.0,
+                edge_erosion_px=2,
+                edge_dilation_px=0,
+                roof_bulk_exposure_multiplier=200.0 / 300.0,
+                roof_erosion_px=2,
+                roof_layers_above=5,
+            ),
+            label="pneumatic",
+        )
+
+        self.add_regional_settings(
+            "exposure_settings",
+            Cube((18, 9, 65), center=False),
+            ExposureSettings(
+                bulk_exposure_multiplier=400.0 / 300.0,
+            ),
+            label="pneumatic",
+        )
+
+        self.add_regional_settings(
+            "position_settings",
+            Cylinder(height=2, radius=3, center_xy=True).translate((9, 9, 39)),
+            PositionSettings(up_acceleration=2.0),
+            label="pneumatic",
+        )
+
+        self.add_bulk(
+            "bulk_cube",
+            Cube((18, 18, 65), center=False),
+            label="default",
+        )
+
+
+MembraneValve6px().preview()
+
+
+# device = Device.with_visitech_1x("TestDevice", (0, 0, 0), layers=25, layer_size=0.01)
+# device.add_label("device", Color.from_rgba((0, 255, 255, 127)))
+# v = MembraneValve6px().translate((50, 50, 0))
+# device.add_subcomponent(f"valve", v)
+
+# bulk_cube = Cube(device._size, center=False)
+# bulk_cube.translate(device._position)
+# device.add_bulk("bulk_cube", bulk_cube, label="device")
+
+# device.set_burn_in_exposure([10000, 5000, 2500])
+
+# device.preview()
+
+# settings = Settings(
+#     user="Test User",
+#     purpose="Test Design",
+#     description="This is a test design for the PyMFCAD library.",
+#     printer=Printer(
+#         name="HR3v3",
+#         light_engines=LightEngine(
+#             px_size=0.0076,
+#             px_count=(2560, 1600),
+#             wavelengths=[365],
+#             # px_size=0.0076,
+#             # px_count=(200, 200),
+#             # wavelengths=[365],
+#         ),
+#     ),
+#     resin=ResinType(
+#         monomer=[("PEG", 100)],
+#         uv_absorbers=[("NPS", 2.0)],
+#         initiators=[("IRG", 1.0)],
+#         additives=[],
+#     ),
+#     default_position_settings=PositionSettings(
+#         distance_up=1.0,
+#         initial_wait=0.0,
+#         up_speed=25.0,
+#         up_acceleration=50.0,
+#         up_wait=0.0,
+#         down_speed=20.0,
+#         down_acceleration=50.0,
+#         final_wait=0.0,
+#     ),
+#     default_exposure_settings=ExposureSettings(
+#         grayscale_correction=False,
+#         bulk_exposure_multiplier=500.0 / 300.0,
+#         power_setting=100,
+#         relative_focus_position=0.0,
+#         wait_before_exposure=0.0,
+#         wait_after_exposure=0.0,
+#     ),
+# )
+
+# slicer = Slicer(
+#     device=device,
+#     settings=settings,
+#     filename="nature_coms_demo",
+#     minimize_file=True,
+#     zip_output=False,
+# )
+# slicer.make_print_file()

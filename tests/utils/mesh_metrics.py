@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any
 
 import numpy as np
 import trimesh
@@ -13,7 +13,7 @@ def load_mesh(path: str | Path) -> trimesh.Trimesh:
     return trimesh.load(Path(path), force="mesh")
 
 
-def compute_mesh_metrics(mesh: trimesh.Trimesh, decimals: int = 6) -> Dict[str, Any]:
+def compute_mesh_metrics(mesh: trimesh.Trimesh, decimals: int = 6) -> dict[str, Any]:
     """Compute mesh metrics for regression testing."""
     bounds = np.round(mesh.bounds, decimals=decimals).tolist()
     return {
@@ -27,14 +27,14 @@ def compute_mesh_metrics(mesh: trimesh.Trimesh, decimals: int = 6) -> Dict[str, 
     }
 
 
-def load_metrics_json(path: str | Path) -> Dict[str, Any]:
+def load_metrics_json(path: str | Path) -> dict[str, Any]:
     """Load golden mesh metrics from JSON."""
     return json.loads(Path(path).read_text())
 
 
 def assert_mesh_metrics_close(
-    actual: Dict[str, Any],
-    expected: Dict[str, Any],
+    actual: dict[str, Any],
+    expected: dict[str, Any],
     *,
     atol: float = 1e-6,
     rtol: float = 1e-6,

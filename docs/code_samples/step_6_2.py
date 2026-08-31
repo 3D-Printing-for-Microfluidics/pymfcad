@@ -1,21 +1,19 @@
 import pymfcad
+
 # Import shapes
 from pymfcad import (
+    TPMS,
     Cube,
-    RoundedCube,
     Cylinder,
+    ImportModel,
+    RoundedCube,
     Sphere,
     TextExtrusion,
-    TPMS,
-    ImportModel,
 )
 
-# Initialize our Device, the "canvas" we work within
-gallery = pymfcad.Device(
-    name="overlapping_shapes",
-    position=[0,0,0],
-    px_count=(1200,750),
-    layers=300,
+# Initialize our Component
+gallery = pymfcad.Component(
+    size=[1200, 750, 300],
     px_size=0.01,
     layer_size=0.01,
 )
@@ -30,31 +28,39 @@ gallery.add_label("blue", pymfcad.Color.from_name("blue7", 255))
 gallery.add_label("purple", pymfcad.Color.from_name("violet4", 200))
 
 # Make our shapes (notice the differences between each shape in its declaration)
-cube = Cube(size=[300,300,300], center=False)
-rounded = RoundedCube(size=[300,300,300], radius=[75,75,75], center=False)
+cube = Cube(size=[300, 300, 300], center=False)
+rounded = RoundedCube(size=[300, 300, 300], radius=[75, 75, 75], center=False)
 cylinder = Cylinder(height=300, radius=150, center_xy=False, center_z=False)
-sphere = Sphere(size=[300,300,300], center=False)
+sphere = Sphere(size=[300, 300, 300], center=False)
 text = TextExtrusion(text="A", height=150, font="OpenSans-Medium", font_size=430)
-tpms = TPMS(size=[100,100,100], cells=[3,3,3], func=pymfcad.TPMS.gyroid, fill=0.0, refinement=10)
+tpms = TPMS(
+    size=[100, 100, 100],
+    cells=[3, 3, 3],
+    func=pymfcad.TPMS.gyroid,
+    fill=0.0,
+    refinement=10,
+)
 imported = ImportModel("docs/code_samples/3DBenchy.stl")
 
-# There are 4 main ways to transform shapes:
+# There are 6 main ways to transform shapes:
 # translate((x,y,z))
 # rotate((rx,ry,rz))
+# scale((sx,sy,sz))
 # resize((x,y,z))
+# resize_locked(dimension, axis)
 # and mirror((x,y,z))
 
-# Resize the imported model
-imported.resize([300,160,250])
+# Resize the imported model while preserving its proportions
+imported.resize_locked(300, axis=0)
 
 # Move our shapes
-cube.translate([0,0,0])
-rounded.translate([450,0,0])
-cylinder.translate([0,450,0])
-sphere.translate([450,450,0])
-text.translate([900,0,0])
-tpms.translate([900,450,0])
-imported.translate([1500,150,0])
+cube.translate([0, 0, 0])
+rounded.translate([450, 0, 0])
+cylinder.translate([0, 450, 0])
+sphere.translate([450, 450, 0])
+text.translate([900, 0, 0])
+tpms.translate([900, 450, 0])
+imported.translate([1500, 150, 0])
 
 # Add our shapes
 gallery.add_bulk("cube", cube, "red")

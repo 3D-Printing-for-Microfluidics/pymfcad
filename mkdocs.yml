@@ -4,7 +4,7 @@ docs_dir: docs
 site_dir: src/pymfcad/site/docs
 use_directory_urls: false
 
-dev_addr: '127.0.0.1:5000'
+dev_addr: "127.0.0.1:5000"
 
 nav:
   - "Home": index.md
@@ -13,37 +13,42 @@ nav:
       - "Part 2: Installation": 2-installation.md
       - "Part 3: Using the Visualizer": 3-visualizer.md
       - "Part 4a: Reading Code Examples": 4a-reading-code-examples.md
-      - "Part 4b: Hello World Component": 4b-building_first_component.md
-  - "Modeling with PyMFCAD":
-    - "Part 5: Modeling Introduction": 5-modeling-introduction.md
-    - "Part 6: Modeling Bulks, Voids, and Shapes": 6-modeling-bulks-voids-shapes.md
-    - "Part 7: Modeling Microfluidics": 7-modeling-microfluidics.md
-    - "Part 8: Reusable Components": 8-reusable-components.md
-    - "Part 9: Routing with Fractional Paths": 9-routing-fractional.md
-    - "Part 10: Using Components in a Device": 10-using-components.md
-    - "Part 11: Full Device Assembly": 11-full-device.md
-  - "Slicing with PyMFCAD":
-    - "Part 12: Slicing Introduction": 12-slicing-introduction.md
-    - "Part 13: Slicing Settings": 13-slicing-settings.md
-    - "Part 14: Regional Settings": 14-regional-settings.md
-    - "Part 15: Slicing Process": 15-slicing-process.md
+      - "Part 4b: Creating Your First Component": 4b-first_component.md
+  - "Component Modeling":
+      - "Part 5: Modeling Introduction": 5-modeling-introduction.md
+      - "Part 6: Modeling Bulks, Voids, and Shapes": 6-modeling-bulks-voids-shapes.md
+      - "Part 7: Modeling Microfluidics": 7-modeling-microfluidics.md
+      - "Part 8: Reusable Components": 8-reusable-components.md
+      - "Part 9: Routing with Fractional Paths": 9-routing-fractional.md
+      - "Part 10: Using Components in a Device": 10-using-components.md
+      - "Part 11: Full Device Assembly": 11-full-device.md
+  - "Generating Print Files":
+      - "Part 12: Slicing Introduction": 12-slicing-introduction.md
+      - "Part 13: Slicing Settings": 13-slicing-settings.md
+      - "Part 14: Regional Settings": 14-regional-settings.md
+      - "Part 15: Slicing Process": 15-slicing-process.md
   - "Advanced Topics":
       - "Extra 1: Customizing Subcomponent Labels and Colors": e1-recoloring_components.md
       - "Extra 2: Variable Layer Thickness Components": e2-variable_layer_thickness_components.md
-      - "Extra 3: Device Stitching": e3-stitching.md
-      - "Extra 4: Device Embedding": e4-embedding.md
-      - "Extra 5: Advanced TPMS Grid Structures": e5-tpms_grids.md
-      - "Extra 6: Specialized Printing Techniques": e6-special_cases.md
-      - "Extra 7: Advanced Visualizer Topics": e7-visualizer_advanced.md
+      - "Extra 3: Workspaces": e3-workspaces.md
+      - "Extra 4: Device Stitching": e4-stitching.md
+      - "Extra 5: Device Embedding": e5-embedding.md
+      - "Extra 6: Advanced TPMS Grid Structures": e6-tpms_grids.md
+      - "Extra 7: Specialized Printing Techniques": e7-special_cases.md
+      - "Extra 8: Advanced Visualizer Topics": e8-visualizer_advanced.md
   - "Resources":
       - "Cheat Sheet for PyMFCAD": r1-cheatsheet.md
       - "Named Color Lists": r2-color.md
       - "Custom Component Template": r3-component_template.md
       - "JSON Print File Reference": r4-json_print_file_reference.md
       - "AI Integration Guide": r5-ai_integration.md
+  - "Libraries":
+      - "Component Library": api/component_library.md
+      - "Printer Library": api/printer_library.md
+      - "Resin Library": api/resin_library.md
   - "API Reference":
       - "Core": api/core.md
-      - "Component/Device": api/component.md
+      - "Component": api/component.md
       - "Color": api/color.md
       - "Shape": api/shapes.md
       - "Port": api/port.md
@@ -51,35 +56,33 @@ nav:
       - "Router": api/router.md
       - "Settings": api/settings.md
       - "Special Techniques": api/special_techniques.md
-      - "Slicer": api/slicer.md
-      - "Component Library": api/component_library.md
-
+      - "Print File Generator": api/print_file_gen.md
 
 theme:
   name: readthedocs
   custom_dir: docs/overrides
 
 markdown_extensions:
-    - pymdownx.superfences
-    - pymdownx.highlight
-    - pymdownx.arithmatex:
-            generic: true
+  - pymdownx.superfences
+  - pymdownx.highlight
+  - pymdownx.arithmatex:
+      generic: true
 
 plugins:
-    - search
-    - mkdocstrings:
-          handlers:
-            python:
-              options:
-                show_source: false
-                show_root_heading: true
-                show_root_full_path: false
-                separate_signature: true
-                show_signature_annotations: true
-                show_if_no_docstring: false
-                docstring_style: google
-                docstring_section_style: list
-                heading_level: 3
+  - search
+  - mkdocstrings:
+      handlers:
+        python:
+          options:
+            show_source: false
+            show_root_heading: true
+            show_root_full_path: false
+            separate_signature: true
+            show_signature_annotations: true
+            show_if_no_docstring: false
+            docstring_style: google
+            docstring_section_style: list
+            heading_level: 3
 
 hooks:
   - utilities/mkdocs_hooks.py
@@ -92,6 +95,7 @@ extra_javascript:
   - static/diff2html-identifiers.js
   - https://cdn.jsdelivr.net/npm/diff2html/bundles/js/diff2html.min.js
   - static/diff2html.js
+  - static/theme-images.js
   - static/theme-toggle.js
 
 extra_css:

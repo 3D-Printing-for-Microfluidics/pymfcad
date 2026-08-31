@@ -1,7 +1,4 @@
 # Settings
-::: pymfcad.Settings
-    options:
-      heading_level: 3
 
 ::: pymfcad.Printer
     options:

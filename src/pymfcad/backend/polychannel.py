@@ -1,7 +1,9 @@
-import numpy as np
 from typing import Union
+
+import numpy as np
 from scipy.special import comb
-from . import Shape, Cube, Sphere, RoundedCube
+
+from . import Cube, RoundedCube, Shape, Sphere
 
 
 def _lerp(
@@ -312,7 +314,7 @@ class Polychannel(Shape):
     A polychannel is a collection of shapes that are hulled together.
 
     It can contain PolychannelShape and BezierCurveShape objects.
-    
+
     The shapes are automatically validated and rounded corners are created for non-manhattan corners.
     """
 
@@ -396,8 +398,8 @@ class Polychannel(Shape):
 
     def _validate_polychannel_shapes(
         self,
-        shapes: list[Union[PolychannelShape, BezierCurveShape]],
-    ) -> list[Union[PolychannelShape, BezierCurveShape]]:
+        shapes: list[PolychannelShape | BezierCurveShape],
+    ) -> list[PolychannelShape | BezierCurveShape]:
         """
         Validate polychannel shapes to ensure all shapes have a defined type, size, and position.
 
@@ -502,8 +504,8 @@ class Polychannel(Shape):
 
     def _round_polychannel_corners(
         self,
-        shapes: list[Union[PolychannelShape, BezierCurveShape]],
-    ) -> list[Union[PolychannelShape, BezierCurveShape]]:
+        shapes: list[PolychannelShape | BezierCurveShape],
+    ) -> list[PolychannelShape | BezierCurveShape]:
         """
         Use arc function to create non-manhattan corners for polychannel shapes.
 
@@ -704,8 +706,8 @@ class Polychannel(Shape):
 
     def _expand_bezier_shapes(
         self,
-        shapes: list[Union[PolychannelShape, BezierCurveShape]],
-    ) -> list[Union[PolychannelShape, BezierCurveShape]]:
+        shapes: list[PolychannelShape | BezierCurveShape],
+    ) -> list[PolychannelShape | BezierCurveShape]:
         """
         Expand Bezier shapes into a list of PolychannelShapes.
 

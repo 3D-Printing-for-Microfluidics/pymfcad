@@ -1,13 +1,14 @@
 #!/usr/bin/env python3
 """Generate custom identifier list for diff2html syntax highlighting."""
+
 from __future__ import annotations
 
 import builtins
 import json
 import keyword
 import re
+from collections.abc import Iterable
 from pathlib import Path
-from typing import Iterable
 
 DOCS_DIR = Path(__file__).resolve().parents[1] / "docs"
 OUTPUT_JS = DOCS_DIR / "static" / "diff2html-identifiers.js"
@@ -44,6 +45,8 @@ def _split_imports(segment: str) -> Iterable[str]:
             name = part.split(".")[-1].strip()
         if name:
             yield name
+
+
 def _extract_params(param_text: str) -> Iterable[str]:
     if not param_text:
         return []
@@ -144,9 +147,7 @@ def main() -> None:
         "imports": sorted(names["imports"]),
     }
     OUTPUT_JS.write_text(
-        "window.DIFF2HTML_PY_IDENTIFIERS = "
-        + json.dumps(output, indent=2)
-        + ";\n",
+        "window.DIFF2HTML_PY_IDENTIFIERS = " + json.dumps(output, indent=2) + ";\n",
         encoding="utf-8",
     )
 

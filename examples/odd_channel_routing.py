@@ -1,4 +1,4 @@
-from pymfcad import Component, Port, Color, Cube, Router, set_fn, PolychannelShape
+from pymfcad import Color, Component, Cube, Port, Router, set_fn
 
 
 class OddChannelRouting(Component):

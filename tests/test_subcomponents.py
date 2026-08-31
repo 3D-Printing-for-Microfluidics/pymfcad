@@ -10,14 +10,16 @@ from tests.utils.mesh_metrics import compute_mesh_metrics, load_mesh
 
 
 def _build_parent_component(size=(40, 30, 20)) -> Component:
-    comp = Component(size=size, position=(0, 0, 0), quiet=True)
+    comp = Component(size=size, quiet=True)
     comp.add_label("device", Color.from_name("gray", 255))
     comp.add_label("fluidic", Color.from_name("blue", 255))
     comp.add_bulk("device_bulk", Cube(size=size, center=False), label="device")
     return comp
 
 
-def _preview_and_validate(component: Component, preview_dir: Path, expected_files: list[str]) -> None:
+def _preview_and_validate(
+    component: Component, preview_dir: Path, expected_files: list[str]
+) -> None:
     component.preview(preview_dir=str(preview_dir))
     for filename in expected_files:
         path = preview_dir / filename
@@ -43,7 +45,8 @@ def _bbox_min_max(shape: Shape):
 def test_subcomponent_preview_outputs_and_labels(tmp_path):
     parent = _build_parent_component()
 
-    child = Component(size=(12, 10, 8), position=(5, 4, 3), quiet=True)
+    child = Component(size=(12, 10, 8), quiet=True)
+    child.translate((5, 4, 3))
     child.add_label("device", Color.from_name("green", 255))
     child.add_label("fluidic", Color.from_name("red", 255))
     child.add_bulk("child_bulk", Cube(size=(12, 10, 8), center=False), label="device")
@@ -82,8 +85,6 @@ def test_subcomponent_preview_outputs_and_labels(tmp_path):
         ),
     )
 
-
-
     parent.add_subcomponent("child", child, subtract_bounding_box=False)
 
     assert "child.device" in child.labels
@@ -108,14 +109,16 @@ def test_subcomponent_preview_outputs_and_labels(tmp_path):
 def test_subcomponent_translation_applied_and_locking():
     parent = _build_parent_component(size=(30, 30, 30))
 
-    child = Component(size=(10, 8, 6), position=(0, 0, 0), quiet=True)
+    child = Component(size=(10, 8, 6), quiet=True)
     child.add_label("device", Color.from_name("green", 255))
     child.add_bulk("child_bulk", Cube(size=(10, 8, 6), center=False), label="device")
     child.translate((5, 4, 3))
 
     parent.add_subcomponent("child", child, subtract_bounding_box=False)
 
-    min_x, min_y, min_z, max_x, max_y, max_z = _bbox_min_max(child.bulk_shapes["child_bulk"])
+    min_x, min_y, min_z, max_x, max_y, max_z = _bbox_min_max(
+        child.bulk_shapes["child_bulk"]
+    )
     assert min_x == pytest.approx(5)
     assert min_y == pytest.approx(4)
     assert min_z == pytest.approx(3)
@@ -139,7 +142,8 @@ def test_subcomponent_translation_applied_and_locking():
 def test_component_ops_translate_rotate_mirror():
     parent = _build_parent_component(size=(50, 50, 50))
 
-    child = Component(size=(10, 8, 6), position=(5, 4, 3), quiet=True)
+    child = Component(size=(10, 8, 6), quiet=True)
+    child.translate((5, 4, 3))
     child.add_label("device", Color.from_name("green", 255))
     child.add_bulk("child_bulk", Cube(size=(10, 8, 6), center=False), label="device")
     child.add_port(
@@ -161,14 +165,14 @@ def test_component_ops_translate_rotate_mirror():
     bbox = tuple(int(x) for x in bbox)
     assert bbox == (7, 7, 7, 17, 15, 13)
 
-    child2.rotate(90, in_place=True).translate((10,10,10))
+    child2.rotate(90, in_place=True).translate((10, 10, 10))
     child3 = child2.copy()
     parent.add_subcomponent("child2", child2, subtract_bounding_box=False)
     bbox = child2.get_bounding_box()
     bbox = tuple(int(x) for x in bbox)
     assert bbox == (17, 17, 17, 25, 27, 23)
 
-    child3.mirror(mirror_x=True, mirror_y=False, in_place=True).translate((10,10,10))
+    child3.mirror(mirror_x=True, mirror_y=False, in_place=True).translate((10, 10, 10))
     parent.add_subcomponent("child3", child3, subtract_bounding_box=False)
     bbox = child3.get_bounding_box()
     bbox = tuple(int(x) for x in bbox)
@@ -176,7 +180,7 @@ def test_component_ops_translate_rotate_mirror():
 
 
 def test_component_no_bulk():
-    comp = Component(size=(10, 10, 10), position=(0, 0, 0), quiet=True)
+    comp = Component(size=(10, 10, 10), quiet=True)
     comp.add_label("device", Color.from_name("gray", 255))
     comp.add_port(
         "P1",

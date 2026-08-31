@@ -1,16 +1,19 @@
 import json
-import importlib.util
 import re
-import tempfile
-import uuid
-import subprocess
 from pathlib import Path
 from urllib.parse import quote
 
-from flask import Flask, jsonify, send_from_directory, abort, request, send_file, after_this_request
+from flask import (
+    Flask,
+    abort,
+    jsonify,
+    request,
+    send_from_directory,
+)
 
 PORT = 8000
 CWD = Path.cwd().resolve()
+
 
 def start_server():
     env_dir = Path(__file__).resolve().parent
@@ -104,9 +107,9 @@ def start_server():
                 elif name_key == "ports":
                     name = "Unconnected Ports"
                     type_str = "ports"
-                elif name_key == "device":
-                    name = "Device"
-                    type_str = "device"
+                elif name_key == "component":
+                    name = "Component"
+                    type_str = "component"
                 elif name_key == "bounding_box":
                     name = "Bounding Box"
                     type_str = "bounding box"
@@ -295,7 +298,9 @@ def start_server():
         if not raw_path:
             return jsonify({"error": "path required"}), 400
 
-        base_dir = (Path(raw_path) if Path(raw_path).is_absolute() else (CWD / raw_path)).resolve()
+        base_dir = (
+            Path(raw_path) if Path(raw_path).is_absolute() else (CWD / raw_path)
+        ).resolve()
         if not base_dir.is_dir():
             return jsonify({"error": "Folder does not exist"}), 400
 
@@ -304,10 +309,12 @@ def start_server():
             if not entry.is_dir():
                 continue
             if any(entry.glob("*.glb")):
-                folders.append({
-                    "name": entry.name,
-                    "path": str(entry.resolve()),
-                })
+                folders.append(
+                    {
+                        "name": entry.name,
+                        "path": str(entry.resolve()),
+                    }
+                )
 
         return jsonify({"base": str(base_dir), "folders": folders})
 
@@ -320,7 +327,9 @@ def start_server():
             selected_preview_dir = None
             return jsonify({"ok": True, "preview_dir": ""})
 
-        candidate = (Path(raw_path) if Path(raw_path).is_absolute() else (CWD / raw_path)).resolve()
+        candidate = (
+            Path(raw_path) if Path(raw_path).is_absolute() else (CWD / raw_path)
+        ).resolve()
 
         if not candidate.is_dir():
             return jsonify({"ok": False, "error": "Folder does not exist"}), 400
@@ -330,7 +339,6 @@ def start_server():
 
         selected_preview_dir = candidate
         return jsonify({"ok": True, "preview_dir": str(selected_preview_dir)})
-
 
     @app.route("/<path:filename>")
     def serve_glb(filename):
