@@ -16,7 +16,6 @@ from pymfcad import VariableLayerThicknessComponent
 
 component = VariableLayerThicknessComponent(
 	size=(100, 100, 24),
-	position=(0, 0, 0),
 	px_size=0.0076,
 	layer_sizes=[
 		(6, 0.01),   # 6 layers at 10 um

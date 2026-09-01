@@ -12,7 +12,6 @@ class ***MyComponent***(***Component or VariableLayerThicknessComponent***):
         # Initialize the base Component
         super().__init__(
             size=#component size tuple
-            position=(0, 0, 0),
             px_size=#component pixel size
             layer_size=#component layer size
             quiet=quiet

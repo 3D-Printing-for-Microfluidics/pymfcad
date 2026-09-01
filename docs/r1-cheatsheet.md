@@ -5,7 +5,7 @@ Quick reference to build, render, and slice a device.
 ## Core classes
 
 - `Component(size, px_size, layer_size, quiet=False)`
-- `VariableLayerThicknessComponent(size, position, px_size, layer_sizes, quiet=False)`
+- `VariableLayerThicknessComponent(size, px_size, layer_sizes, quiet=False)`
 
 ## Labels and colors
 
