@@ -534,9 +534,11 @@ class Polychannel(Shape):
         for i, shape in enumerate(shapes):
             if shape._corner_radius is not None and shape._corner_radius > 0:
                 if i == 0 or i == len(shapes) - 1:
-                    raise ValueError(
-                        "First and last shapes in a polychannel cannot have a corner radius"
+                    print(
+                        f"\t⚠️  First and last shapes cannot have corner radius - skipping corner rounding at position {shape._position}"
                     )
+                    rounded_shapes.append(shape)
+                    continue
                 # Calculate the arc points and local rotations.
                 arc_points, rotations, start_dir, end_dir = self._arc_between_angle_3d(
                     shapes[i - 1]._position,
@@ -546,7 +548,15 @@ class Polychannel(Shape):
                     shape._corner_segments,
                 )
                 if arc_points is None:
-                    # Straight line, no arc needed.
+                    # Straight line, no arc needed, or radius exceeds geometry constraints
+                    if tuple(shapes[i - 1]._position) == tuple(shape._position):
+                        print(
+                            f"\t⚠️  Shape at position {shape._position} has identical position to previous shape - skipping corner rounding"
+                        )
+                    else:
+                        print(
+                            f"\t⚠️  Unable to create arc at position {shape._position} with radius {shape._corner_radius} - skipping corner rounding"
+                        )
                     rounded_shapes.append(shape)
                     continue
 
@@ -634,13 +644,11 @@ class Polychannel(Shape):
 
         # r must be less than BA and BC length
         if r > round(np.linalg.norm(BA)) or r > round(np.linalg.norm(BC)):
-            print(f"\tℹ️ Radius r: {r}")
             print(
-                f"\tℹ️ Incoming and outgoing channel lengths: {np.linalg.norm(BA)}, {np.linalg.norm(BC)}"
+                f"\t⚠️  Warning: Corner radius {r} is larger than incoming/outgoing channel lengths ({np.linalg.norm(BA)}, {np.linalg.norm(BC)})"
             )
-            raise ValueError(
-                "❌ Radius r is larger than incoming and outgoing channel lengths"
-            )
+            print("\t⚠️  Skipping corner rounding for this shape")
+            return None, None, None, None
 
         # Angle and bisector
         cos_theta = np.clip(np.dot(uBA, uBC), -1.0, 1.0)
@@ -652,11 +660,11 @@ class Polychannel(Shape):
         if round(offset) > round(np.linalg.norm(BA)) or round(offset) > round(
             np.linalg.norm(BC)
         ):
-            print(f"\tℹ️ Offset: {offset}")
             print(
-                f"\tℹ️ Incoming and outgoing channel lengths: {np.linalg.norm(BA)}, {np.linalg.norm(BC)}"
+                f"\t⚠️  Warning: Arc offset {offset} exceeds channel lengths ({np.linalg.norm(BA)}, {np.linalg.norm(BC)})"
             )
-            raise ValueError("❌ Arc radius is too large geometry")
+            print("\t⚠️  Skipping corner rounding for this shape")
+            return None, None, None, None
         P1 = B + uBA * offset  # start of arc
         P2 = B + uBC * offset  # end of arc
 

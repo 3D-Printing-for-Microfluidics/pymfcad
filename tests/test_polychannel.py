@@ -108,21 +108,28 @@ def test_polychannel_corner_radius_not_allowed_on_first_or_last():
         _shape((5, 0, 0), corner_radius=1, corner_segments=5),
         _shape((10, 0, 0)),
     ]
-    with pytest.raises(
-        ValueError,
-        match="First and last shapes in a polychannel cannot have a corner radius",
-    ):
-        Polychannel(shapes)
+    # Should create polychannel successfully, skipping corner radius on first shape
+    channel = Polychannel(shapes)
+    bbox = channel._object.bounding_box()
+    extents = (bbox[3] - bbox[0], bbox[4] - bbox[1], bbox[5] - bbox[2])
+    assert extents[0] > 0
+    assert extents[1] > 0
+    assert extents[2] > 0
 
 
 def test_polychannel_corner_radius_too_large():
     shapes = [
         _shape((0, 0, 0)),
         _shape((1, 0, 0), corner_radius=5, corner_segments=5),
-        _shape((1, 1, 0)),
+        _shape((1, 1, 0), corner_radius=0),
     ]
-    with pytest.raises(ValueError, match="Radius r is larger"):
-        Polychannel(shapes)
+    # Should create polychannel successfully, skipping the oversized corner radius
+    channel = Polychannel(shapes)
+    bbox = channel._object.bounding_box()
+    extents = (bbox[3] - bbox[0], bbox[4] - bbox[1], bbox[5] - bbox[2])
+    assert extents[0] > 0
+    assert extents[1] > 0
+    assert extents[2] > 0
 
 
 def test_polychannel_corner_radius_straight_segment():
