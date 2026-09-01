@@ -96,6 +96,65 @@ If you are working from the repository, use the Makefile targets below (requires
 - `make web-build` — builds the Vite site
 - `make clean` — removes all build products
 
+#### Release targets
+
+For creating releases, the following targets are available (requires `gh` CLI):
+
+- `make release-major` — bumps major version, creates git commit, builds, and publishes GitHub release
+- `make release-minor` — bumps minor version, creates git commit, builds, and publishes GitHub release
+- `make release-patch` — bumps patch version, creates git commit, builds, and publishes GitHub release
+
+Each release target will:
+
+1. Prompt whether this is a pre-release
+2. Open your default editor to collect release notes
+3. Bump the version in `pyproject.toml` and `uv.lock`
+4. Create a git commit with the version bump
+5. Run `make clean` and `make build`
+6. Create and publish a GitHub release with binaries
+
+**Testing releases:**
+
+To test the release process without committing/updating version or publishing, use:
+```bash
+DRY_RUN=true make release-major
+DRY_RUN=true make release-minor
+DRY_RUN=true make release-patch
+```
+
+This runs through the entire workflow but creates a draft release on GitHub (not published).
+
+### GitHub CLI installation
+
+The release targets require the `gh` CLI tool. Install it using your package manager:
+
+**macOS:**
+```bash
+brew install gh
+```
+
+**Linux (Ubuntu/Debian):**
+```bash
+curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | sudo dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg
+echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | sudo tee /etc/apt/sources.list.d/github-cli.list > /dev/null
+sudo apt update
+sudo apt install gh
+```
+
+**Fedora/RHEL:**
+```bash
+sudo dnf install gh
+```
+
+**Other systems:**
+
+See the [official gh installation guide](https://github.com/cli/cli#installation).
+
+After installing, authenticate with your GitHub account:
+```bash
+gh auth login
+```
+
 ## Troubleshooting
 
 **Issue:** `pip install uv` succeeds, but the `uv` command is not found.
