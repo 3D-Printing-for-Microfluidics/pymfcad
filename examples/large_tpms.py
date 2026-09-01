@@ -1,59 +1,30 @@
 from pymfcad import (
     TPMS,
     Color,
+    Component,
     Cube,
-    Device,
     ExposureSettings,
-    LightEngine,
     Polychannel,
     PolychannelShape,
     PositionSettings,
-    Printer,
+    PrintFileGenerator,
     ResinType,
-    Settings,
-    Slicer,
-    StitchedDevice,
 )
+from pymfcad.printer_library import MR1v1
 
-# Printer with XY stage (recommended when using offsets)
-settings = Settings(
-    printer=Printer(
-        name="MR1v1",
-        light_engines=[
-            LightEngine(
-                "visitech",
-                px_size=0.0152,
-                px_count=(2560, 1600),
-                wavelengths=[405],
-                settle_time_ms=5000,
-            ),
-            LightEngine(
-                "wintech",
-                px_size=0.00075,
-                px_count=(1920, 1080),
-                wavelengths=[365],
-                settle_time_ms=5000,
-            ),
-        ],
-        xy_stage_available=True,
-    ),
-    resin=ResinType(
-        bulk_exposure=1000.0,
-        monomer=[("PEG", 100)],
-        uv_absorbers=[("AVO", 2.48), ("NPS", 2.69)],
-        initiators=[("IRG", 1)],
-    ),
-    default_position_settings=PositionSettings(),
-    default_exposure_settings=ExposureSettings(),
-    user="Dallin Miner",
-    purpose="Long TPMS Test",
-    description="Test print for ~15cm HPLC column",
+printer = MR1v1
+resin = ResinType(
+    bulk_exposure=1000.0,
+    monomer=[("PEG", 100)],
+    uv_absorbers=[("AVO", 2.48), ("NPS", 2.69)],
+    initiators=[("IRG", 1)],
 )
+user = ("Dallin Miner",)
+purpose = ("Long TPMS Test",)
+description = ("Test print for ~15cm HPLC column",)
 
 # Outer device (lower resolution, larger pixel size)
-outer = Device.with_visitech_2x(
-    name="OuterDevice", position=(0, 0, 0), layers=100, layer_size=0.015
-)
+outer = Component(size=(2560, 1600, 100), px_size=0.0152, layer_size=0.015)
 
 outer.add_default_exposure_settings(
     ExposureSettings(wavelength=405, power_setting=300, bulk_exposure_multiplier=1.0)
@@ -178,14 +149,10 @@ chan_list += [
 channel = Polychannel(chan_list)
 outer.add_void("channel", channel, label="void")
 
-stitched_wintech = StitchedDevice.with_wintech(
-    name="StitchedDemo",
-    position=(0, 0, 0),
-    layers=100,
+stitched_wintech = Component(
+    size=(3840, 3200, 100),
+    px_size=0.00075,
     layer_size=0.0015,
-    tiles_x=2,  # 5
-    tiles_y=2,  # 8
-    overlap_px=0,
 )
 stitched_wintech.add_default_exposure_settings(
     ExposureSettings(wavelength=365, power_setting=60, bulk_exposure_multiplier=0.01)
@@ -251,12 +218,16 @@ outer.add_subcomponent(
 
 outer.preview()
 
-slicer = Slicer(
-    device=outer,
-    settings=settings,
+slicer = PrintFileGenerator(
+    author=user,
+    purpose=purpose,
+    description=description,
+    component=outer,
+    printer=printer,
+    resin=resin,
     filename="long_tpms_column",
     minimize_file=True,
     zip_output=False,
 )
 
-slicer.make_print_file()
+slicer.run()

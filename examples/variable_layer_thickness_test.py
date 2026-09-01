@@ -19,7 +19,6 @@ class MembraneValve6px(VariableLayerThicknessComponent):
     def __init__(self):
         super().__init__(
             size=(18, 18, 13),
-            position=(0, 0, 0),
             px_size=0.0076,
             layer_sizes=[
                 (7, 0.01),

@@ -1,57 +1,21 @@
 from pymfcad import (
     Color,
+    Component,
     Cube,
-    Device,
-    ExposureSettings,
-    LightEngine,
-    PositionSettings,
-    Printer,
-    ResinType,
+    PrintFileGenerator,
     Router,
-    Settings,
-    Slicer,
     set_fn,
 )
 from pymfcad.component_library import Valve20px
+from pymfcad.printer_library import HR3v3
+from pymfcad.resin_library import NPS
 
 set_fn(50)
 
-settings = Settings(
-    # user="Test User",
-    # purpose="Test Design",
-    # description="This is a test design for the PyMFCAD library.",
-    printer=Printer(
-        name="HR3v3",
-        light_engines=[
-            LightEngine(px_size=0.0076, px_count=(2560, 1600), wavelengths=[365])
-        ],
-    ),
-    resin=ResinType(bulk_exposure=300.0),
-    default_position_settings=PositionSettings(
-        # distance_up=1.0,
-        # initial_wait=0.0,
-        # up_speed=25.0,
-        # up_acceleration=50.0,
-        # up_wait=0.0,
-        # down_speed=20.0,
-        # down_acceleration=50.0,
-        # final_wait=0.0,
-    ),
-    default_exposure_settings=ExposureSettings(
-        # grayscale_correction=False,
-        # bulk_exposure_multiplier=300.0 / 300.0,
-        # power_setting=100,
-        # relative_focus_position=0.0,
-        # wait_before_exposure=0.0,
-        # wait_after_exposure=0.0,
-    ),
-)
-settings.save("settings.json")
-settings = Settings.from_file("settings.json")
-settings.save("settings2.json")
+printer = HR3v3
+resin = NPS
 
-
-device = Device.with_visitech_1x("TestDevice", (0, 0, 0), layers=250, layer_size=0.01)
+device = Component(size=(2560, 1600, 250), px_size=0.0076, layer_size=0.01)
 
 device.add_label("device", Color.from_rgba((0, 255, 255, 127)))
 device.add_label("pneumatic", Color.from_rgba((0, 255, 0, 127)))
@@ -152,11 +116,12 @@ device.add_bulk("bulk_cube", bulk_cube, label="device")
 # device.render("component.glb")
 device.preview()
 
-slicer = Slicer(
-    device=device,
-    settings=settings,
+slicer = PrintFileGenerator(
+    component=device,
+    printer=printer,
+    resin=resin,
     filename="python_design_test2_demo",
     minimize_file=True,
     zip_output=False,
 )
-slicer.make_print_file()
+slicer.run()

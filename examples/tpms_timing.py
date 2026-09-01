@@ -1,19 +1,16 @@
-from pymfcad import Component, Color, ImportModel, TPMS, Cube
+from pymfcad import TPMS, Color, Component, Cube
 
 # ############### 1 Test all basic components ##################
-component = Component(
-    size=(2560, 1600, 10), position=(0, 0, 0), px_size=0.0076, layer_size=0.01
-)
+component = Component(size=(2560, 1600, 1000), px_size=0.0076, layer_size=0.01)
 chan_size = (8, 8, 6)
 # Add label
 component.add_label("default", Color.from_rgba((0, 255, 0, 127)))
 # Add a shape
 # TIME DIFFERENT TPMS LOADING METHODS
-import time
 
 # start_time = time.time()
-# for i in range(0, 2):
-#     for j in range(0, 2):
+# for i in range(2):
+#     for j in range(2):
 #         for k in range(25):
 #             component.add_void(
 #                 f"import_model_{i}{j}{k}",
@@ -25,7 +22,7 @@ import time
 # end_time = time.time()
 # print(f"Import: {end_time - start_time:.2f} seconds")
 # start_time = time.time()
-# for i in range(0, 2):
+# for i in range(2):
 #     for j in range(3, 5):
 #         for k in range(25):
 #             component.add_void(
@@ -40,7 +37,7 @@ import time
 # start_time = time.time()
 
 # component.add_void(
-#     f"tpms_njit_large_eval",
+#     "tpms_njit_large_eval",
 #     TPMS(
 #         func=TPMS.diamond,
 #         size=(10, 10, 8),
@@ -58,7 +55,6 @@ class TPMSComponent(Component):
     def __init__(self):
         super().__init__(
             size=(10, 10, 8),
-            position=(0, 0, 0),
             px_size=0.0076,
             layer_size=0.01,
         )

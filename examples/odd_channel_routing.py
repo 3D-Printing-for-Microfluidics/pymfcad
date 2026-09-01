@@ -14,7 +14,6 @@ class OddChannelRouting(Component):
     ):
         super().__init__(
             size=(160, 90, 30),
-            position=(0, 0, 0),
             px_size=0.01,
             layer_size=0.01,
             quiet=quiet,
