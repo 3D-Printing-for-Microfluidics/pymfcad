@@ -33,10 +33,14 @@ chan_size = (8, 8, 6)
 # y = 2
 # z = 7
 
-x = 50
-y = 32
+x = 10
+y = 10
 z = 7
-# z = 1
+
+# x = 50
+# y = 32
+# z = 7
+# # z = 1
 
 valve_grid = []
 for l in range(z):
@@ -124,4 +128,4 @@ slicer = PrintFileGenerator(
     minimize_file=True,
     zip_output=False,
 )
-slicer.run()
+slicer.run(overwrite=True)

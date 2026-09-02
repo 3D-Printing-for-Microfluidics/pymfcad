@@ -16,7 +16,7 @@ from PIL import Image
 
 from pymfcad import __version__ as PYMFCAD_VERSION
 
-from ..backend import rle_decode_packed, rle_encode_packed, slice_component
+from ..backend import rle_decode_packed, rle_pad, rle_slice, slice_component
 from .image_generation import (
     generate_exposure_images_from_folders,
     generate_membrane_images_from_folders,
@@ -858,17 +858,13 @@ class PrintFileGenerator:
 
                         # handle remaining components
                         for slice_index, slice in enumerate(slice_list):
-                            # Load the base slice image once (if it exists)
-                            slice_img = slice["image_data"]
-                            slice_img2 = rle_decode_packed(*slice_img)
-
                             x = pos[1]
                             y = pos[2]
                             z = round(pos[3], 4)
                             embedded_slice_image = self._embed_image(
                                 (x, y),
                                 resolution,
-                                slice_img2,
+                                slice["image_data"],
                                 parent_fqn,
                             )
 
@@ -878,7 +874,10 @@ class PrintFileGenerator:
 
                             # save images if save_temp_files
                             if save_temp_files:
-                                cv2.imwrite(str(slice_image_path), embedded_slice_image)
+                                cv2.imwrite(
+                                    str(slice_image_path),
+                                    rle_decode_packed(*embedded_slice_image),
+                                )
 
                             print(
                                 f"\r\t\tEmbedding {slice_image_path.name} ({slice_index+1}/{len(slice_list)}) at z={z}...",
@@ -890,9 +889,7 @@ class PrintFileGenerator:
                                     {
                                         "image_name": slice_image_path.name,
                                         "parent": None,
-                                        "image_data": rle_encode_packed(
-                                            embedded_slice_image
-                                        ),
+                                        "image_data": embedded_slice_image,
                                         "component": None,
                                         "position": None,
                                         "layer_position": (
@@ -1042,28 +1039,32 @@ class PrintFileGenerator:
                 le, stitching
             )
 
-            # create a blank image
-            full_image = np.zeros((max_height, max_width), dtype=np.uint8)
-
-            # place slice in full image
-            data = rle_decode_packed(*slice_info["image_data"])
-            full_image[
-                position[1] : position[1] + data.shape[0],
-                position[0] : position[0] + data.shape[1],
-            ] = data
+            # Place the slice in the full stitched image without decoding.
+            full_image, full_image_runs, _ = rle_pad(
+                slice_info["image_data"][0],
+                slice_info["image_data"][1],
+                slice_info["image_data"][2],
+                (max_height, max_width),
+                position[1],
+                position[0],
+            )
 
             # dice the full image into tiles based on stitching parameters
             for ty in range(stitching[1]):
                 for tx in range(stitching[0]):
                     x0 = tx * step_x
-                    x1 = x0 + le_region_size_px[0]
                     y0 = ty * step_y
-                    y1 = y0 + le_region_size_px[1]
-
-                    tile = full_image[y0:y1, x0:x1]
 
                     tile_slice = slice_info.copy()
-                    tile_slice["image_data"] = rle_encode_packed(tile)
+                    tile_slice["image_data"] = rle_slice(
+                        full_image,
+                        full_image_runs,
+                        (max_height, max_width),
+                        y0,
+                        x0,
+                        le_region_size_px[1],
+                        le_region_size_px[0],
+                    )
 
                     if stitching != (1, 1):
                         exposure_settings = copy.deepcopy(slice_info["exposure_settings"])
@@ -1206,20 +1207,8 @@ class PrintFileGenerator:
                     slice_info["exposure_settings"].get_exposure_time(self.resin)
                     for slice_info in group
                 ]
-                group_images = []
-                for slice_info in group:
-                    group_images.append(
-                        {
-                            "component": slice_info.get("component"),
-                            "parent": slice_info.get("parent"),
-                            "image_data": slice_info["image_data"],
-                            "image_name": slice_info["image_name"],
-                            "position": slice_info.get("position"),
-                        }
-                    )
-
                 output_imgs, output_times = self._combine_exposures(
-                    group_images, group_exposures, temp_directory
+                    group, group_exposures, temp_directory
                 )
 
                 output_img_files = []
@@ -1239,7 +1228,7 @@ class PrintFileGenerator:
                     output_img_files.append(slice_image_path.name)
 
                 # Update image settings from slice (just the max of wait times)
-                for g, slice_info in enumerate(group):
+                for slice_info in group:
                     group_exposure_settings = self._update_image_settings_from_slice(
                         slice_info, group_exposure_settings
                     )
@@ -1286,7 +1275,7 @@ class PrintFileGenerator:
                     image_settings_list.append(image_settings)
 
                 # Update position settings from slice
-                for g, slice_info in enumerate(group):
+                for slice_info in group:
                     position_settings = self._update_position_settings_from_slice(
                         slice_info, position_settings, layer_thickness
                     )
@@ -1310,66 +1299,45 @@ class PrintFileGenerator:
         return layers
 
     def _iterate_slices_by_layer(self, embedded_components):
-        # First, collect all unique layer positions
-        layer_positions = set()
+        slices_by_layer = {}
         for _, info in embedded_components:
-            for slice_info in info.get("slices", []):
-                layer_positions.add(slice_info["layer_position"])
             info["slices"].sort(
                 key=lambda x: (
                     x["layer_position"],
                     x["exposure_settings"].get_exposure_time(self.resin),
                 )
             )
+            for slice_info in info.get("slices", []):
+                slices_by_layer.setdefault(slice_info["layer_position"], []).append(
+                    slice_info
+                )
 
-        # Sort layer positions
-        sorted_layers = sorted(layer_positions)
-
-        # Iterate by each layer position
-        for layer in sorted_layers:
-            current_layer_slices = []
-            for _, info in embedded_components:
-                for slice_info in info.get("slices", []):
-                    if slice_info["layer_position"] == layer:
-                        current_layer_slices.append(slice_info)
-            yield layer, current_layer_slices
+        for layer in sorted(slices_by_layer):
+            yield layer, slices_by_layer[layer]
 
     def _group_images_by_settings(self, slices):
         """
         Group images by their settings.
         This will return a list of slices where all settings match, except image file, exposure time, and the 2 waits.
         """
-        grouped_slices = []
+        grouped_slices_by_key = {}
+
+        def settings_key(slice_info):
+            settings = slice_info["exposure_settings"].to_dict()
+            for key in (
+                "Image file",
+                "Layer exposure multiplier",
+                "Wait before exposure (ms)",
+                "Wait after exposure (ms)",
+            ):
+                settings.pop(key, None)
+            return json.dumps(settings, sort_keys=True)
 
         for slice_info in slices:
-            # print(slice_info["image_name"])
-            if len(grouped_slices) == 0:
-                grouped_slices.append([slice_info])
-                continue
+            key = settings_key(slice_info)
+            grouped_slices_by_key.setdefault(key, []).append(slice_info)
 
-            # Check if the current slice matches any of the existing groups
-            match_found = False
-            for group in grouped_slices:
-                # Compare settings, ignoring image file, exposure time, and the 2 waits
-                s1 = slice_info["exposure_settings"].to_dict()
-                del s1["Image file"]
-                del s1["Layer exposure multiplier"]
-                del s1["Wait before exposure (ms)"]
-                del s1["Wait after exposure (ms)"]
-
-                s2 = group[0]["exposure_settings"].to_dict()
-                del s2["Image file"]
-                del s2["Layer exposure multiplier"]
-                del s2["Wait before exposure (ms)"]
-                del s2["Wait after exposure (ms)"]
-
-                if s1 == s2:
-                    group.append(slice_info)
-                    match_found = True
-                    break
-
-            if not match_found:
-                grouped_slices.append([slice_info])
+        grouped_slices = list(grouped_slices_by_key.values())
 
         grouped_slices.sort(
             key=lambda group: (
@@ -1386,51 +1354,27 @@ class PrintFileGenerator:
     def _embed_image(self, pos, resolution, image_data, fqn):
         x = round(pos[0])
         y = round(pos[1])
+        image_height, image_width = image_data[2]
+        pad_top = resolution[1] - y - image_height
 
-        slice_img = image_data
-
-        # Create a new empty image sized to the component
-        slice_image = np.zeros((resolution[1], resolution[0]), dtype=np.uint8)
-
-        # Correct for numpy image origin (if you want origin at bottom-left)
-        paste_y = resolution[1] - y
-
-        # compute paste coordinates (top-left y coordinate for the slice_img)
-        top = paste_y - slice_img.shape[0]
-        left = x
-        bottom = top + slice_img.shape[0]
-        right = left + slice_img.shape[1]
-
-        # Clip coordinates to image bounds to avoid exceptions
-        top_clip = max(top, 0)
-        left_clip = max(left, 0)
-        bottom_clip = min(bottom, resolution[1])
-        right_clip = min(right, resolution[0])
-
-        # compute corresponding region in slice_img
-        src_top = top_clip - top if top < 0 else 0
-        src_left = left_clip - left if left < 0 else 0
-        src_bottom = src_top + (bottom_clip - top_clip)
-        src_right = src_left + (right_clip - left_clip)
-
-        # Only paste if there's an overlap
-        if bottom_clip > top_clip and right_clip > left_clip:
-            try:
-                slice_image[top_clip:bottom_clip, left_clip:right_clip] = slice_img[
-                    src_top:src_bottom, src_left:src_right
-                ]
-            except Exception as e:
-                print(
-                    f"⚠️Warning: trouble pasting slice image for {fqn} at x={x},y={y}: {e}"
-                )
-
-        else:
-            print(
-                f"⚠️Warning: slice image for {fqn} at x={x},y={y} is completely outside component bounds"
+        if (
+            x < 0
+            or pad_top < 0
+            or x + image_width > resolution[0]
+            or pad_top + image_height > resolution[1]
+        ):
+            raise ValueError(
+                f"Slice image for {fqn} at x={x},y={y} exceeds component bounds"
             )
-            # still save an empty image or skip; here we'll skip
 
-        return slice_image
+        return rle_pad(
+            image_data[0],
+            image_data[1],
+            image_data[2],
+            (resolution[1], resolution[0]),
+            pad_top,
+            x,
+        )
 
     def _combine_exposures(self, images, exposure_times, temp_directory):
         """
@@ -1482,7 +1426,7 @@ class PrintFileGenerator:
                 #     cv2.imwrite(str(debug_path), img)
             else:
                 img = image
-            exposure_sum[img == 255] += exp
+            np.add(exposure_sum, exp, out=exposure_sum, where=img == 255)
 
         # Find all unique nonzero exposures, sorted ascending
         unique_exposures = np.unique(exposure_sum[exposure_sum > 0])
@@ -1491,9 +1435,10 @@ class PrintFileGenerator:
         output_exposures = []
 
         prev = 0
+        layer_mask = np.empty((H, W), dtype=bool)
         for exp in unique_exposures:
             # Mask for pixels with exposure >= exp
-            layer_mask = exposure_sum >= exp
+            np.greater_equal(exposure_sum, exp, out=layer_mask)
             out_img = layer_mask.astype(np.uint8) * 255
             output_images.append(out_img)
             output_exposures.append(exp - prev)
@@ -1502,17 +1447,17 @@ class PrintFileGenerator:
         return output_images, output_exposures
 
     def _update_image_settings_from_slice(self, slice_info, group_exposure_settings):
-        new_image_settings = slice_info["exposure_settings"].to_dict(self.resin)
-
         if group_exposure_settings is None:
-            group_exposure_settings = new_image_settings
+            return slice_info["exposure_settings"].to_dict(self.resin)
+
+        settings = slice_info["exposure_settings"]
         group_exposure_settings["Wait before exposure (ms)"] = max(
             group_exposure_settings["Wait before exposure (ms)"],
-            new_image_settings["Wait before exposure (ms)"],
+            settings.wait_before_exposure,
         )
         group_exposure_settings["Wait after exposure (ms)"] = max(
             group_exposure_settings["Wait after exposure (ms)"],
-            new_image_settings["Wait after exposure (ms)"],
+            settings.wait_after_exposure,
         )
         return group_exposure_settings
 

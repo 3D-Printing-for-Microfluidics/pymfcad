@@ -8,34 +8,213 @@ from . import Cube, Shape
 
 
 def rle_encode_packed(img: np.ndarray):
+    """Encodes a binary image into 2D numpy arrays of values and run lengths."""
     h, w = img.shape
+    if h == 0 or w == 0:
+        return (
+            np.zeros((h, 0), dtype=np.uint8),
+            np.zeros((h, 0), dtype=np.intp),
+            (h, w),
+        )
+
     bits = (img > 0).astype(np.uint8)
+    row_runs = []
+    max_runs = 0
 
-    packed = np.packbits(bits, axis=None)
+    for row in bits:
+        padded = np.concatenate(([row[0] ^ 1], row))
+        diff = np.diff(padded)
+        runs = np.nonzero(diff)[0]
+        lengths = np.diff(np.append(runs, len(row)))
+        start_val = row[0]
+        row_runs.append((start_val, lengths))
+        max_runs = max(max_runs, len(lengths))
 
-    diff = np.diff(packed, prepend=packed[0] ^ 1)
-    run_starts = np.nonzero(diff)[0]
+    # Allocate 2D arrays padded with zeros
+    values = np.zeros((h, max_runs), dtype=np.uint8)
+    run_lengths = np.zeros((h, max_runs), dtype=np.intp)
 
-    run_lengths = np.diff(np.append(run_starts, packed.size))
-    values = packed[run_starts]
+    for i, (start_val, lengths) in enumerate(row_runs):
+        l = len(lengths)
+        if l > 0:
+            row_vals = (start_val + np.arange(l, dtype=np.uint8)) % 2
+            values[i, :l] = row_vals
+            run_lengths[i, :l] = lengths
 
     return values, run_lengths, (h, w)
 
 
 def rle_decode_packed(values, run_lengths, shape):
+    """Decodes from 2D numpy arrays of values and run lengths."""
     h, w = shape
-    packed = np.repeat(values, run_lengths)
+    if h == 0 or w == 0:
+        return np.zeros((h, w), dtype=np.uint8)
 
-    bits = np.unpackbits(packed)[: h * w]
+    flat_vals = values.ravel()
+    flat_lens = run_lengths.ravel()
+    bits = np.repeat(flat_vals, flat_lens)
     return (bits.reshape(h, w) * 255).astype(np.uint8)
 
 
-def rle_is_all_zeros(values):
+def rle_is_all_zeros(values, run_lengths=None):
+    if run_lengths is not None:
+        return np.all(values == 0, where=(run_lengths > 0))
     return np.all(values == 0)
 
 
-def rle_is_all_non_zeros(values):
+def rle_is_all_non_zeros(values, run_lengths=None):
+    if run_lengths is not None:
+        return np.all(values != 0, where=(run_lengths > 0))
     return np.all(values != 0)
+
+
+def rle_pad(values, run_lengths, shape, target_shape, pad_top, pad_left):
+    """Pads/embeds 2D RLE encoded arrays into a larger shape fully vectorized."""
+    orig_h, orig_w = shape
+    target_h, target_w = target_shape
+
+    if shape == target_shape and pad_top == 0 and pad_left == 0:
+        return values, run_lengths, target_shape
+
+    # Edge case: Original is completely empty
+    if orig_h == 0 or orig_w == 0:
+        new_v = np.zeros((target_h, 1), dtype=np.uint8)
+        new_l = np.zeros((target_h, 1), dtype=np.intp)
+        if target_w > 0:
+            new_l[:, 0] = target_w
+        return new_v, new_l, target_shape
+
+    pad_right = target_w - orig_w - pad_left
+    max_runs = run_lengths.shape[1]
+
+    # Allocate temp arrays capable of holding the padded ends
+    temp_v = np.zeros((orig_h, max_runs + 2), dtype=np.uint8)
+    temp_l = np.zeros((orig_h, max_runs + 2), dtype=np.intp)
+
+    # 1. Prepend left pad (Default val 0)
+    temp_v[:, 0] = 0
+    temp_l[:, 0] = pad_left
+
+    # 2. Insert original data
+    temp_v[:, 1 : max_runs + 1] = values
+    temp_l[:, 1 : max_runs + 1] = run_lengths
+
+    # 3. Append right pad (Default val 0) dynamically after the last active run
+    counts = (run_lengths > 0).sum(axis=1)
+    row_indices = np.arange(orig_h)
+    append_indices = counts + 1
+
+    temp_v[row_indices, append_indices] = 0
+    temp_l[row_indices, append_indices] = pad_right
+
+    # 4. Merge adjacent 0-value runs on the left side
+    same_left = temp_v[:, 1] == 0
+    temp_l[same_left, 1] += temp_l[same_left, 0]
+    temp_l[same_left, 0] = 0
+
+    # 5. Merge adjacent 0-value runs on the right side
+    prev_indices = append_indices - 1
+    same_right = temp_v[row_indices, prev_indices] == 0
+    temp_l[row_indices[same_right], prev_indices[same_right]] += temp_l[
+        row_indices[same_right], append_indices[same_right]
+    ]
+    temp_l[row_indices[same_right], append_indices[same_right]] = 0
+
+    # 6. Extract valid lengths and shift everything to the left
+    mask = temp_l > 0
+    col_indices = np.cumsum(mask, axis=1)[mask] - 1
+    row_indices_mask = np.nonzero(mask)[0]
+
+    new_counts = mask.sum(axis=1)
+    max_new_runs = max(1, new_counts.max() if len(new_counts) > 0 else 1)
+
+    final_v = np.zeros((target_h, max_new_runs), dtype=np.uint8)
+    final_l = np.zeros((target_h, max_new_runs), dtype=np.intp)
+
+    # 7. Scatter back into the final vertically-padded array
+    vert_offsets = row_indices_mask + pad_top
+    final_v[vert_offsets, col_indices] = temp_v[mask]
+    final_l[vert_offsets, col_indices] = temp_l[mask]
+
+    # 8. Handle pure Top and Bottom padding rows
+    if pad_top > 0:
+        final_v[:pad_top, 0] = 0
+        final_l[:pad_top, 0] = target_w
+    if pad_top + orig_h < target_h:
+        final_v[pad_top + orig_h :, 0] = 0
+        final_l[pad_top + orig_h :, 0] = target_w
+
+    return final_v, final_l, target_shape
+
+
+def rle_slice(
+    values, run_lengths, shape, slice_top, slice_left, slice_height, slice_width
+):
+    """Slices 2D RLE encoded arrays fully vectorized without decoding."""
+    orig_h, orig_w = shape
+
+    if (
+        slice_top < 0
+        or slice_left < 0
+        or slice_height <= 0
+        or slice_width <= 0
+        or slice_top + slice_height > orig_h
+        or slice_left + slice_width > orig_w
+    ):
+        raise ValueError("Invalid slice dimensions.")
+
+    if (
+        slice_top == 0
+        and slice_left == 0
+        and slice_height == orig_h
+        and slice_width == orig_w
+    ):
+        return values, run_lengths, shape
+
+    # Extract the vertical rows
+    sub_v = values[slice_top : slice_top + slice_height]
+    sub_l = run_lengths[slice_top : slice_top + slice_height]
+
+    # Compute global start and end X-coordinates for every run in the 2D array
+    starts = np.zeros_like(sub_l)
+    starts[:, 1:] = np.cumsum(sub_l[:, :-1], axis=1)
+    ends = starts + sub_l
+
+    # Clip coordinates to the slice window
+    slice_right = slice_left + slice_width
+    clipped_lengths = np.clip(ends, slice_left, slice_right) - np.clip(
+        starts, slice_left, slice_right
+    )
+
+    # Mask of runs that survived the slice
+    mask = clipped_lengths > 0
+    counts = mask.sum(axis=1)
+    max_runs = counts.max() if counts.size > 0 else 0
+
+    # Edge case: Slice fell entirely into empty space
+    if max_runs == 0:
+        new_v = np.zeros((slice_height, 1), dtype=np.uint8)
+        new_l = np.zeros((slice_height, 1), dtype=np.intp)
+        new_l[:, 0] = slice_width
+        return new_v, new_l, (slice_height, slice_width)
+
+    # Magic left-alignment trick: compute the dynamic column index for each surviving run
+    col_indices = np.cumsum(mask, axis=1)[mask] - 1
+    row_indices = np.nonzero(mask)[0]
+
+    # Allocate and scatter the surviving runs into left-aligned dense arrays
+    new_v = np.zeros((slice_height, max_runs), dtype=np.uint8)
+    new_l = np.zeros((slice_height, max_runs), dtype=np.intp)
+    new_v[row_indices, col_indices] = sub_v[mask]
+    new_l[row_indices, col_indices] = clipped_lengths[mask]
+
+    # Ensure empty rows (where counts == 0) are correctly padded to slice_width
+    empty_rows = counts == 0
+    if np.any(empty_rows):
+        new_l[empty_rows, 0] = slice_width
+        new_v[empty_rows, 0] = 0
+
+    return new_v, new_l, (slice_height, slice_width)
 
 
 def _is_clockwise(polygon: np.ndarray) -> bool:

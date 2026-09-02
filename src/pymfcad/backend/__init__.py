@@ -26,5 +26,7 @@ from .slice import (
     rle_encode_packed,
     rle_is_all_non_zeros,
     rle_is_all_zeros,
+    rle_pad,
+    rle_slice,
     slice_component,
 )

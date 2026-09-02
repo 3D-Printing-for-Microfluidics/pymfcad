@@ -164,9 +164,7 @@ def test_polychannel_duplicate_positions_skip_arc_generation(
     )
     last = PolychannelShape(
         "cube",
-        position=(5, 0, 0)
-        if not duplicate_with_next or absolute_position
-        else (0, 0, 0),
+        position=(5, 0, 0) if not duplicate_with_next or absolute_position else (0, 0, 0),
         size=(2, 2, 2),
         absolute_position=absolute_position,
     )

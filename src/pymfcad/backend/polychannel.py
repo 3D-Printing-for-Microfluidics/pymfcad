@@ -539,10 +539,9 @@ class Polychannel(Shape):
                     )
                     rounded_shapes.append(shape)
                     continue
-                if (
-                    tuple(shapes[i - 1]._position) == tuple(shape._position)
-                    or tuple(shape._position) == tuple(shapes[i + 1]._position)
-                ):
+                if tuple(shapes[i - 1]._position) == tuple(shape._position) or tuple(
+                    shape._position
+                ) == tuple(shapes[i + 1]._position):
                     rounded_shapes.append(shape)
                     continue
                 # Calculate the arc points and local rotations.
