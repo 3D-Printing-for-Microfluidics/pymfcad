@@ -141,6 +141,39 @@ def test_polychannel_corner_radius_straight_segment():
     Polychannel(shapes)
 
 
+@pytest.mark.parametrize("absolute_position", [True, False])
+@pytest.mark.parametrize("duplicate_with_next", [True, False])
+def test_polychannel_duplicate_positions_skip_arc_generation(
+    monkeypatch, absolute_position, duplicate_with_next
+):
+    def fail_if_called(*args, **kwargs):
+        raise AssertionError("_arc_between_angle_3d should not be called")
+
+    monkeypatch.setattr(Polychannel, "_arc_between_angle_3d", fail_if_called)
+
+    first = PolychannelShape(
+        "cube", position=(0, 0, 0), size=(2, 2, 2), absolute_position=True
+    )
+    middle = PolychannelShape(
+        "cube",
+        position=(0, 0, 0) if not duplicate_with_next else (5, 0, 0),
+        size=(2, 2, 2),
+        absolute_position=absolute_position,
+        corner_radius=1,
+        corner_segments=5,
+    )
+    last = PolychannelShape(
+        "cube",
+        position=(5, 0, 0)
+        if not duplicate_with_next or absolute_position
+        else (0, 0, 0),
+        size=(2, 2, 2),
+        absolute_position=absolute_position,
+    )
+
+    Polychannel([first, middle, last])
+
+
 def test_polychannel_builds_with_rounded_corner():
     shapes = [
         _shape((0, 0, 0)),

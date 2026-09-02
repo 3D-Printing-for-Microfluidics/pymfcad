@@ -539,6 +539,12 @@ class Polychannel(Shape):
                     )
                     rounded_shapes.append(shape)
                     continue
+                if (
+                    tuple(shapes[i - 1]._position) == tuple(shape._position)
+                    or tuple(shape._position) == tuple(shapes[i + 1]._position)
+                ):
+                    rounded_shapes.append(shape)
+                    continue
                 # Calculate the arc points and local rotations.
                 arc_points, rotations, start_dir, end_dir = self._arc_between_angle_3d(
                     shapes[i - 1]._position,
@@ -548,15 +554,6 @@ class Polychannel(Shape):
                     shape._corner_segments,
                 )
                 if arc_points is None:
-                    # Straight line, no arc needed, or radius exceeds geometry constraints
-                    if tuple(shapes[i - 1]._position) == tuple(shape._position):
-                        print(
-                            f"\t⚠️  Shape at position {shape._position} has identical position to previous shape - skipping corner rounding"
-                        )
-                    else:
-                        print(
-                            f"\t⚠️  Unable to create arc at position {shape._position} with radius {shape._corner_radius} - skipping corner rounding"
-                        )
                     rounded_shapes.append(shape)
                     continue
 
