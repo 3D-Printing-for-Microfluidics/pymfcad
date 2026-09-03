@@ -27,6 +27,7 @@ class Pinhole(Component):
             size=(total_length, pinhole_height, pinhole_width),
             px_size=0.0076,
             layer_size=0.01,
+            use_parent_settings=True,
             quiet=quiet,
         )  # px_size=1.0, layer_size=1.0)
 

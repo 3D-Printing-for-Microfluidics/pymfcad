@@ -163,6 +163,8 @@ Controls **light exposure behavior** per layer (multiplier, power, wavelength).
 
 You can attach exposure/position defaults to any component. These override general values for that component (defaults inherited from parent components and printer definition) and can enforce specific settings on its own layers.
 
+If you set `use_parent_settings=True` in the Component contructor, the component will inherits its setting directly from its parent. Components using this option cannot add their own settings. Use this option for purely geometric components such as pinholes and resevoirs.
+
 Use this when a specific component or assembly needs different motion or exposure than your general defaults.
 
 <div class="diff2html-wrapper">

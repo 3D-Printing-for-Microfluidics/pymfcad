@@ -505,15 +505,20 @@ class PrintFileGenerator:
                 component._px_size
             ).default_exposure_settings[0]
 
-        # Fill component default settings
-        if component.default_exposure_settings is None:
+        # Fill component default settings. An opted-in child uses the parent's
+        # fully resolved settings as its defaults; regional settings are applied afterward.
+        if component._parent is not None and component.use_parent_settings:
             component.default_exposure_settings = copy.deepcopy(_exposure_settings)
-        else:
-            component.default_exposure_settings.fill_with_defaults(_exposure_settings)
-        if component.default_position_settings is None:
             component.default_position_settings = copy.deepcopy(_position_settings)
         else:
-            component.default_position_settings.fill_with_defaults(_position_settings)
+            if component.default_exposure_settings is None:
+                component.default_exposure_settings = copy.deepcopy(_exposure_settings)
+            else:
+                component.default_exposure_settings.fill_with_defaults(_exposure_settings)
+            if component.default_position_settings is None:
+                component.default_position_settings = copy.deepcopy(_position_settings)
+            else:
+                component.default_position_settings.fill_with_defaults(_position_settings)
 
         root_component = _get_root_component(component)
 
@@ -872,7 +877,6 @@ class PrintFileGenerator:
                                 slice["image_name"], temp_directory, parent_fqn, z
                             )
 
-                            # save images if save_temp_files
                             if save_temp_files:
                                 cv2.imwrite(
                                     str(slice_image_path),
@@ -884,25 +888,20 @@ class PrintFileGenerator:
                                 end="",
                                 flush=True,
                             )
-                            if parent_info is not None:
-                                parent_info["slices"].append(
-                                    {
-                                        "image_name": slice_image_path.name,
-                                        "parent": None,
-                                        "image_data": embedded_slice_image,
-                                        "component": None,
-                                        "position": None,
-                                        "layer_position": (
-                                            round(slice["layer_position"] + z * 1000, 1)
-                                        ),
-                                        "exposure_settings": slice.get(
-                                            "exposure_settings"
-                                        ),
-                                        "position_settings": slice.get(
-                                            "position_settings"
-                                        ),
-                                    }
-                                )
+                            parent_info["slices"].append(
+                                {
+                                    "image_name": slice_image_path.name,
+                                    "parent": None,
+                                    "image_data": embedded_slice_image,
+                                    "component": None,
+                                    "position": None,
+                                    "layer_position": round(
+                                        slice["layer_position"] + z * 1000, 1
+                                    ),
+                                    "exposure_settings": slice.get("exposure_settings"),
+                                    "position_settings": slice.get("position_settings"),
+                                }
+                            )
                 print()
 
         ################################################################################

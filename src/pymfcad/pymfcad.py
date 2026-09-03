@@ -410,6 +410,7 @@ class Component(_InstantiationTrackerMixin):
         layer_size: float = 0.01,
         hide_in_render: bool = False,
         quiet: bool = False,
+        use_parent_settings: bool = False,
     ):
         """
         Parameters:
@@ -419,6 +420,7 @@ class Component(_InstantiationTrackerMixin):
         - layer_size (float): The size of a layer in mm. Default is 0.01 m.
         - hide_in_render (bool): Whether to hide the component in renders (nessiary for complex components like TPMS). Default is False.
         - quiet (bool): Whether to suppress creation messages. Default is False.
+        - use_parent_settings (bool): Whether parent component settings should override this component's settings. Default is False.
         """
         super().__init__()
         if not quiet:
@@ -431,6 +433,7 @@ class Component(_InstantiationTrackerMixin):
         self._layer_size = layer_size
         self.hide_in_render = hide_in_render
         self.quiet = quiet
+        self.use_parent_settings = use_parent_settings
         self._subtract_bounding_box = True
         self._translations = [0, 0, 0]
         self._rotation = 0
@@ -992,6 +995,9 @@ class Component(_InstantiationTrackerMixin):
                     f"'{component._name}' bounding box: {subcomp_bbox}, '{existing_name}' bounding box: {existing_bbox}."
                 )
 
+        if component.use_parent_settings:
+            component._inherit_parent_settings()
+
         def update_labels(
             comp: Component, prefix: str = None, parent_labels: dict = None
         ):
@@ -1020,6 +1026,71 @@ class Component(_InstantiationTrackerMixin):
         if hide_in_render:
             component.hide_in_render = True
 
+    def _inherit_parent_settings(self):
+        parent = self._parent
+        child_bbox = self.get_bounding_box()
+        parent_to_child = (
+            parent._px_size / self._px_size,
+            parent._px_size / self._px_size,
+            parent._layer_size / self._layer_size,
+        )
+
+        child_bbox_shape = Cube(size=self.get_size()).translate(self.get_position())
+        for name in [
+            name for name in self.regional_settings if name.startswith("_inherited_")
+        ]:
+            inherited_shape, _ = self.regional_settings.pop(name)
+            self.labels.pop(inherited_shape._label, None)
+
+        inherited_regions = {}
+        for name, (region, settings) in parent.regional_settings.items():
+            if settings is None:
+                continue
+            inherited_region = region.copy()
+            inherited_region.translate((-child_bbox[0], -child_bbox[1], -child_bbox[2]))
+            inherited_region.scale(parent_to_child)
+            inherited_region.translate(self.get_position())
+            inherited_region &= child_bbox_shape.copy()
+
+            inherited_name = f"_inherited_{name}"
+            suffix = 1
+            while (
+                inherited_name in self.regional_settings
+                or inherited_name in inherited_regions
+            ):
+                inherited_name = f"_inherited_{name}_{suffix}"
+                suffix += 1
+            inherited_label = f"_inherited_{name}"
+            while inherited_label in self.labels:
+                inherited_label = f"{inherited_label}_{suffix}"
+                suffix += 1
+            self.labels[inherited_label] = region._color
+            inherited_region._name = inherited_name
+            inherited_region._parent = self
+            inherited_region._label = inherited_label
+            inherited_region._color = region._color
+            inherited_regions[inherited_name] = (
+                inherited_region,
+                settings.copy(),
+            )
+
+        self.regional_settings.update(inherited_regions)
+
+        parent_position = parent.get_position(
+            px_size=parent._px_size, layer_size=parent._layer_size
+        )
+        child_position = self.get_position(
+            px_size=parent._px_size, layer_size=parent._layer_size
+        )
+        child_start_layer = max(0, int(round(child_position[2] - parent_position[2])))
+        self.burnin_settings = parent.burnin_settings[child_start_layer:].copy()
+
+    def _propagate_settings_to_children(self):
+        for child in self.subcomponents.values():
+            if child.use_parent_settings:
+                child._inherit_parent_settings()
+            child._propagate_settings_to_children()
+
     def add_default_exposure_settings(
         self,
         settings: ExposureSettings,
@@ -1033,6 +1104,11 @@ class Component(_InstantiationTrackerMixin):
         - settings (ExposureSettings): The exposure settings to be added.
         - label (str): The label associated with the default exposure settings region. If not provided, it will create a new label with this name and a default color (red).
         """
+        if self.use_parent_settings:
+            raise ValueError(
+                "Cannot add settings to a component with use_parent_settings=True; "
+                "it inherits settings from its parent component."
+            )
         self._ensure_unlocked("add default exposure settings")
         self.default_exposure_settings = settings
         if label == "_default_" and label not in self.labels:
@@ -1047,6 +1123,7 @@ class Component(_InstantiationTrackerMixin):
             settings=None,
             label=label,
         )
+        self._propagate_settings_to_children()
 
     def add_default_position_settings(
         self,
@@ -1061,6 +1138,11 @@ class Component(_InstantiationTrackerMixin):
         - settings (PositionSettings): The position settings to be added.
         - label (str): The label associated with the default position settings region. If not provided, it will create a new label with this name and a default color (red).
         """
+        if self.use_parent_settings:
+            raise ValueError(
+                "Cannot add settings to a component with use_parent_settings=True; "
+                "it inherits settings from its parent component."
+            )
         self._ensure_unlocked("add default position settings")
         self.default_position_settings = settings
         if label == "_default_" and label not in self.labels:
@@ -1074,6 +1156,7 @@ class Component(_InstantiationTrackerMixin):
             settings=None,
             label=label,
         )
+        self._propagate_settings_to_children()
 
     def add_regional_settings(
         self,
@@ -1094,6 +1177,11 @@ class Component(_InstantiationTrackerMixin):
         - settings (Union[PositionSettings, ExposureSettings, MembraneSettings, SecondaryDoseSettings]): The settings to be applied in the shape.
         - label (str): The label for the regional settings, which should be a key in the component's labels dictionary.
         """
+        if self.use_parent_settings:
+            raise ValueError(
+                "Cannot add settings to a component with use_parent_settings=True; "
+                "it inherits settings from its parent component."
+            )
         self._ensure_unlocked("add regional settings")
         self._validate_name(name)
         if shape._parent is not None:
@@ -1122,6 +1210,7 @@ class Component(_InstantiationTrackerMixin):
                     )
 
         self.regional_settings[name] = (shape, settings)
+        self._propagate_settings_to_children()
 
     def set_burn_in_exposure(self, exposure_times: list[float], label: str = "_default_"):
         """
@@ -1132,6 +1221,11 @@ class Component(_InstantiationTrackerMixin):
         - exposure_times (list[float]): List of exposure times in milliseconds for the burn-in process.
         - label (str): The label associated with the burn-in region. If not provided, it will create a new label with this name and a default color (red).
         """
+        if self.use_parent_settings:
+            raise ValueError(
+                "Cannot add settings to a component with use_parent_settings=True; "
+                "it inherits settings from its parent component."
+            )
         self._ensure_unlocked("set burn-in exposure")
         self.burnin_settings = exposure_times
         if label == "_default_" and label not in self.labels:
@@ -1147,6 +1241,7 @@ class Component(_InstantiationTrackerMixin):
             settings=None,
             label=label,
         )
+        self._propagate_settings_to_children()
 
     def relabel(
         self,
