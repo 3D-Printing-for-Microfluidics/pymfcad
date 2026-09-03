@@ -33,14 +33,10 @@ chan_size = (8, 8, 6)
 # y = 2
 # z = 7
 
-x = 10
-y = 10
+x = 50
+y = 32
 z = 7
-
-# x = 50
-# y = 32
-# z = 7
-# # z = 1
+# z = 1
 
 valve_grid = []
 for l in range(z):
@@ -124,7 +120,7 @@ slicer = PrintFileGenerator(
     component=device,
     printer=printer,
     resin=resin,
-    filename="python_design_test2_demo",
+    filename="stress_test_demo",
     minimize_file=True,
     zip_output=False,
 )
