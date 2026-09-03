@@ -209,35 +209,30 @@ release:
 		echo "  Notes:"; \
 		echo "$$RELEASE_NOTES" | sed 's/^/    /'; \
 		\
-		RELEASE_FLAGS="--title '$$RELEASE_TITLE' --notes '$$RELEASE_NOTES'"; \
+		GH_ARGS=(release create "$$TAG" --title "$$RELEASE_TITLE" --notes "$$RELEASE_NOTES"); \
 		if [[ "$$IS_PRERELEASE" == "true" ]]; then \
-			RELEASE_FLAGS="$$RELEASE_FLAGS --prerelease"; \
+			GH_ARGS+=(--prerelease); \
 		fi; \
 		\
-		if [[ "$$DRY_RUN" == "true" ]]; then \
-			RELEASE_FLAGS="$$RELEASE_FLAGS --draft"; \
-			echo ""; \
-			echo "📋 Creating GitHub release (DRAFT)"; \
-		else \
-			echo ""; \
-			echo "Creating GitHub release"; \
-		fi; \
+		GH_ARGS+=(--draft); \
+		echo ""; \
+		echo "📋 Creating GitHub release (DRAFT)"; \
 		\
-		BINARY_FILES=""; \
 		for binary in dist/*; do \
 			if [[ -f "$$binary" ]]; then \
-				BINARY_FILES="$$BINARY_FILES '$$binary'"; \
+				GH_ARGS+=("$$binary"); \
 			fi; \
 		done; \
 		\
-		eval "gh release create '$$TAG' $$RELEASE_FLAGS $$BINARY_FILES"; \
+		gh "$${GH_ARGS[@]}"; \
 		\
 		if [[ "$$DRY_RUN" == "true" ]]; then \
 			echo "Draft release created. Reverting version changes..."; \
 			git restore pyproject.toml uv.lock 2>/dev/null || git checkout pyproject.toml uv.lock 2>/dev/null || true; \
 			echo "Release created successfully (as draft)!"; \
 		else \
-			echo "Release published successfully!"; \
+			echo "Release created successfully (as draft)! Review and publish on GitHub."; \
+			echo "New version should also be created on Zenodo. This can be done via the Zenodo web interface. (Add zipped files, update title to reflect version, update description with release notes, update version number)"; \
 		fi; \
 	else \
 		echo "WARNING: 'gh' CLI not found. Please create the GitHub release manually:"; \
@@ -245,4 +240,5 @@ release:
 		echo "  Title: $$RELEASE_TITLE"; \
 		echo "  Release notes: See the release notes file"; \
 		echo "  Binaries: dist/*"; \
+		echo "New version should also be created on Zenodo. This can be done via the Zenodo web interface. (Add zipped files, update title to reflect version, update description with release notes, update version number)"; \
 	fi
