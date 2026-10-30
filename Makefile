@@ -158,6 +158,9 @@ release:
 		NEW_VERSION=$$(grep "^version" pyproject.toml | head -1 | sed 's/version = "//;s/"//'); \
 	fi; \
 	\
+	echo "Updating golden print fixture versions..."; \
+	$(PYTHON) utilities/update_golden_print_versions.py "$$NEW_VERSION"; \
+	\
 	GIT_REMOTE=$$(git config --get remote.origin.url | sed 's|.*github.com[:/]\(.*\)/\(.*\)\.git|\1/\2|'); \
 	COMPARE_URL="https://github.com/$$GIT_REMOTE/compare/v$$CURRENT_VERSION...v$$NEW_VERSION"; \
 	RELEASE_DATE=$$(date +%Y-%m-%d); \
@@ -179,7 +182,7 @@ release:
 	\
 	if [[ "$$DRY_RUN" != "true" ]]; then \
 		echo "Committing version bump..."; \
-		git add pyproject.toml uv.lock; \
+		git add pyproject.toml uv.lock tests/golden_prints/*.zip; \
 		git commit -m "chore: bump version to $$NEW_VERSION"; \
 	else \
 		echo "📋 Would commit: pyproject.toml and uv.lock"; \
@@ -228,7 +231,7 @@ release:
 		\
 		if [[ "$$DRY_RUN" == "true" ]]; then \
 			echo "Draft release created. Reverting version changes..."; \
-			git restore pyproject.toml uv.lock 2>/dev/null || git checkout pyproject.toml uv.lock 2>/dev/null || true; \
+			git restore pyproject.toml uv.lock tests/golden_prints/*.zip 2>/dev/null || git checkout pyproject.toml uv.lock tests/golden_prints/*.zip 2>/dev/null || true; \
 			echo "Release created successfully (as draft)!"; \
 		else \
 			echo "Release created successfully (as draft)! Review and publish on GitHub."; \
