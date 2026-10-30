@@ -184,6 +184,8 @@ release:
 		echo "Committing version bump..."; \
 		git add pyproject.toml uv.lock tests/golden_prints/*.zip; \
 		git commit -m "chore: bump version to $$NEW_VERSION"; \
+		echo "Pushing version bump..."; \
+		git push origin HEAD; \
 	else \
 		echo "📋 Would commit: pyproject.toml and uv.lock"; \
 	fi; \
