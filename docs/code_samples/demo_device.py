@@ -1,0 +1,818 @@
+from pymfcad import *
+from pymfcad.component_library import Pinhole
+
+set_fn(50)
+
+
+class Valve20px(VariableLayerThicknessComponent):
+    def __init__(self, cross_section: bool = False, active: bool = False, quiet: bool = False):
+        super().__init__(
+            size=(36, 36, 24),
+            px_size=0.0076,
+            layer_sizes=[(6, 0.01), (2, 0.005), (16, 0.01)],
+            quiet=quiet,
+        )
+
+        # Setup labels
+        self.add_label("device", Color.from_name("cyan", 255))
+        self.add_label("pneumatic", Color.from_name("red", 255))
+        self.add_label("fluidic", Color.from_name("blue", 255))
+        self.add_label("membrane", Color.from_name("green", 128))
+        self.add_label("slow", Color.from_name("pink", 128))
+        self.add_label("extra", Color.from_name("gray", 128))
+
+        # Add ports
+        self.add_port(
+            "F_IN",
+            Port(Port.PortType.IN, (15, 15, 0), (6, 6, 8), Port.SurfaceNormal.NEG_Z),
+        )
+        self.add_port(
+            "F_OUT",
+            Port(Port.PortType.OUT, (36, 14, 0), (8, 8, 12), Port.SurfaceNormal.POS_X),
+        )
+        self.add_port(
+            "P_IN",
+            Port(Port.PortType.INOUT, (14, 0, 24), (8, 8, 12), Port.SurfaceNormal.NEG_Y),
+        )
+        self.add_port(
+            "P_OUT",
+            Port(Port.PortType.INOUT, (14, 36, 24), (8, 8, 12), Port.SurfaceNormal.POS_Y),
+        )
+
+        # Build void shapes
+        fluidics = Cylinder(height=4, radius=10, center_z=False).translate((18, 18, 8))
+        fluidics += Cube((4, 4, 8), center=False).translate((16, 16, 0))
+        fluidics += Cube((10, 8, 12), center=False).translate((26, 14, 0))
+        if active:
+            sphere_d = 30
+            sphere = Sphere((sphere_d,sphere_d,sphere_d), fn=100).translate((18,18,sphere_d/2+8))
+            fluidics -= sphere
+        self.add_void("FluidicShapes", fluidics, label="fluidic")
+
+        pneumatics = Cylinder(height=22, radius=10, center_z=False).translate(
+            (18, 18, 14)
+        )
+        pneumatics += Cube((8, 10, 12), center=False).translate((14, 0, 24))
+        pneumatics += Cube((8, 10, 12), center=False).translate((14, 26, 24))
+        if active:
+            sphere_d = 30
+            sphere = Sphere((sphere_d,sphere_d,sphere_d), fn=100).translate((18,18,sphere_d/2+10))
+            sphere -= Cube((sphere_d,sphere_d,sphere_d), center=True).translate((18,18,sphere_d/2+14))
+            pneumatics += sphere
+        self.add_void("PneumaticShapes", pneumatics, label="pneumatic")
+
+        # Add regional settings
+        self.add_regional_settings(
+            "MembraneExposure",
+            Cylinder(height=2, radius=10, center_z=False).translate((18, 18, 12)),
+            MembraneSettings(
+                exposure_settings=ExposureSettings(
+                    bulk_exposure_multiplier=500 / 300.0,
+                    relative_focus_position=50,
+                ),
+                max_membrane_thickness_um=20,
+                dilation_px=2,
+            ),
+            label="membrane",
+        )
+
+        self.add_regional_settings(
+            "SlowRegion",
+            Cylinder(height=20, radius=10, center_z=False).translate((18, 18, 12)),
+            PositionSettings(
+                up_speed=5.0, up_acceleration=5.0, down_speed=5.0, down_acceleration=5.0
+            ),
+            label="slow",
+        )
+
+        self.add_regional_settings(
+            "SecondaryDose",
+            Cube((8, 8, 8), center=False).translate((14, 14, 0)),
+            SecondaryDoseSettings(
+                edge_bulk_exposure_multiplier=250.0 / 300.0,
+                edge_erosion_px=2,
+            ),
+            label="extra",
+        )
+
+        # Build bulk shape
+        self.add_bulk("BulkShape", Cube((36, 36, 48), center=False), label="device")
+
+        if cross_section:
+            # do a crosssection cut
+            cross_section = Cube((36, 18, 48), center=False).translate((0, 0, 0))
+            for shape in self.shapes.values():
+                shape = shape - cross_section
+            for bulk in self.bulk_shapes.values():
+                bulk = bulk - cross_section
+
+
+# Valve20px().preview()
+
+
+class DC(VariableLayerThicknessComponent):
+    def __init__(self, cross_section: bool = False, active: bool = False, quiet: bool = False):
+        super().__init__(
+            size=(36, 36, 24),
+            px_size=0.0076,
+            layer_sizes=[(6, 0.01), (2, 0.005), (16, 0.01)],
+            quiet=quiet,
+        )
+
+        # Setup labels
+        self.add_label("device", Color.from_name("cyan", 255))
+        self.add_label("pneumatic", Color.from_name("red", 255))
+        self.add_label("fluidic", Color.from_name("blue", 255))
+        self.add_label("membrane", Color.from_name("green", 128))
+        self.add_label("slow", Color.from_name("aqua", 128))
+
+        # Add ports
+        self.add_port(
+            "F_IN",
+            Port(Port.PortType.IN, (0, 14, 0), (8, 8, 12), Port.SurfaceNormal.NEG_X),
+        )
+        self.add_port(
+            "F_OUT",
+            Port(Port.PortType.OUT, (36, 14, 0), (8, 8, 12), Port.SurfaceNormal.POS_X),
+        )
+        self.add_port(
+            "P_IN",
+            Port(Port.PortType.INOUT, (14, 0, 24), (8, 8, 12), Port.SurfaceNormal.NEG_Y),
+        )
+        self.add_port(
+            "P_OUT",
+            Port(Port.PortType.INOUT, (14, 36, 24), (8, 8, 12), Port.SurfaceNormal.POS_Y),
+        )
+
+        # Build void shapes
+        fluidics = Cylinder(height=4, radius=10, center_z=False).translate((18, 18, 8))
+        fluidics += Cube((10, 8, 12), center=False).translate((0, 14, 0))
+        fluidics += Cube((10, 8, 12), center=False).translate((26, 14, 0))
+        if active:
+            sphere_d = 30
+            sphere = Sphere((sphere_d,sphere_d,sphere_d), fn=100).translate((18,18,sphere_d/2+8))
+            fluidics -= sphere
+        self.add_void("FluidicShapes", fluidics, label="fluidic")
+
+        pneumatics = Cylinder(height=22, radius=10, center_z=False).translate(
+            (18, 18, 14)
+        )
+        pneumatics += Cube((8, 10, 12), center=False).translate((14, 0, 24))
+        pneumatics += Cube((8, 10, 12), center=False).translate((14, 26, 24))
+        if active:
+            sphere_d = 30
+            sphere = Sphere((sphere_d,sphere_d,sphere_d), fn=100).translate((18,18,sphere_d/2+10))
+            sphere -= Cube((sphere_d,sphere_d,sphere_d), center=True).translate((18,18,sphere_d/2+14))
+            pneumatics += sphere
+        self.add_void("PneumaticShapes", pneumatics, label="pneumatic")
+
+        # Add regional settings
+        self.add_regional_settings(
+            "MembraneExposure",
+            Cylinder(height=2, radius=10, center_z=False).translate((18, 18, 12)),
+            MembraneSettings(
+                exposure_settings=ExposureSettings(
+                    bulk_exposure_multiplier=500 / 300.0,
+                    relative_focus_position=50,
+                ),
+                max_membrane_thickness_um=20,
+                dilation_px=2,
+            ),
+            label="membrane",
+        )
+
+        self.add_regional_settings(
+            "SlowRegion",
+            Cylinder(height=20, radius=10, center_z=False).translate((18, 18, 12)),
+            PositionSettings(
+                up_speed=5.0, up_acceleration=5.0, down_speed=5.0, down_acceleration=5.0
+            ),
+            label="slow",
+        )
+
+        # Build bulk shape
+        self.add_bulk("BulkShape", Cube((36, 36, 48), center=False), label="device")
+
+        if cross_section:
+            # do a crosssection cut
+            cross_section = Cube((36, 18, 48), center=False).translate((0, 0, 0))
+            for shape in self.shapes.values():
+                shape = shape - cross_section
+            for bulk in self.bulk_shapes.values():
+                bulk = bulk - cross_section
+
+
+# DC().preview()
+
+
+class Pump(Component):
+    def __init__(self, render_state: str = "render", quiet: bool = False):
+        super().__init__(
+            size=(125, 36, 36),
+            px_size=0.0076,
+            layer_size=0.01,
+            quiet=quiet,
+        )
+
+        preview = render_state.startswith("preview")
+        cross_section = False
+        if preview and render_state != "preview":
+            cross_section = True
+
+        # Setup labels
+        self.add_label("device", Color.from_name("cyan", 255))
+        self.add_label("pneumatic", Color.from_name("red", 255))
+        self.add_label("fluidic", Color.from_name("blue", 255))
+        self.add_label("dc_membrane", Color.from_name("green", 128))
+        self.add_label("valve_membrane", Color.from_name("lime", 128))
+        self.add_label("slow", Color.from_name("pink", 128))
+        self.add_label("extra", Color.from_name("gray", 128))
+
+        # Add ports
+        self.add_port(
+            "F_IN",
+            Port(Port.PortType.IN, (0, 14, 6), (8, 8, 6), Port.SurfaceNormal.NEG_X),
+        )
+        self.add_port(
+            "F_OUT",
+            Port(Port.PortType.OUT, (125, 14, 12), (8, 8, 6), Port.SurfaceNormal.POS_X),
+        )
+        if not cross_section:
+            self.add_port(
+                "P1_IN",
+                Port(Port.PortType.INOUT, (14, 0, 24), (8, 8, 6), Port.SurfaceNormal.NEG_Y),
+            )
+            self.add_port(
+                "P2_IN",
+                Port(Port.PortType.INOUT, (59, 0, 24), (8, 8, 6), Port.SurfaceNormal.NEG_Y),
+            )
+            self.add_port(
+                "P3_IN",
+                Port(Port.PortType.INOUT, (103, 0, 24), (8, 8, 6), Port.SurfaceNormal.NEG_Y),
+            )
+        self.add_port(
+            "P1_OUT",
+            Port(Port.PortType.INOUT, (14, 36, 24), (8, 8, 6), Port.SurfaceNormal.POS_Y),
+        )
+        self.add_port(
+            "P2_OUT",
+            Port(Port.PortType.INOUT, (59, 36, 24), (8, 8, 6), Port.SurfaceNormal.POS_Y),
+        )
+        self.add_port(
+            "P3_OUT",
+            Port(Port.PortType.INOUT, (103, 36, 24), (8, 8, 6), Port.SurfaceNormal.POS_Y),
+        )
+
+        # Build void shapes
+        valve_1_toggled = False
+        dc_toggled = False
+        valve_2_toggled = False
+        if preview:
+            if render_state == "preview_1":
+                valve_1_toggled = True
+                dc_toggled = True
+                valve_2_toggled = True
+            elif render_state == "preview_2":
+                valve_2_toggled = True
+            elif render_state == "preview_3":
+                valve_1_toggled = True
+                valve_2_toggled = True
+            elif render_state == "preview_4":
+                valve_1_toggled = True
+            elif render_state == "preview_5":
+                valve_1_toggled = True
+                dc_toggled = True
+
+        # Add components
+        v1 = Valve20px(cross_section, valve_1_toggled).translate([0, 0, 12])
+        dc = DC(cross_section, dc_toggled).translate([45, 0, 12])
+        v2 = Valve20px(cross_section, valve_2_toggled).translate([89, 0, 12])
+        self.add_subcomponent("Valve1", v1)
+        self.add_subcomponent("DC", dc)
+        self.add_subcomponent("Valve2", v2)
+
+        # Route channels
+        r = Router(component=self, channel_size=(8, 8, 6), channel_margin=(8, 8, 6))
+        r.autoroute_channel(self.F_IN, v1.F_IN, label="fluidic")
+        r.autoroute_channel(v1.F_OUT, dc.F_IN, label="fluidic")
+        r.autoroute_channel(dc.F_OUT, v2.F_IN, label="fluidic")
+        r.finalize_routes()
+
+        # Mark unrouted ports as connected
+        v1.connect_port(v1.P_IN)
+        v1.connect_port(v1.P_OUT)
+        dc.connect_port(dc.P_IN)
+        dc.connect_port(dc.P_OUT)
+        v2.connect_port(v2.P_IN)
+        v2.connect_port(v2.P_OUT)
+        v2.connect_port(v2.F_OUT)
+
+        # Build bulk shape
+        self.add_bulk("BulkShape", Cube((125, 36, 36), center=False), label="device")
+
+        if cross_section:
+            # do a crosssection cut
+            cccube = Cube((125, 18, 36), center=False).translate((0, 0, 0))
+            for shape in self.shapes.values():
+                shape = shape - cccube
+            for bulk in self.bulk_shapes.values():
+                bulk = bulk - cccube
+
+        # Color channels
+        self.relabel({
+            "pneumatic": "pneumatic",
+            "fluidic": "fluidic",
+            "device": "device",
+            "Valve1.membrane": "valve_membrane",
+            "DC.membrane": "dc_membrane",
+            "Valve2.membrane": "valve_membrane",
+            "slow": "slow",
+            "extra": "extra",
+        }, recursive=True)
+
+
+
+# Pump().rotate(270, in_place=True).mirror(
+#     mirror_x=False, mirror_y=False, in_place=True
+# ).preview()
+
+# Pump("preview_1").rotate(270, in_place=True).mirror(
+#     mirror_x=False, mirror_y=False, in_place=True
+# ).preview()
+
+
+class TJunction(Component):
+    def __init__(self, quiet: bool = False):
+
+        super().__init__(
+            size=(24, 24, 18), px_size=0.0076, layer_size=0.01, quiet=quiet
+        )
+
+        # Setup labels
+        self.add_label("device", Color.from_name("cyan", 255))
+        self.add_label("fluidic", Color.from_name("blue", 255))
+
+        # Add ports
+        self.add_port(
+            "F_IN1",
+            Port(Port.PortType.IN, (0, 8, 6), (8, 8, 6), Port.SurfaceNormal.NEG_X),
+        )
+        self.add_port(
+            "F_IN2",
+            Port(Port.PortType.IN, (24, 8, 6), (8, 8, 6), Port.SurfaceNormal.POS_X),
+        )
+        self.add_port(
+            "F_OUT",
+            Port(Port.PortType.OUT, (8, 24, 6), (8, 8, 6), Port.SurfaceNormal.POS_Y),
+        )
+
+        # Route channels
+        r = Router(component=self, channel_size=(8, 8, 6), channel_margin=(8, 8, 6))
+        r.route_with_fractional_path(
+            self.F_IN2, self.F_OUT, [(1, 0, 1), (0, 1, 0)], label="fluidic"
+        )
+        r.route_with_fractional_path(
+            self.F_IN1, self.F_OUT, [(1, 0, 1), (0, 1, 0)], label="fluidic"
+        )
+        r.finalize_routes()
+
+        # Build bulk shape
+        self.add_bulk("BulkShape", Cube((24, 24, 18), center=False), label="device")
+
+
+# TJunction().preview()
+
+
+class ViewingRegion(Component):
+    def __init__(self, quiet: bool = False):
+
+        super().__init__(
+            size=(48, 48, 18), px_size=0.0076, layer_size=0.01, quiet=quiet
+        )
+
+        # Setup labels
+        self.add_label("device", Color.from_name("cyan", 255))
+        self.add_label("fluidic", Color.from_name("blue", 255))
+
+        # Add ports
+        self.add_port(
+            "F_IN",
+            Port(Port.PortType.IN, (0, 20, 6), (8, 8, 6), Port.SurfaceNormal.NEG_X),
+        )
+        self.add_port(
+            "F_OUT",
+            Port(Port.PortType.OUT, (48, 20, 6), (8, 8, 6), Port.SurfaceNormal.POS_X),
+        )
+
+        # Route channels
+        r = Router(component=self, channel_size=(8, 8, 6), channel_margin=(8, 8, 6))
+        r.route_with_polychannel(
+            self.F_IN,
+            self.F_OUT,
+            [
+                PolychannelShape("cube", (12, 0, 0), (0, 36, 6)),
+                PolychannelShape("cube", (24, 0, 0), (0, 36, 6)),
+            ],
+            label="fluidic",
+        )
+        r.finalize_routes()
+
+        # Build bulk shape
+        self.add_bulk("BulkShape", Cube((48, 48, 18), center=False), label="device")
+
+
+# ViewingRegion().preview()
+
+
+class HARChannel(Component):
+    def __init__(self, quiet: bool = False):
+
+        super().__init__(
+            size=(72, 24, 36), px_size=0.0076, layer_size=0.01, quiet=quiet
+        )
+
+        # Setup labels
+        self.add_label("device", Color.from_name("cyan", 255))
+        self.add_label("fluidic", Color.from_name("blue", 255))
+
+        # Add ports
+        self.add_port(
+            "F_IN",
+            Port(Port.PortType.IN, (0, 8, 15), (8, 8, 6), Port.SurfaceNormal.NEG_X),
+        )
+        self.add_port(
+            "F_OUT",
+            Port(Port.PortType.OUT, (72, 8, 15), (8, 8, 6), Port.SurfaceNormal.POS_X),
+        )
+
+        # Route channels
+        r = Router(component=self, channel_size=(8, 8, 6), channel_margin=(8, 8, 6))
+        r.route_with_polychannel(
+            self.F_IN,
+            self.F_OUT,
+            [
+                PolychannelShape("cube", (12, 0, 0), (0, 2, 24)),
+                PolychannelShape("cube", (48, 0, 0), (0, 2, 24)),
+            ],
+            label="fluidic",
+        )
+        r.finalize_routes()
+
+        # Build bulk shape
+        self.add_bulk("BulkShape", Cube((72, 24, 36), center=False), label="device")
+
+
+# HARChannel().preview()
+
+
+class SerpentineChannel(Component):
+    def __init__(
+        self,
+        channel_size: tuple[int, int, int] = (8, 8, 6),
+        width: int = 4,
+        turns: int = 4,
+        layers: int = 3,
+        quiet: bool = False,
+    ):
+
+        super().__init__(
+            size=(
+                (2 * turns + 4) * channel_size[0],
+                width,
+                (2 * layers + 1) * channel_size[2],
+            ),
+            px_size=0.0076,
+            layer_size=0.01,
+            quiet=quiet,
+        )
+
+        # Setup labels
+        self.add_label("device", Color.from_name("cyan", 255))
+        self.add_label("fluidic", Color.from_name("blue", 255))
+
+        # Add ports
+        self.add_port(
+            "F_IN",
+            Port(
+                Port.PortType.IN,
+                (0, width / 2 - channel_size[1] / 2, channel_size[2]),
+                channel_size,
+                Port.SurfaceNormal.NEG_X,
+            ),
+        )
+        self.add_port(
+            "F_OUT",
+            Port(
+                Port.PortType.OUT,
+                (
+                    (2 * turns + 4) * channel_size[0] if layers % 2 else 0,
+                    width / 2 - channel_size[1] / 2,
+                    (2 * layers - 1) * channel_size[2],
+                ),
+                channel_size,
+                Port.SurfaceNormal.POS_X if layers % 2 else Port.SurfaceNormal.NEG_X,
+            ),
+        )
+
+        r = Router(component=self, channel_size=channel_size, channel_margin=channel_size)
+        shape_list = [
+            PolychannelShape(
+                shape_type="cube",
+                size=channel_size,
+                position=(2 * channel_size[0], 0, 0),
+                corner_radius=channel_size[0],
+            ),
+        ]
+        for i in range(layers):
+            dir = 1 if i % 2 == 0 else -1
+            for j in range(turns):
+                y_pos = width / 2 - channel_size[1]
+                if j % 2 == 0:
+                    y_pos = -y_pos
+                shape_list.extend(
+                    [
+                        PolychannelShape(
+                            position=(0, y_pos, 0),
+                        ),
+                        PolychannelShape(
+                            position=(dir * 2 * channel_size[0], 0, 0),
+                        ),
+                        PolychannelShape(
+                            position=(0, -y_pos, 0),
+                        ),
+                    ]
+                )
+            if i < layers - 1:
+                shape_list.append(
+                    PolychannelShape(
+                        position=(0, 0, 2 * channel_size[2]),
+                    )
+                )
+        r.route_with_polychannel(
+            self.F_IN,
+            self.F_OUT,
+            shape_list,
+            "fluidic",
+        )
+        r.finalize_routes()
+
+        # Build bulk shape
+        self.add_bulk(
+            "BulkShape",
+            Cube(
+                (
+                    (2 * turns + 4) * channel_size[0],
+                    width,
+                    (2 * layers + 1) * channel_size[2],
+                ),
+                center=False,
+            ),
+            label="device",
+        )
+
+
+# SerpentineChannel(width=256, turns=10, layers=3).preview()
+
+# Pinhole(channel_size=(8, 8, 6)).preview()
+
+render_animation = False
+devices = []
+for preview in [
+    "render",
+    "preview",
+    "preview_0",
+    "preview_1",
+    "preview_2",
+    "preview_3",
+    "preview_4",
+    "preview_5",
+] if render_animation else ["render"]:
+
+    dev = Component(size=(2560, 1600, 250), px_size=0.0076, layer_size=0.01)
+    dev._name = f"FullTestDevice_{preview}"
+
+    dev.add_label("device", Color.from_name("aqua", 100))
+    dev.add_label("edge", Color.from_name("red", 100))
+    dev.add_label("control", Color.from_name("fuchsia", 255))
+    dev.add_label("fluidic", Color.from_name("aqua", 255))
+
+    device_width = 1600
+    device_length = 2560
+    pinhole_width = 110
+    pinhole_height = 144
+    pinhole_length = 250
+    pump_width = 36
+    mixer_width = 24
+    view_width = 48
+    harc_width = 24
+    harc_height = 36
+    serp_width = 1200
+    text = TextExtrusion(
+        "Demo Device",
+        height=10,
+        font_size=150,
+    ).translate((device_length / 2, device_width - 150, 240))
+    f_in1 = Pinhole(channel_size=(8, 8, 6)).translate((0, 500, 75))
+    f_in2 = Pinhole(channel_size=(8, 8, 6)).translate(
+        (0, device_width - 500 - pinhole_width, 75)
+    )
+    f_out = (
+        Pinhole(channel_size=(8, 8, 6))
+        .rotate(180, in_place=True)
+        .translate((device_length - pinhole_length, device_width / 2 - pinhole_width / 2, 75))
+    )
+    v1_control = (
+        Pinhole(channel_size=(8, 8, 6)).rotate(90, in_place=True).translate((300, 0, 75))
+    )
+    v1_flush = (
+        Pinhole(channel_size=(8, 8, 6))
+        .rotate(270, in_place=True)
+        .translate((300, device_width - pinhole_length, 75))
+    )
+    dc_control = (
+        Pinhole(channel_size=(8, 8, 6)).rotate(90, in_place=True).translate((600, 0, 75))
+    )
+    dc_flush = (
+        Pinhole(channel_size=(8, 8, 6))
+        .rotate(270, in_place=True)
+        .translate((600, device_width - pinhole_length, 75))
+    )
+    v2_control = (
+        Pinhole(channel_size=(8, 8, 6)).rotate(90, in_place=True).translate((900, 0, 75))
+    )
+    v2_flush = (
+        Pinhole(channel_size=(8, 8, 6))
+        .rotate(270, in_place=True)
+        .translate((900, device_width - pinhole_length, 75))
+    )
+
+    pump1 = Pump().translate((600, 700, 150))
+    pump2 = Pump(preview).translate((600, device_width - 700 - pump_width, 150))
+
+    mixer = (
+        TJunction()
+        .rotate(270, in_place=True)
+        .translate((700, device_width / 2 - mixer_width / 2, 150))
+    )
+    view1 = ViewingRegion().translate((800, device_width / 2 - view_width / 2, 150))
+    harc = HARChannel().translate(
+        (900, device_width / 2 - harc_width / 2, 150 - harc_height / 2 + 9)
+    )
+    serp = SerpentineChannel(width=serp_width, turns=40, layers=15).translate(
+        (1200, device_width / 2 - serp_width / 2, 25)
+    )
+    view2 = ViewingRegion().translate((2000, device_width / 2 - view_width / 2, 150))
+
+    dev.add_void("Text", text, label="device")
+    dev.add_subcomponent("F_IN1", f_in1)
+    dev.add_subcomponent("F_IN2", f_in2)
+    dev.add_subcomponent("F_OUT", f_out)
+    if not preview.startswith("preview"):
+        dev.add_subcomponent("V1_CONT", v1_control)
+        dev.add_subcomponent("V1_FLUSH", v1_flush)
+        dev.add_subcomponent("DC_CONT", dc_control)
+        dev.add_subcomponent("DC_FLUSH", dc_flush)
+        dev.add_subcomponent("V2_CONT", v2_control)
+        dev.add_subcomponent("V2_FLUSH", v2_flush)
+    dev.add_subcomponent("Pump1", pump1)
+    dev.add_subcomponent("Pump2", pump2)
+    dev.add_subcomponent("TMixer", mixer)
+    dev.add_subcomponent("ViewingRegion1", view1)
+    dev.add_subcomponent("HARChannel", harc)
+    dev.add_subcomponent("SerpentineChannel", serp)
+    dev.add_subcomponent("ViewingRegion2", view2)
+
+    r = Router(component=dev, channel_size=(8, 8, 6), channel_margin=(8, 8, 6))
+
+    # Fluidic lines
+    r.autoroute_channel(f_in1.port, pump1.F_IN, label="fluidic")
+    r.autoroute_channel(f_in2.port, pump2.F_IN, label="fluidic")
+    r.autoroute_channel(pump1.F_OUT, mixer.F_IN2, label="fluidic")
+    r.autoroute_channel(pump2.F_OUT, mixer.F_IN1, label="fluidic")
+    r.autoroute_channel(mixer.F_OUT, view1.F_IN, label="fluidic")
+    r.autoroute_channel(view1.F_OUT, harc.F_IN, label="fluidic")
+    r.autoroute_channel(harc.F_OUT, serp.F_IN, label="fluidic")
+    r.route_with_polychannel(
+        serp.F_OUT,
+        view2.F_IN,
+        [
+            BezierCurveShape(
+                position=(120, 0, -43),
+                control_points=[
+                    (40, 0, 0),
+                    (80, 0, -43),
+                ],
+                bezier_segments=20,
+                absolute_position=False,
+            ),
+        ],
+        label="fluidic",
+    )
+    r.route_with_polychannel(
+        view2.F_OUT,
+        f_out.port,
+        [
+            BezierCurveShape(
+                position=(254, 17, -29),
+                control_points=[(0, 0, 0)],
+                bezier_segments=20,
+                absolute_position=False,
+            ),
+        ],
+        label="fluidic",
+    )
+
+    # Control and flush lines
+    if not preview.startswith("preview"):
+        r.autoroute_channel(
+            v1_control.port, pump1.P1_IN, label="control", direction_preference=("Z", "Y", "X")
+        )
+        r.autoroute_channel(pump1.P1_OUT, pump2.P1_IN, label="control")
+        r.autoroute_channel(
+            pump2.P1_OUT, v1_flush.port, label="control", direction_preference=("X", "Y", "Z")
+        )
+        r.autoroute_channel(
+            dc_control.port, pump1.P2_IN, label="control", direction_preference=("Z", "Y", "X")
+        )
+        r.autoroute_channel(pump1.P2_OUT, pump2.P2_IN, label="control")
+        r.autoroute_channel(
+            pump2.P2_OUT, dc_flush.port, label="control", direction_preference=("X", "Y", "Z")
+        )
+        r.autoroute_channel(
+            v2_control.port, pump1.P3_IN, label="control", direction_preference=("Z", "Y", "X")
+        )
+        r.autoroute_channel(pump1.P3_OUT, pump2.P3_IN, label="control")
+        r.autoroute_channel(
+            pump2.P3_OUT, v2_flush.port, label="control", direction_preference=("X", "Y", "Z")
+        )
+
+    # Finalize routing
+    r.finalize_routes()
+
+    # Add regional settings
+    dev.add_regional_settings(
+        "EdgeExposure",
+        Cube((2560, 1600, 250), center=False).translate((0, 0, 0))
+        - Cube((2460, 1500, 250), center=False).translate((50, 50, 0)),
+        ExposureSettings(bulk_exposure_multiplier=1000 / 300.0),
+        label="edge",
+    )
+
+    dev.set_burn_in_exposure([10000, 5000, 2500])
+
+    dev.add_bulk(
+        "BulkShape",
+        Cube((2560, 1600, 250), center=False).translate((0, 0, 0)),
+        label="device",
+    )
+
+    # Color channels
+    dev.relabel({
+        "pneumatic": "control",
+        "fluidic": "fluidic",
+        "bulk": "device",
+        "device": "device",
+        "F_IN1.void": "fluidic",
+        "F_IN2.void": "fluidic",
+        "F_OUT.void": "fluidic",
+    }, recursive=True)
+
+    if not preview.startswith("preview"):
+        dev.relabel({
+            "V1_CONT.void": "control",
+            "V1_FLUSH.void": "control",
+            "DC_CONT.void": "control",
+            "DC_FLUSH.void": "control",
+            "V2_CONT.void": "control",
+            "V2_FLUSH.void": "control",
+        }, recursive=True)
+
+    devices.append(dev)
+
+Component.preview_components(devices)
+
+print_file_gen = PrintFileGenerator(
+    filename="full_test_demo",
+    author="Test User",
+    purpose="Test Design",
+    description="This is a test design for the PyMFCAD library.",
+    component=dev,
+    printer=Printer(
+        name="HR3v3",
+        light_engines=[
+            LightEngine(
+                px_size=0.0076,
+                px_count=(2560, 1600),
+                wavelengths=[365],
+                grayscale_available=[True],
+                default_exposure_settings=[ExposureSettings(grayscale_correction=True)]
+            )
+        ],
+        vacuum_available=False,
+        default_position_settings = PositionSettings()
+    ),
+    resin=ResinType(bulk_exposure=300.0),
+    minimize_file=True,
+    zip_output=False,
+)
+print_file_gen.run(overwrite=True)

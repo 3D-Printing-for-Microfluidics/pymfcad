@@ -33,10 +33,13 @@ mkdir my-mf-project && cd my-mf-project
     uv venv
     uv pip install pymfcad
     ```
-4. Quick verification (runs a built‑in demo):
-    ```bash
-    uv run python -m examples.full_test
-    ```
+3. Quick verification (runs a demo):
+    - <a href="code_samples/demo_device.py" download>Download demo_device code</a>
+    - Copy downloaded code into project directory.
+    - Run code:
+        ```bash
+        uv run demo_device.py
+        ```
 
 ---
 
@@ -63,14 +66,17 @@ mkdir my-mf-project && cd my-mf-project
     ```bash
     pip install pymfcad
     ```
-3. Quick verification (runs a built‑in demo):
-    ```bash
-    python -m examples.full_test
-    ```
+3. Quick verification (runs a demo):
+    - <a href="code_samples/demo_device.py" download>Download demo_device code</a>
+    - Copy downloaded code into project directory.
+    - Run code:
+        ```bash
+        python demo_device.py
+        ```
 
 ## Quick check
 
-You should be able to run a demo without errors and see the visualizer open.
+You should be able to run the demo without errors.
 
 ---
 
