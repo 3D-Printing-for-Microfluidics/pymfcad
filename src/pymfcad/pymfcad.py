@@ -1728,7 +1728,7 @@ class Component(_InstantiationTrackerMixin):
 
     def render(self, filename: str = "component.glb", do_bulk_difference: bool = True):
         """
-        Render the component to a file.
+        Render the component to a file. Accepts common files formats such as .glb, .stl, and .3mf.
 
         Parameters:
 
